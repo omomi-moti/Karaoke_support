@@ -326,11 +326,10 @@ actor TrackMetadataCache {
 
 ```swift
 // Why: 最近再生した曲は流動的で件数も限定的。SwiftDataより軽量。
-// 24時間以内の一時キャッシュ（UserDefaults またはインメモリ）。永続化しない。
+// インメモリキャッシュのみ。アプリ再起動で消える。永続化しない。
 struct RecentlyPlayedCache {
-    static let key = "spotify_recently_played"
-    // 保存形式: [TrackID: メタデータ] の JSON または Track ID のみ
-    // 有効期限: 24時間以内。アプリ起動時・手動リフレッシュで上書き。
+    // 保存形式: メモリ上のキャッシュ（Track オブジェクト配列）
+    // 有効期限: アプリ実行中のみ。再起動で初期化。
 }
 ```
 
