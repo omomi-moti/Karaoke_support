@@ -19,14 +19,15 @@
 
 ### 1.2 矛盾点の詳細
 
-#### 矛盾1: TrackRepository の API 定義
+#### 矛盾1: TrackRepository の API 定義（解消済み）
 
 | ドキュメント | 記述 |
 |--------------|------|
-| **issues.md** I-004 | `search`, `getOrCreate` |
+| **issues.md** I-004 | `searchLocal(query)`, `getOrCreate(spotifyTrackId?, userEnteredName?)` |
 | **detailed_design.md** | `searchLocal(query)`, `getOrCreate(spotifyTrackId?, userEnteredName?)` |
 
-**指摘**: issues.md の I-004 が detailed_design と不一致。`search` → `searchLocal`、`getOrCreate` の引数に `userEnteredName` を追加する必要あり。
+**指摘（履歴）**: 当初、issues.md の I-004 が detailed_design と不一致であり、`search` → `searchLocal`、`getOrCreate` の引数に `userEnteredName` を追加する必要があった。  
+**対応状況**: 当該 PR 内で issues.md I-004 を修正し、現在は detailed_design.md と同じ API 定義となっており、矛盾は解消済み。
 
 ---
 
