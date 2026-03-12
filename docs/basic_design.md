@@ -2,7 +2,7 @@
 
 **Version**: 1.0  
 **Created**: 2026-03-12  
-**参照**: specs/001-hitora-karaoke-ios/spec.md, docs/raw_spec.md v4.0
+**参照**: specs/001-hitora-karaoke-ios/spec.md, docs/raw_spec.md v4.1
 
 ---
 
