@@ -470,7 +470,7 @@ update_existing_agent_file() {
             # Keep only first 2 existing changes
             if [[ $existing_changes_count -lt 2 ]]; then
                 echo "$line" >> "$temp_file"
-                ((existing_changes_count++))
+                ((++existing_changes_count))
             fi
             continue
         fi
