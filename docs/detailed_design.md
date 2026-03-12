@@ -58,9 +58,9 @@ sequenceDiagram
     User->>View: 保存ボタンタップ
     View->>ViewModel: saveSession(intent, score, memo)
     ViewModel->>Repository: saveSession(session)
-    Repository->>SwiftData: insert(track(spotifyTrackId=nil, メタデータ=一時保存))
+    Repository->>SwiftData: insert(track(spotifyTrackId=nil, userEnteredName 等のユーザー生成データのみ))
     Repository->>SwiftData: insert(session, trackId=track.id)
-    Note over Repository,SwiftData: trackId FK は必須。オフライン時は spotifyTrackId=nil の Track を生成して紐付け、後から同期 or ローカルのみ
+    Note over Repository,SwiftData: trackId FK は必須。オフライン時は spotifyTrackId=nil の Track（userEnteredName 等のユーザー生成データのみ永続化）を生成して紐付ける。Spotify 由来メタデータはインメモリ/TTL キャッシュでのみ保持し、SwiftData へ永続化しない
     SwiftData-->>Repository: OK
     Repository-->>ViewModel: success
     ViewModel-->>View: 完了
