@@ -1,0 +1,463 @@
+# ヒトカラモバイルiOS - 詳細設計書
+
+**Version**: 1.1  
+**Created**: 2026-03-12  
+**Updated**: 2026-03-12（Spotify API規約準拠、メタデータ非永続化）  
+**参照**: docs/basic_design.md, specs/001-hitora-karaoke-ios/spec.md
+
+---
+
+## 1. 処理フロー（シーケンス図）
+
+### 1.1 歌唱セッション保存フロー（オンライン）
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant View
+    participant ViewModel
+    participant Repository
+    participant SwiftData
+    participant SpotifyAPI
+
+    User->>View: 保存ボタンタップ
+    View->>View: ボタン非活性化、ProgressView表示
+    View->>ViewModel: saveSession(intent, score, memo)
+    ViewModel->>ViewModel: UUID生成（Idempotency Key）
+    ViewModel->>Repository: saveSession(session)
+    Repository->>SwiftData: exists(uuid)?
+    alt 既存あり
+        SwiftData-->>Repository: true
+        Repository-->>ViewModel: スキップ（二重防止）
+    else 新規
+        SwiftData-->>Repository: false
+        Repository->>SwiftData: insert(session)
+        SwiftData-->>Repository: OK
+        opt ネットワーク接続中 & Track ID 未取得
+            Repository->>SpotifyAPI: search(q=曲名)
+            SpotifyAPI-->>Repository: track id
+            Repository->>SwiftData: update(trackId)
+        end
+        Repository-->>ViewModel: success
+    end
+    ViewModel-->>View: 完了
+    View->>View: ボタン復帰、ProgressView非表示
+    View-->>User: 履歴へ遷移 or 完了表示
+```
+
+### 1.2 歌唱セッション保存フロー（オフライン）
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant View
+    participant ViewModel
+    participant Repository
+    participant SwiftData
+
+    User->>View: 保存ボタンタップ
+    View->>ViewModel: saveSession(intent, score, memo)
+    ViewModel->>Repository: saveSession(session)
+    Repository->>SwiftData: insert(session, trackId=null)
+    Note over Repository,SwiftData: Track IDはnullで保存。後から同期 or ローカルのみ
+    SwiftData-->>Repository: OK
+    Repository-->>ViewModel: success
+    ViewModel-->>View: 完了
+    View-->>User: エラーを出さずに保存完了
+```
+
+### 1.3 ハイブリッド検索フロー
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant SearchView
+    participant SearchViewModel
+    participant LocalRepo
+    participant SpotifyRepo
+    participant SwiftData
+    participant SpotifyAPI
+
+    User->>SearchView: キーワード入力 "abc"
+    SearchView->>SearchViewModel: search(query="abc")
+    SearchViewModel->>LocalRepo: searchLocal("abc")
+    LocalRepo->>SwiftData: fetch(predicate, sort: 歌った回数降順)
+    SwiftData-->>LocalRepo: [Track]
+    LocalRepo-->>SearchViewModel: localResults
+    SearchViewModel-->>SearchView: 即座にローカル結果表示
+
+    Note over User,SpotifyAPI: 0.5秒 Debounce
+
+    User->>SearchView: 入力停止
+    SearchView->>SearchViewModel: debouncedSearch("abc")
+    alt ネットワーク接続中
+        SearchViewModel->>SpotifyRepo: search("abc")
+        SpotifyRepo->>SpotifyAPI: GET /v1/search?q=abc&type=track
+        SpotifyAPI-->>SpotifyRepo: tracks
+        SpotifyRepo-->>SearchViewModel: spotifyResults
+        SearchViewModel-->>SearchView: ローカル結果 + Spotify結果（下部に追加）
+    else オフライン
+        SearchViewModel-->>SearchView: ローカル結果のみ + 「手動で追加して歌う」
+    end
+```
+
+### 1.4 インサイト取得フロー（起動時）
+
+```mermaid
+sequenceDiagram
+    participant App
+    participant InsightViewModel
+    participant Repository
+    participant SwiftData
+
+    App->>InsightViewModel: 画面表示
+    InsightViewModel->>Repository: getTimeMachineRanking()
+    Repository->>SwiftData: fetch(過去1ヶ月, group by track, count)
+    SwiftData-->>Repository: [(track, count)]
+    Repository-->>InsightViewModel: タイムマシン
+
+    InsightViewModel->>Repository: getMyAnthemRanking()
+    Repository->>SwiftData: fetch(group by intent, track, count/score)
+    SwiftData-->>Repository: [(intent, track, count, avgScore)]
+    Repository-->>InsightViewModel: マイアンセム
+
+    InsightViewModel-->>App: インサイト表示（API待ちなし）
+```
+
+---
+
+## 2. クラス図
+
+```mermaid
+classDiagram
+    direction TB
+
+    class SingingSession {
+        +UUID id
+        +Intent intent
+        +Date performedAt
+        +Int score
+        +String? memo
+        +String? spotifyTrackId
+    }
+
+    class Track {
+        +UUID id
+        +String? spotifyTrackId
+        +String? userEnteredName
+        +Int singCount
+        +Double? latestScore
+    }
+
+    class TrackMetadata {
+        <<struct>>
+        +String spotifyTrackId
+        +String name
+        +String artistName
+        +URL? artworkURL
+    }
+
+    class Intent {
+        <<enumeration>>
+        shout
+        emo
+        practice
+    }
+
+    class SessionRepository {
+        <<interface>>
+        +save(SingingSession) async
+        +fetchAll(limit, offset) async
+        +fetchByIntent(Intent) async
+        +exists(uuid) async
+    }
+
+    class TrackRepository {
+        <<interface>>
+        +searchLocal(query) async
+        +getOrCreate(spotifyTrackId?, userEnteredName?) async
+        +incrementSingCount(trackId)
+    }
+
+    class TrackMetadataService {
+        +fetchMetadata(trackId) async
+    }
+
+    class TrackMetadataCache {
+        <<actor>>
+        +get(trackId) async
+        +set(metadata) async
+    }
+
+    class InsightRepository {
+        <<interface>>
+        +getTimeMachineRanking() async
+        +getMyAnthemRanking() async
+    }
+
+    class SessionListViewModel {
+        -SessionRepository repo
+        +sessions: [SingingSession]
+        +selectedIntent: Intent?
+        +loadSessions()
+        +filterByIntent(Intent)
+    }
+
+    class RecordingViewModel {
+        -SessionRepository repo
+        -TrackRepository trackRepo
+        +save(intent, score, memo)
+        +isSaving: Bool
+    }
+
+    class SearchViewModel {
+        -TrackRepository trackRepo
+        -SpotifySearchService spotify
+        +localResults: [Track]
+        +spotifyResults: [SpotifyTrack]
+        +search(query)
+        +debouncedSearch(query)
+    }
+
+    class InsightViewModel {
+        -InsightRepository repo
+        -TrackMetadataService metadataService
+        +timeMachine: [(Track, Int)]
+        +myAnthem: [(Intent, Track, Int, Double)]
+        +loadInsights()
+    }
+
+    TrackMetadataService --> TrackMetadataCache : uses
+    TrackMetadataService --> SpotifyAPIClient : uses
+    InsightViewModel --> TrackMetadataService : uses
+    SingingSession --> Track : references
+    SingingSession --> Intent : uses
+    SessionRepository ..> SingingSession : manages
+    TrackRepository ..> Track : manages
+    InsightRepository ..> Track : reads
+    SessionListViewModel --> SessionRepository : uses
+    RecordingViewModel --> SessionRepository : uses
+    RecordingViewModel --> TrackRepository : uses
+    SearchViewModel --> TrackRepository : uses
+    InsightViewModel --> InsightRepository : uses
+```
+
+---
+
+## 3. データベース設計
+
+### 3.1 SwiftData スキーマ設計（Spotify API規約準拠）
+
+```mermaid
+erDiagram
+    Track ||--o{ SingingSession : "has many"
+    Track {
+        uuid id PK
+        string spotifyTrackId "nullable"
+        string userEnteredName "nullable, 手動入力時のみ"
+        int singCount "集計"
+        double latestScore "nullable, 集計"
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    SingingSession {
+        uuid id PK
+        uuid trackId FK
+        string intent "shout|emo|practice"
+        datetime performedAt
+        int score "0-100"
+        string memo "nullable"
+        string spotifyTrackId "nullable, 冗長だが検索用"
+    }
+
+    Track ||--o{ SingingSession : "1曲に複数セッション"
+```
+
+**Spotify API規約準拠**: Spotify から取得した曲名・アーティスト名・アートワーク等は永続化しない。永続化するのは Track ID、ユーザーが手動入力した曲名（`userEnteredName`）、ユーザー入力データ（スコア、Intent、メモ等）、集計情報のみ。`userEnteredName` はオフライン時の手動入力曲用（ユーザー生成データのため永続化可）。
+
+**補足**: 同一曲の2回目以降は既存 Track を取得し、新規 SingingSession のみ追加する。
+
+### 3.2 エンティティ定義（SwiftData @Model）
+
+```swift
+// Why: Spotify API規約により、曲名・アーティスト名・アートワーク等の永続保存が禁止されているため。
+// 永続化するのは Track ID と集計情報のみ。表示用メタデータは API または一時キャッシュから取得する。
+@Model
+final class Track {
+    @Attribute(.unique) var id: UUID
+    var spotifyTrackId: String?
+    /// 手動入力曲用。ユーザーが入力した曲名（ユーザー生成データのため永続化可）。Spotify メタデータではない。
+    var userEnteredName: String?
+    var singCount: Int
+    var latestScore: Double?
+    var createdAt: Date
+    var updatedAt: Date
+
+    @Relationship(deleteRule: .cascade, inverse: \SingingSession.track)
+    var sessions: [SingingSession] = []
+}
+
+@Model
+final class SingingSession {
+    @Attribute(.unique) var id: UUID  // Idempotency Key
+    var track: Track
+    var intent: String  // "shout" | "emo" | "practice"
+    var performedAt: Date
+    var score: Int
+    var memo: String?
+    var spotifyTrackId: String?
+}
+```
+
+### 3.3 メタデータの一時キャッシュ（Spotify視聴履歴・表示用）
+
+```swift
+// Why: Spotify API規約によりメタデータの永続保存が禁止。24時間以内の一時キャッシュのみ許容。
+// actor ベースのインメモリキャッシュでスレッドセーフを保証。永続化しないため規約準拠。
+actor TrackMetadataCache {
+    private var cache: [String: CachedMetadata] = [:]
+    private let maxAge: TimeInterval = 24 * 60 * 60  // 24時間
+    private let maxCount: Int = 500
+}
+```
+
+### 3.4 最近再生した曲のキャッシュ
+
+```swift
+// Why: 最近再生した曲は流動的で件数も限定的。SwiftDataより軽量。
+// 24時間以内の一時キャッシュ（UserDefaults またはインメモリ）。永続化しない。
+struct RecentlyPlayedCache {
+    static let key = "spotify_recently_played"
+    // 保存形式: [TrackID: メタデータ] の JSON または Track ID のみ
+    // 有効期限: 24時間以内。アプリ起動時・手動リフレッシュで上書き。
+}
+```
+
+### 3.5 App Store審査・コンプライアンス
+
+- **Spotify クレジット**: 検索結果画面・設定画面に「Powered by Spotify」ロゴ等を配置。
+- **プライバシーポリシー**: アプリ内に「データは端末内のみ保存、外部送信なし」旨のプライバシーポリシー（Web）へのリンクを設置。
+
+---
+
+## 4. API仕様書（Spotify Web API）
+
+### 4.1 利用エンドポイント一覧
+
+| 用途 | エンドポイント | メソッド | スコープ |
+|------|---------------|----------|----------|
+| 最近再生した曲 | `/v1/me/player/recently-played` | GET | user-read-recently-played |
+| 曲検索 | `/v1/search` | GET | （標準スコープ） |
+
+### 4.2 最近再生した曲
+
+**Request**
+
+```
+GET https://api.spotify.com/v1/me/player/recently-played?limit=50
+Authorization: Bearer {access_token}
+```
+
+| パラメータ | 型 | 必須 | 説明 |
+|------------|-----|------|------|
+| limit | int | 任意 | 1-50、デフォルト20 |
+| after | int | 任意 | Unix ms、この時刻以降 |
+| before | int | 任意 | Unix ms、この時刻以前（afterと排他） |
+
+**Response（200）**
+
+```json
+{
+  "href": "https://api.spotify.com/v1/me/player/recently-played",
+  "limit": 50,
+  "next": "string | null",
+  "cursors": { "after": "string", "before": "string" },
+  "total": 0,
+  "items": [
+    {
+      "track": {
+        "id": "string",
+        "name": "string",
+        "artists": [{ "id": "string", "name": "string" }],
+        "album": { "id": "string", "name": "string", "images": [...] }
+      },
+      "played_at": "2024-01-01T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+### 4.3 曲検索
+
+**Request**
+
+```
+GET https://api.spotify.com/v1/search?q={query}&type=track&limit=20&market=JP
+Authorization: Bearer {access_token}
+```
+
+| パラメータ | 型 | 必須 | 説明 |
+|------------|-----|------|------|
+| q | string | 必須 | 検索クエリ |
+| type | string | 必須 | "track" |
+| limit | int | 任意 | 1-50、デフォルト20 |
+| market | string | 任意 | ISO 3166-1 alpha-2（例: JP） |
+
+**Response（200）**
+
+```json
+{
+  "tracks": {
+    "href": "string",
+    "limit": 20,
+    "next": "string | null",
+    "offset": 0,
+    "total": 0,
+    "items": [
+      {
+        "id": "string",
+        "name": "string",
+        "artists": [{ "id": "string", "name": "string" }],
+        "album": { "id": "string", "name": "string", "images": [...] }
+      }
+    ]
+  }
+}
+```
+
+### 4.4 オフライン・エラー時のフォールバック処理
+
+```mermaid
+flowchart TD
+    A[API呼び出し] --> B{ネットワーク接続?}
+    B -->|No| C[ローカルキャッシュ/DBのみ使用]
+    B -->|Yes| D[リクエスト送信]
+    D --> E{レスポンス}
+    E -->|200| F[正常処理]
+    E -->|401| G[トークンリフレッシュ試行]
+    G --> H{成功?}
+    H -->|Yes| D
+    H -->|No| I[再ログイン案内UI]
+    E -->|429| J[指数バックオフ + Jitter]
+    J --> K[リトライ]
+    K --> D
+    E -->|4xx/5xx| L[エラーログ + 再試行UI表示]
+    L --> C
+```
+
+| 状況 | フォールバック |
+|------|----------------|
+| ネットワーク未接続 | ローカルDB/UserDefaultsのキャッシュのみ表示。手動曲名入力時は「ネットワークに接続してください」＋導線。 |
+| 401 Unauthorized | リフレッシュトークンで再取得。失敗時は再ログイン案内。 |
+| 429 Too Many Requests | 指数バックオフ（例: 1s, 2s, 4s...）+ Jitterでリトライ。ユーザーには「しばらく待ってから再試行」表示。 |
+| タイムアウト | 30秒でタイムアウト。ローカルデータで継続、再試行UI表示。 |
+| その他 4xx/5xx | エラーログ出力。再試行ボタン表示。該当機能は一時無効化可能。 |
+
+### 4.5 指数バックオフ仕様
+
+- **初回待機**: 1秒
+- **倍率**: 2（1s → 2s → 4s → 8s...）
+- **最大待機**: 60秒
+- **Jitter**: ±25% のランダム加算（Thundering herd回避）
+- **最大リトライ**: 5回

@@ -1,0 +1,130 @@
+# ヒトカラモバイルiOS - Cursor コーディングルール
+
+このファイルはコード生成・編集時に**絶対に遵守**するルールブックです。
+
+---
+
+## 1. SwiftUI と SwiftData のコーディング憲法
+
+### 1.1 View とロジックの分離
+
+- **View は描画専用**: Repository 呼び出し・ビジネスロジック・非同期処理を View 内に書かない。ViewModel に委譲する。
+- **ViewModel は @Observable**: iOS 17+ では `@Observable` マクロを使用。`@StateObject` / `@ObservedObject` は使わない。
+- **ViewModel には必ず @MainActor を付与する**: 状態変更に伴う UI の更新は、必ずメインスレッドで行う必要があるため。
+- **1 画面 1 ViewModel**: 画面（またはタブ）ごとに 1 つの ViewModel を割り当てる。
+- **Repository は注入**: ViewModel は Repository を初期化時に受け取る（DI）。View から直接 Repository を生成しない。
+- **DI の実装**: Repository はアプリ起動時に生成し `@Environment` で注入。View は `@Environment` から Repository を取得し、ViewModel の初期化時に渡す。
+
+### 1.2 プロパティラッパーの使い分け
+
+| ラッパー | 用途 |
+|----------|------|
+| `@State` | View 内の一時 UI 状態、ViewModel の保持 |
+| `@Binding` | 親から子へ双方向バインディングを渡す |
+| `@Environment` | アプリ全体で共有（Repository, modelContext, テーマ, ネットワーク状態） |
+| `@Query` | SwiftData の読み取り専用。**Repository を原則とする**。@Query を View に直接書く場合は、単純な一覧表示のみに限定。複雑な集計（タイムマシン、マイアンセム、検索）は必ず Repository 経由。 |
+| `@Environment(\.modelContext)` | SwiftData 書き込み。View から直接 insert 等を呼ばない。Repository 内で使用。 |
+
+- **禁止**: View から `modelContext.insert()` を直接呼ぶこと。必ず Repository 経由とする。
+
+### 1.3 データアクセス層（オフライン + Spotify API）
+
+- **SSOT はローカル DB**: 表示データは常に SwiftData / UserDefaults から取得。API レスポンスを直接 View に渡さない。
+- **API → ローカル → UI**: Spotify API の結果は必ずローカルに保存してから UI に反映する。
+- **責務分離**: `SessionRepository`, `TrackRepository` は SwiftData。`SpotifyAPIClient` は API 呼び出し専用。API 結果のローカル反映は Repository または専用層が行う。
+- **ネットワーク事前チェック**: API 呼び出し前に接続状態を確認。オフライン時は即座にローカルフォールバック。
+- **エラーハンドリング**: エラーは ViewModel で捕捉。ユーザーには再試行を促す UI を表示する（raw_spec FR-011）。
+
+### 1.4 ModelContext のスレッド管理
+
+- **Repository 内で ModelContext を扱う場合は、メインスレッド（@MainActor）を前提として実行する**。
+- **理由**: SwiftData の `ModelContext` はスレッドセーフではなく、作成されたスレッド以外からアクセスするとアプリがクラッシュする危険があるため。Repository には `@MainActor` を付与し、ModelContext へのアクセスをメインスレッドに限定する。
+
+### 1.5 非同期処理（async/await）
+
+- **Repository 等のデータアクセスの非同期メソッドは `async throws` を基本とする**。
+- **理由**: Swift の構造化並行性を活かし、非同期処理の簡潔さと、do-catch を用いた安全で一貫性のあるエラー伝播（エラーハンドリング）を実現するため。
+
+---
+
+## 2. 命名規則
+
+### 2.1 ファイル・ディレクトリ
+
+- **機能単位のディレクトリ**: `Features/Recording/`, `Features/History/`, `Features/Search/` など
+- **1 ファイル 1 型**: 1 ファイルに 1 つの struct / class / enum。`#Preview` は同一ファイル内に記述可。
+- **ファイル名 = 型名**: `RecordingInputView.swift` → `struct RecordingInputView`
+- **#Preview の実装義務**: 可能な View（プレビュー不可な特殊な条件を除く）には**必ず** `#Preview` を用意する。
+  - **理由**: UI 実装・修正時の開発効率を最大化し、コンポーネント変更時の意図しない表示崩れ（レグレッション）を防止するため。
+  - プレビュー不可（認証必須、外部 API 依存等）の場合は省略可。
+
+### 2.2 ディレクトリ構造（必須）
+
+- **Sources**: Xcode プロジェクトのアプリターゲットのソースルートを指す。通常はプロジェクト名と同名のフォルダ（例: `HitoraKaraoke/`）。
+
+```
+Sources/  （= アプリターゲットのソースルート）
+├── App/
+├── Features/
+│   ├── Recording/
+│   ├── History/
+│   ├── Search/
+│   └── Insights/
+├── Data/
+│   ├── Models/
+│   ├── Repositories/
+│   └── Services/
+└── Shared/
+    ├── Components/
+    └── Utilities/
+```
+
+### 2.3 View
+
+- 画面 View: `{機能名}View` または `{役割}View`（例: `RecordingInputView`, `HistoryListView`）
+- 再利用コンポーネント: `{用途}{種別}`（例: `TrackRowView`, `IntentBadgeView`）
+
+### 2.4 データモデル（@Model）
+
+- エンティティ: 単数形・PascalCase（例: `Track`, `SingingSession`）
+- プロパティ: camelCase。Bool は `is` / `has` / `can` で始める
+
+### 2.5 関数・変数
+
+- 非同期関数: 動詞で始める（例: `saveSession()`, `fetchSessions()`）
+- Repository メソッド: `save`, `fetch`, `delete`, `exists` など。非同期メソッドは `async throws` とする。
+- ViewModel メソッド: ユーザーアクションを表す動詞（例: `save()`, `loadSessions()`）
+- Bool 変数: `is`, `has`, `can` で始める
+
+### 2.6 プロトコル・Enum
+
+- プロトコル: 能力・役割を表す名詞（例: `SessionRepositoryProtocol`）
+- Enum: 単数形の名詞。case は小文字または lowerCamelCase（例: `Intent { case shout, emo, practice }`）
+
+---
+
+## 3. Git ブランチ戦略とコミットルール
+
+### 3.1 ブランチ
+
+- **main**: 常に安定版。直接マージしない。
+- **feature ブランチ**: `{issue番号}-{短い機能名}` または `{phase}-{機能名}`
+- **1 Issue 1 ブランチ**: 1 つの Issue を 1 ブランチで対応。
+- **粒度**: 数日以内にマージできる単位。
+
+### 3.2 コミットメッセージ
+
+- **フォーマット**: `{プレフィックス}: {50文字以内の要約}`
+- **プレフィックス**:
+  - `feat:` 新機能
+  - `fix:` バグ修正
+  - `refactor:` リファクタリング
+  - `docs:` ドキュメント
+  - `test:` テスト
+  - `chore:` ビルド・ツール等
+- **本文**: 必要に応じて「何を」「なぜ」を追記。
+
+### 3.3 マージ
+
+- main へのマージは PR 経由。squash merge を推奨。
+- feature ブランチ内では rebase 可。main に push 済みのコミットは rebase しない。
