@@ -31,5 +31,5 @@
 
 ## Notes
 
-- 仕様は docs/raw_spec.md v4.0 および Q1〜Q28 の回答・ベストプラクティス案に基づいて作成済み
+- 仕様は docs/raw_spec.md v4.1 および Q1〜Q28 の回答・ベストプラクティス案に基づいて作成済み
 - `/speckit.clarify` または `/speckit.plan` による次のフェーズに進む準備が整っている
