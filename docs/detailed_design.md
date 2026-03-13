@@ -341,16 +341,41 @@ struct RecentlyPlayedCache {
 
 ---
 
-## 4. API仕様書（Spotify Web API）
+## 4. ディレクトリ構成
 
-### 4.1 利用エンドポイント一覧
+```
+Sources/
+├── Presentation/            # View + ViewModel（画面単位でサブフォルダ）
+│   ├── Recording/           # RecordingView, RecordingViewModel
+│   ├── Search/              # SearchView, SearchViewModel
+│   ├── Insight/             # InsightView, InsightViewModel
+│   └── History/             # HistoryView, SessionListViewModel
+├── Domain/                  # Protocol定義・モデル（フレームワーク非依存）
+│   ├── Models/              # Track, SingingSession, Intent
+│   └── Repositories/        # SessionRepository(protocol), TrackRepository(protocol), InsightRepository(protocol)
+└── Data/                    # 具体実装（SwiftData, Spotify, Cache）
+    ├── SwiftData/           # SwiftDataSessionRepository, SwiftDataTrackRepository
+    ├── Spotify/             # SpotifyAPIClient, TrackMetadataService
+    └── Cache/               # TrackMetadataCache, RecentlyPlayedCache
+```
+
+**依存の方向**: `Presentation → Domain Protocol ← Data`
+- Presentation は Domain の Protocol に依存する。Data の具体実装には依存しない
+- Domain は SwiftData 等の外部フレームワークに依存しない
+- DI は App 起点で手動コンストラクタインジェクションで行う（DIライブラリ不使用）
+
+---
+
+## 5. API仕様書（Spotify Web API）
+
+### 5.1 利用エンドポイント一覧
 
 | 用途 | エンドポイント | メソッド | スコープ |
 |------|---------------|----------|----------|
 | 最近再生した曲 | `/v1/me/player/recently-played` | GET | user-read-recently-played |
 | 曲検索 | `/v1/search` | GET | （標準スコープ） |
 
-### 4.2 最近再生した曲
+### 5.2 最近再生した曲
 
 **Request**
 
@@ -388,7 +413,7 @@ Authorization: Bearer {access_token}
 }
 ```
 
-### 4.3 曲検索
+### 5.3 曲検索
 
 **Request**
 
@@ -426,7 +451,7 @@ Authorization: Bearer {access_token}
 }
 ```
 
-### 4.4 オフライン・エラー時のフォールバック処理
+### 5.4 オフライン・エラー時のフォールバック処理
 
 ```mermaid
 flowchart TD
@@ -454,7 +479,7 @@ flowchart TD
 | タイムアウト | 30秒でタイムアウト。ローカルデータで継続、再試行UI表示。 |
 | その他 4xx/5xx | エラーログ出力。再試行ボタン表示。該当機能は一時無効化可能。 |
 
-### 4.5 指数バックオフ仕様
+### 5.5 指数バックオフ仕様
 
 - **初回待機**: 1秒
 - **倍率**: 2（1s → 2s → 4s → 8s...）
