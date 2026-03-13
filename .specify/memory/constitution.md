@@ -1,76 +1,134 @@
-# Project Constitution Template (UNCONFIGURED / 未設定)
+# ヒトカラモバイルiOS Constitution
 
-> **Status: UNCONFIGURED TEMPLATE (未設定テンプレート)**  
-> このファイルはプロジェクト固有の「憲法（Constitution）」を作成するための**テンプレート**です。  
-> 角かっこ付きのプレースホルダ（例: `[PROJECT_NAME]`, `[PRINCIPLE_1_NAME]` など）は **未設定** であり、  
-> 現時点ではこのファイルを実運用上のルールや自動チェックの唯一の根拠として **使用しないでください**。  
-> `/speckit.plan` や `/speckit.analyze` などで本ファイルを利用する場合は、必ず全てのプレースホルダを  
-> プロジェクト固有の内容に置き換えたうえで、チームの合意を得てから運用してください。
+> **Status: ACTIVE CONSTITUTION**  
+> このファイルはヒトカラモバイルiOS プロジェクトの開発原則と品質基準を定義します。  
+> `/speckit.plan` や `/speckit.analyze` はこの憲法を参照して、仕様やプランを自動チェックします。
 
 ---
-
-## テンプレートの使い方
-
-1. `[PROJECT_NAME]` をこのリポジトリ／プロダクトの正式名称に置き換える。  
-2. 各 `[PRINCIPLE_X_NAME]` と `[PRINCIPLE_X_DESCRIPTION]` に、チームで合意した原則と説明を書く。  
-3. `[SECTION_2_NAME]`, `[SECTION_2_CONTENT]`, `[SECTION_3_NAME]`, `[SECTION_3_CONTENT]` を、  
-   プロジェクトに必要な追加要件やワークフローに合わせて埋める。  
-4. `[GOVERNANCE_RULES]` に、憲法の改訂手順や運用ルールを明記する。  
-5. `[CONSTITUTION_VERSION]`, `[RATIFICATION_DATE]`, `[LAST_AMENDED_DATE]` を最新の値に更新する。  
-
-すべてのプレースホルダが埋められ、レビュー／承認が完了したら、以下のように先頭のステータスを更新してください:
-
-> `Status: ACTIVE CONSTITUTION`（テンプレートではなく、実運用の憲法であることを明記）
-
----
-
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Spotify API 規約準拠
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+すべての設計・実装は Spotify API 利用規約を遵守しなければならない。特に：
+- メタデータ（曲名・アーティスト名・アートワーク等）の永続保存は禁止
+- アプリ起動ごとに一時キャッシュをリセット（インメモリのみ、再起動で初期化）
+- 取得したデータは表示目的のみに使用
+- 検索画面・設定画面に「Powered by Spotify」クレジット配置
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### II. オフラインファースト設計
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+ネットワーク未接続状態でも、基本機能（歌唱記録・履歴閲覧）は動作しなければならない。
+- SwiftData がローカルDB の唯一の真実の源（SSOT）
+- ユーザーの Intent・メモ等の機微情報は端末内のみ保存、外部送信しない
+- ネットワーク復帰時の自動同期を考慮した実装
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### III. Track と SingingSession の明確な分離
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+データモデルは以下の責務を厳密に分ける：
+- **Track（楽曲）**: spotifyTrackId（識別子）、userEnteredName（手動入力）、singCount（集計）、createdAt/updatedAt
+- **SingingSession（歌唱記録）**: Intent、スコア（0〜100）、メモ、日時を毎回新規作成
+- 重複排除の対象は **Track 側のメタデータ・ID** のみ（SingingSession は都度追加）
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### IV. ドキュメント間の一貫性
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+仕様書（spec.md）・基本設計（basic_design.md）・詳細設計（detailed_design.md）は矛盾しない。
+- 技術選定（例：インメモリキャッシュ）は全文書で統一
+- データモデル定義（Track・SingingSession）は一貫
+- API 規約への制約は明示的に記載
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### V. テスト可能性と検証
+
+すべての重要な動作は自動・手動で検証可能でなければならない。
+- UI層：ユーザー操作の応答確認
+- DB層：SwiftData の永続化と重複排除ルール確認
+- API層：Spotify API の呼び出しとキャッシュ戦略の確認
+- 特に「同一曲の複数回記録」は重複排除が正しく機能することを確認
+
+---
+
+## Architecture Rules
+
+### 依存性注入（DI）
+
+- **方針**: DIライブラリは使用しない。手動コンストラクタインジェクションを標準とする
+- **ルート**: `@main` の App 起点で依存を組み立て、`@EnvironmentObject` または初期化引数で ViewModel に渡す
+- **禁止**: ViewModel が Repository の具体実装クラスを直接 `init` すること
+- **許容**: Protocol (interface) に依存することで、テスト時にモック実装に差し替え可能とする
+
+### ディレクトリ構成
+
+レイヤー別（Presentation / Domain / Data）構成を標準とする：
+
+```
+Sources/
+├── Presentation/        # View + ViewModel（画面単位でサブフォルダ）
+│   ├── Recording/
+│   ├── Search/
+│   ├── Insight/
+│   └── History/
+├── Domain/              # Protocol定義・モデル（フレームワーク非依存）
+│   ├── Models/          # Track, SingingSession, Intent
+│   └── Repositories/    # SessionRepository(protocol), TrackRepository(protocol)
+└── Data/                # 具体実装（SwiftData, Spotify, Cache）
+    ├── SwiftData/
+    ├── Spotify/
+    └── Cache/
+```
+
+- Presentation → Domain Protocol に依存。Data の具体実装には依存しない
+- Domain は外部フレームワーク（SwiftData 等）に依存しない純粋な Swift
+- 新機能追加時は必ず上記レイヤーに従って配置する
+
+---
+
+## Spotify API 規約準拠と規制
+
+- **メタデータの永続保存禁止**
+  - インメモリキャッシュ（アプリ再起動で自動初期化）として実装
+  - 有効期限付きキャッシュは使用しない（再起動でリセット）
+  
+- **クレジット表記**
+  - 検索画面・設定画面に「Powered by Spotify」ロゴ配置
+  
+- **認証方式**
+  - OAuth 2.0 PKCE フロー必須実装
+  - トークンは Keychain に安全に保存
+
+- **プライバシー**
+  - アプリ内に「すべてのデータは端末内保存」旨を明記
+
+---
+
+## 開発ワークフロー
+
+- **Spec確認**: spec.md が raw_spec.md v4.1 と矛盾していないか確認
+- **設計レビュー**: 
+  - Track・SingingSession のデータモデルが正確か
+  - Spotify 規約違反の懸念がないか
+  - インメモリキャッシュ戦略が明示されているか
+  
+- **実装検証**:
+  - テストプラン含む
+  - 重複排除ロジックの動作確認
+  - オフライン時の振舞い確認
+
+- **マージ基準**:
+  - spec.md・basic_design.md・detailed_design.md が一貫性を持つ
+  - Spotify 規約準拠の懸念がない
+  - 矛盾・プレースホルダが解決されている
+
+---
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+- この憲法は、spec.md・basic_design.md・detailed_design.md より **優先される**
+- 修正時は PR で以下を記載：
+  - 修正理由
+  - 影響を受けるドキュメント
+  - 必要な移行・採用作業
+  
+- speckit.plan / speckit.analyze は、この憲法に対する準拠性を基準に自動チェック  
+  → 準拠できない項目は「評価不可」として報告
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.1.0 | **Ratified**: 2026-03-13 | **Last Amended**: 2026-03-13
