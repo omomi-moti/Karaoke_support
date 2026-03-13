@@ -60,23 +60,23 @@
 
 ### 2.2 ディレクトリ構造（必須）
 
-- **Sources**: Xcode プロジェクトのアプリターゲットのソースルートを指す。通常はプロジェクト名と同名のフォルダ（例: `HitoraKaraoke/`）。
+- **Sources**: Xcode プロジェクトのアプリターゲットのソースルートを指す。通常はプロジェクト名と同名のフォルダ（例: `HitoraKaraoke/`）。ディレクトリ構成はレイヤー別（Presentation / Domain / Data）を標準とし、憲法（`.specify/memory/constitution.md`）と必ず一致させること。
 
 ```
 Sources/  （= アプリターゲットのソースルート）
-├── App/
-├── Features/
+├── App/                # @main, エントリポイント、ルートDI
+├── Presentation/       # View + ViewModel（画面単位でサブフォルダ）
 │   ├── Recording/
-│   ├── History/
 │   ├── Search/
-│   └── Insights/
-├── Data/
+│   ├── Insight/
+│   └── History/
+├── Domain/             # Protocol定義・モデル（フレームワーク非依存）
 │   ├── Models/
-│   ├── Repositories/
-│   └── Services/
-└── Shared/
-    ├── Components/
-    └── Utilities/
+│   └── Repositories/
+└── Data/               # 具体実装（SwiftData, Spotify, Cache）
+    ├── SwiftData/
+    ├── Spotify/
+    └── Cache/
 ```
 
 ### 2.3 View
