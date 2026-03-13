@@ -333,7 +333,7 @@ struct CachedMetadata {
 actor TrackMetadataCache {
     private var cache: [String: CachedMetadata] = [:]
     private let maxAge: TimeInterval = 24 * 60 * 60  // 24時間
-    private let maxCount: Int = 500
+    private let maxCount: Int = 500  // 上限超過時は期限切れ優先で削除し、残りは古い順に削除
 
     func get(_ trackId: String, now: Date = Date()) -> TrackMetadata? {
         guard let entry = cache[trackId], entry.expiresAt > now else {
@@ -348,6 +348,22 @@ actor TrackMetadataCache {
             metadata: metadata,
             expiresAt: now.addingTimeInterval(maxAge)
         )
+        if cache.count > maxCount {
+            evictIfNeeded(now: now)
+        }
+    }
+
+    // maxCount を超えた場合は:
+    // 1. 期限切れエントリをすべて削除
+    // 2. それでも maxCount を超える場合は expiresAt が古い順に削除
+    private func evictIfNeeded(now: Date) {
+        cache = cache.filter { $0.value.expiresAt > now }
+        guard cache.count > maxCount else { return }
+        let overflow = cache.count - maxCount
+        let sortedByExpiry = cache.sorted { $0.value.expiresAt < $1.value.expiresAt }
+        for (index, element) in sortedByExpiry.enumerated() where index < overflow {
+            cache.removeValue(forKey: element.key)
+        }
     }
 }
 ```
