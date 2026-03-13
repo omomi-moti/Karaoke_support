@@ -60,7 +60,7 @@ sequenceDiagram
     ViewModel->>Repository: saveSession(session)
     Repository->>SwiftData: insert(track(spotifyTrackId=nil, userEnteredName 等のユーザー生成データのみ))
     Repository->>SwiftData: insert(session, trackId=track.id)
-    Note over Repository,SwiftData: trackId FK は必須。オフライン時は spotifyTrackId=nil の Track（userEnteredName 等のユーザー生成データのみ永続化）を生成して紐付ける。Spotify 由来メタデータはインメモリ/TTL キャッシュでのみ保持し、SwiftData へ永続化しない
+    Note over Repository,SwiftData: trackId FK は必須。オフライン時は spotifyTrackId=nil の Track（userEnteredName 等のユーザー生成データのみ永続化）を生成して紐付ける。Spotify 由来メタデータは最長24時間のインメモリTTLキャッシュでのみ保持し、SwiftData へ永続化しない
     SwiftData-->>Repository: OK
     Repository-->>ViewModel: success
     ViewModel-->>View: 完了
@@ -327,10 +327,10 @@ actor TrackMetadataCache {
 
 ```swift
 // Why: 最近再生した曲は流動的で件数も限定的。SwiftDataより軽量。
-// インメモリキャッシュのみ。アプリ再起動で消える。永続化しない。
+// インメモリキャッシュのみ。最長24時間のTTLを持ち、アプリ再起動で消える。永続化しない。
 struct RecentlyPlayedCache {
     // 保存形式: メモリ上のキャッシュ（Track オブジェクト配列）
-    // 有効期限: アプリ実行中のみ。再起動で初期化。
+    // 有効期限: 最長24時間またはアプリ再起動まで。再起動で初期化。
 }
 ```
 
@@ -473,7 +473,7 @@ flowchart TD
 
 | 状況 | フォールバック |
 |------|----------------|
-| ネットワーク未接続 | ローカルDB/UserDefaultsのキャッシュのみ表示。手動曲名入力時は「ネットワークに接続してください」＋導線。 |
+| ネットワーク未接続 | ローカルDB/インメモリTTLキャッシュのみ表示。手動曲名入力時は「ネットワークに接続してください」＋導線。 |
 | 401 Unauthorized | リフレッシュトークンで再取得。失敗時は再ログイン案内。 |
 | 429 Too Many Requests | 指数バックオフ（例: 1s, 2s, 4s...）+ Jitterでリトライ。ユーザーには「しばらく待ってから再試行」表示。 |
 | タイムアウト | 30秒でタイムアウト。ローカルデータで継続、再試行UI表示。 |
