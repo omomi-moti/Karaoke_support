@@ -167,27 +167,27 @@ classDiagram
 
     class SessionRepository {
         <<interface>>
-        +save(SingingSession) async
-        +fetchAll(limit, offset) async
-        +fetchByIntent(Intent) async
-        +exists(uuid) async
+        +save(SingingSession) async throws
+        +fetchAll(limit, offset) async throws
+        +fetchByIntent(Intent) async throws
+        +exists(uuid) async throws
     }
 
     class TrackRepository {
         <<interface>>
-        +searchLocal(query) async
-        +getOrCreate(spotifyTrackId?, userEnteredName?) async
+        +searchLocal(query) async throws
+        +getOrCreate(spotifyTrackId?, userEnteredName?) async throws
         +incrementSingCount(trackId)
     }
 
     class TrackMetadataService {
-        +fetchMetadata(trackId) async
+        +fetchMetadata(trackId) async throws
     }
 
     class TrackMetadataCache {
         <<actor>>
-        +get(trackId) async
-        +set(metadata) async
+        +get(trackId) async throws
+        +set(metadata) async throws
     }
 
     class InsightRepository {
