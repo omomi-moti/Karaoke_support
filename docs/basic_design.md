@@ -69,7 +69,7 @@
 | **言語** | Swift 5.9+ | iOSネイティブ開発の標準。SwiftData・SwiftUIとの親和性が高い。 |
 | **UI フレームワーク** | SwiftUI | 宣言的UIで状態管理が明確。iOS 17+でSwiftDataと統合しやすい。 |
 | **ローカルDB** | SwiftData | iOS 17+のネイティブORM。Core Dataの後継として@Modelでスキーマ定義が簡潔。オフラインファーストの永続化層として最適。 |
-| **軽量キャッシュ** | インメモリ | Spotify視聴履歴は流動的で件数も限定的。インメモリキャッシュとして実装し、アプリ再起動で初期化される。SwiftDataより軽量で、起動時の即時表示に適する。Spotify メタデータ永続保存禁止に準拠。 |
+| **軽量キャッシュ** | インメモリ | Spotify視聴履歴は流動的で件数も限定的。最長24時間のTTLを持つインメモリキャッシュとして実装し、アプリ再起動で初期化される。SwiftDataより軽量で、起動時の即時表示に適する。Spotify メタデータ永続保存禁止に準拠。 |
 | **認証情報保存** | Keychain | OAuthトークンの安全な保存。UserDefaultsは平文で不適切。 |
 | **ネットワーク** | URLSession + 自前ラッパー | 軽量でSpotify APIのREST呼び出しに十分。Alamofire等は過剰。 |
 | **Spotify連携** | OAuth 2.0 PKCE | Spotify Web APIの推奨方式。ネイティブアプリでAuthorization Code + PKCEが必須。 |
@@ -161,7 +161,7 @@ flowchart TD
 |------|------|------------|
 | **ネットワーク** | Spotify API呼び出し、トークン取得 | 必須（オフライン時はローカルのみ動作） |
 | **Keychain** | OAuthトークン保存 | 必須 |
-| **ローカルストレージ** | SwiftData、UserDefaults | 必須 |
+| **ローカルストレージ** | SwiftData、UserDefaults（UIフラグ等のみ） | 必須 |
 | **バックグラウンド** | 特になし（オフライン同期はフォアグラウンドで実行） | 不要 |
 
 ### 4.2 iOS プライバシー権限
