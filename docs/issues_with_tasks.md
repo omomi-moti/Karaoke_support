@@ -13,7 +13,7 @@
 - **Tasks**:
   - [ ] Xcodeで新規iOSプロジェクトを作成する（iOS 17+、Swift 5.9）
   - [ ] SwiftUIを選択し、不要なデフォルトファイル（ContentView等）を整理する
-  - [ ] フォルダ構成の雛形を作成する（Views, Models, Repositories, Services等）
+  - [ ] フォルダ構成の雛形を作成する（Sources/Presentation/Domain/Data のレイヤー構成）
   - [ ] Info.plist / プロジェクト設定で最低デプロイメントターゲットを iOS 17.0 に設定する
 
 ---
