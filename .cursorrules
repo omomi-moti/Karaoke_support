@@ -51,7 +51,7 @@
 
 ### 2.1 ファイル・ディレクトリ
 
-- **機能単位のディレクトリ**: `Features/Recording/`, `Features/History/`, `Features/Search/` など
+- **機能単位のディレクトリ**: レイヤー配下に機能ごとのサブディレクトリを切る（例: `Sources/Presentation/Recording/`, `Sources/Presentation/History/`, `Sources/Presentation/Search/`。Domain / Data も同様）。
 - **1 ファイル 1 型**: 1 ファイルに 1 つの struct / class / enum。`#Preview` は同一ファイル内に記述可。
 - **ファイル名 = 型名**: `RecordingInputView.swift` → `struct RecordingInputView`
 - **#Preview の実装義務**: 可能な View（プレビュー不可な特殊な条件を除く）には**必ず** `#Preview` を用意する。
