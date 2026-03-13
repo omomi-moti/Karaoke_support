@@ -20,7 +20,7 @@
 - [x] All acceptance scenarios are defined
 - [x] Edge cases are identified
 - [x] Scope is clearly bounded
-- [ ] Dependencies and assumptions identified（spec.md に依存関係・前提セクションを追加する）
+- [x] Dependencies and assumptions identified（spec.md の Assumptions / Dependencies セクションで整理済み）
 
 ## Feature Readiness
 
