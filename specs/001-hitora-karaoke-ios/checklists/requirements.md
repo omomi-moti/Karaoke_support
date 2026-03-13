@@ -6,7 +6,7 @@
 
 ## Content Quality
 
-- [x] No implementation details (languages, frameworks, APIs)
+- [ ] No unintended implementation details (languages, frameworks, APIs) leak into specification（Assumptions / Dependencies に明示した技術前提を除く）
 - [x] Focused on user value and business needs
 - [x] Written for non-technical stakeholders
 - [x] All mandatory sections completed
@@ -27,7 +27,7 @@
 - [x] All functional requirements have clear acceptance criteria
 - [x] User scenarios cover primary flows
 - [x] Feature meets measurable outcomes defined in Success Criteria
-- [x] No implementation details leak into specification
+- [ ] No unintended implementation details leak into specification（Assumptions / Dependencies に明示した技術前提を除く）
 
 ## Notes
 
