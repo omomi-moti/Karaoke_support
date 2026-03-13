@@ -11,7 +11,7 @@
   - 対応OS: iOS 17 以降（Apple Silicon シミュレータ / 実機の両方で動作検証）
   - ターゲット端末: iPhone（iPad 最適化は本イテレーション対象外）
 - **Spotify 連携に関する前提**
-  - ユーザーは有効な Spotify アカウントを所持していること（Free / Premium は要件定義に従う）
+  - ユーザーは有効な Spotify アカウント（v1 は **Spotify Free プランを前提**とし、Premium 固有機能は本イテレーション対象外）を所持していること
   - 認可フロー: Spotify OAuth（Authorization Code with PKCE）を使用
   - 必須/候補スコープ（`docs/basic_design.md` の最小権限ポリシーと整合）:
     - `user-read-recently-played`（最近再生トラックの参照。v1 での必須）
