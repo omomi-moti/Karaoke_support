@@ -13,10 +13,10 @@
 - **Spotify 連携に関する前提**
   - ユーザーは有効な Spotify アカウントを所持していること（Free / Premium は要件定義に従う）
   - 認可フロー: Spotify OAuth（Authorization Code with PKCE）を使用
-  - 必須スコープ（候補）:
-    - `user-read-playback-position`（再生位置の参照が必要な場合）
-    - `user-read-recently-played`（最近再生トラックの参照）
-    - `user-library-read`（ライブラリからの曲選択を許可する場合）
+  - 必須/候補スコープ（`docs/basic_design.md` の最小権限ポリシーと整合）:
+    - `user-read-recently-played`（最近再生トラックの参照。v1 での必須）
+    - `user-top-read`（ユーザーのトップトラック/アーティスト参照。将来の推薦・検索強化向け候補）
+    - `user-library-read`（ユーザーライブラリからの曲検索・選択を許可する場合の候補）
   - Spotify の利用規約および開発者ポリシーに従い、**楽曲メタデータを永続キャッシュしない**（楽曲ID・参照用キーのみローカル保持可）。
 - **データ保持 / オフライン同期の前提**
   - 歌唱セッション（Intent・スコア・日時などのユーザー入力データ）はローカルDBに永続化してよい。
