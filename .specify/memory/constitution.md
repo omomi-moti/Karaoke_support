@@ -1,3 +1,29 @@
+# Project Constitution Template (UNCONFIGURED / 未設定)
+
+> **Status: UNCONFIGURED TEMPLATE (未設定テンプレート)**  
+> このファイルはプロジェクト固有の「憲法（Constitution）」を作成するための**テンプレート**です。  
+> 角かっこ付きのプレースホルダ（例: `[PROJECT_NAME]`, `[PRINCIPLE_1_NAME]` など）は **未設定** であり、  
+> 現時点ではこのファイルを実運用上のルールや自動チェックの唯一の根拠として **使用しないでください**。  
+> `/speckit.plan` や `/speckit.analyze` などで本ファイルを利用する場合は、必ず全てのプレースホルダを  
+> プロジェクト固有の内容に置き換えたうえで、チームの合意を得てから運用してください。
+
+---
+
+## テンプレートの使い方
+
+1. `[PROJECT_NAME]` をこのリポジトリ／プロダクトの正式名称に置き換える。  
+2. 各 `[PRINCIPLE_X_NAME]` と `[PRINCIPLE_X_DESCRIPTION]` に、チームで合意した原則と説明を書く。  
+3. `[SECTION_2_NAME]`, `[SECTION_2_CONTENT]`, `[SECTION_3_NAME]`, `[SECTION_3_CONTENT]` を、  
+   プロジェクトに必要な追加要件やワークフローに合わせて埋める。  
+4. `[GOVERNANCE_RULES]` に、憲法の改訂手順や運用ルールを明記する。  
+5. `[CONSTITUTION_VERSION]`, `[RATIFICATION_DATE]`, `[LAST_AMENDED_DATE]` を最新の値に更新する。  
+
+すべてのプレースホルダが埋められ、レビュー／承認が完了したら、以下のように先頭のステータスを更新してください:
+
+> `Status: ACTIVE CONSTITUTION`（テンプレートではなく、実運用の憲法であることを明記）
+
+---
+
 # [PROJECT_NAME] Constitution
 <!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
 
