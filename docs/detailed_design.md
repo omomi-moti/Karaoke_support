@@ -311,15 +311,37 @@ final class SingingSession {
 }
 ```
 
+**補足（紐付けの正本）**: Track と外部データの紐付けは `spotifyTrackId` を正本キーとして扱う。曲名・アーティスト名・アートワーク等は表示用の揮発データであり、SwiftData には保存しない。
+
 ### 3.3 メタデータの一時キャッシュ（Spotify視聴履歴・表示用）
 
 ```swift
 // Why: Spotify API規約によりメタデータの永続保存が禁止。24時間以内の一時キャッシュのみ許容。
 // actor ベースのインメモリキャッシュでスレッドセーフを保証。永続化しないため規約準拠。
+struct CachedMetadata {
+    let metadata: TrackMetadata
+    let expiresAt: Date
+}
+
 actor TrackMetadataCache {
     private var cache: [String: CachedMetadata] = [:]
     private let maxAge: TimeInterval = 24 * 60 * 60  // 24時間
     private let maxCount: Int = 500
+
+    func get(_ trackId: String, now: Date = Date()) -> TrackMetadata? {
+        guard let entry = cache[trackId], entry.expiresAt > now else {
+            cache.removeValue(forKey: trackId)
+            return nil
+        }
+        return entry.metadata
+    }
+
+    func set(_ metadata: TrackMetadata, now: Date = Date()) {
+        cache[metadata.spotifyTrackId] = CachedMetadata(
+            metadata: metadata,
+            expiresAt: now.addingTimeInterval(maxAge)
+        )
+    }
 }
 ```
 
@@ -334,7 +356,22 @@ struct RecentlyPlayedCache {
 }
 ```
 
-### 3.5 App Store審査・コンプライアンス
+### 3.5 メタデータ欠損時の表示状態
+
+```swift
+enum TrackMetadataState {
+    case available(TrackMetadata)
+    case unavailableOffline
+    case unavailableExpired
+    case unavailableApiError
+}
+```
+
+- `spotifyTrackId` が存在しメタデータが欠損していても、レコードは有効データとして表示する。
+- 欠損時はプレースホルダ文言（例:「曲情報を取得できません」）と再試行導線を表示する。
+- スコア・Intent・日時・メモは常に表示し、ユーザーの記録閲覧体験を維持する。
+
+### 3.6 App Store審査・コンプライアンス
 
 - **Spotify クレジット**: 検索結果画面・設定画面に「Powered by Spotify」ロゴ等を配置。
 - **プライバシーポリシー**: アプリ内に「データは端末内のみ保存、外部送信なし」旨のプライバシーポリシー（Web）へのリンクを設置。
