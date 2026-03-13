@@ -27,7 +27,7 @@
 - [x] All functional requirements have clear acceptance criteria
 - [x] User scenarios cover primary flows
 - [x] Feature meets measurable outcomes defined in Success Criteria
-- [ ] No unintended implementation details leak into specification（Assumptions / Dependencies に明示した技術前提を除く）
+- [ ] All critical technical assumptions are explicitly documented in Assumptions / Dependencies（隠れた技術前提が残っていない）
 
 ## Notes
 
