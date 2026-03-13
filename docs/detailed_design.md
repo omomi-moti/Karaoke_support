@@ -299,11 +299,18 @@ final class Track {
     var sessions: [SingingSession] = []
 }
 
+enum Intent: String, Codable {
+    case shout
+    case emo
+    case practice
+}
+
 @Model
 final class SingingSession {
     @Attribute(.unique) var id: UUID  // Idempotency Key
     var track: Track
-    var intent: String  // "shout" | "emo" | "practice"
+    /// ドメインでは enum を使用し、永続化時は RawValue(String) で扱う。
+    var intent: Intent
     var performedAt: Date
     var score: Int
     var memo: String?
