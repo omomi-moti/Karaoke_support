@@ -29,8 +29,8 @@
 
 ### 1.3 データアクセス層（オフライン + Spotify API）
 
-- **SSOT はローカル DB**: 表示データは常に SwiftData / UserDefaults から取得。API レスポンスを直接 View に渡さない。
-- **API → インメモリキャッシュ → UI**: Spotify API の結果は永続化せず、インメモリ TTL キャッシュ等に一時的に保持してから UI に反映する（Spotify メタデータの永続化は禁止）。
+- **SSOT はローカル DB**: 表示データは常に SwiftData から取得し、API レスポンスを直接 View に渡さない。`UserDefaults` はチュートリアル表示フラグなどの UI 設定に限定して使用し、Spotify メタデータ等の表示情報は保存しない。
+- **API → インメモリキャッシュ → UI**: Spotify API の結果は永続化せず、インメモリ TTL キャッシュ等に一時的に保持してから UI に反映する（Spotify メタデータの SwiftData / UserDefaults などへの永続化は禁止）。
 - **責務分離**: `SessionRepository`, `TrackRepository` は SwiftData。`SpotifyAPIClient` は API 呼び出し専用。API 結果のローカル反映は Repository または専用層が行う。
 - **ネットワーク事前チェック**: API 呼び出し前に接続状態を確認。オフライン時は即座にローカルフォールバック。
 - **エラーハンドリング**: エラーは ViewModel で捕捉。ユーザーには再試行を促す UI を表示する（raw_spec FR-011）。
