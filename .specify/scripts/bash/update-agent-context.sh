@@ -252,10 +252,10 @@ get_commands_for_language() {
     
     case "$lang" in
         *"Python"*)
-            echo "cd src && pytest && ruff check ."
+            echo "cd src \\&\\& pytest \\&\\& ruff check ."
             ;;
         *"Rust"*)
-            echo "cargo test && cargo clippy"
+            echo "cargo test \\&\\& cargo clippy"
             ;;
         *"JavaScript"*|*"TypeScript"*)
             echo "npm test \\&\\& npm run lint"
