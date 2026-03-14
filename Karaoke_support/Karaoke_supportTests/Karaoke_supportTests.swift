@@ -5,12 +5,12 @@
 //  Created by 鈴木聖也 on 2026/03/14.
 //
 
-import Testing
+import XCTest
 
-struct Karaoke_supportTests {
+final class Karaoke_supportTests: XCTestCase {
 
-    @Test func example() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+    func testExample() throws {
+        // Write your test here and use XCTest APIs like `XCTAssert(...)` to check expected conditions.
     }
 
 }
