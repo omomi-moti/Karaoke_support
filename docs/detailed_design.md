@@ -167,25 +167,25 @@ classDiagram
     class SessionRepository {
         <<interface>>
         +save(SingingSession) async throws
-        +fetchAll(limit, offset) async throws
-        +fetchByIntent(Intent) async throws
-        +exists(uuid) async throws
+        +fetchAll(limit, offset) async throws: [SingingSession]
+        +fetchByIntent(Intent) async throws: [SingingSession]
+        +exists(uuid) async throws: Bool
     }
 
     class TrackRepository {
         <<interface>>
-        +searchLocal(query) async throws
-        +getOrCreate(spotifyTrackId?, userEnteredName?) async throws
-        +incrementSingCount(trackId)
+        +searchLocal(query) async throws: [Track]
+        +getOrCreate(spotifyTrackId?, userEnteredName?) async throws: Track
+        +incrementSingCount(trackId) async throws
     }
 
     class TrackMetadataService {
-        +fetchMetadata(trackId) async throws
+        +fetchMetadata(trackId) async throws: TrackMetadata
     }
 
     class TrackMetadataCache {
         <<actor>>
-        +get(trackId) async throws
+        +get(trackId) async throws: TrackMetadata?
         +set(metadata) async throws
     }
 
@@ -241,6 +241,9 @@ classDiagram
     SearchViewModel --> TrackRepository : uses
     InsightViewModel --> InsightRepository : uses
 ```
+
+- `SessionRepository.fetchAll(limit, offset)` は `performedAt` 降順で返す。
+- `TrackRepository.searchLocal(query)` は `singCount` 降順で返す。
 
 ---
 
