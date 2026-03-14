@@ -111,14 +111,43 @@ log_warning() {
 
 # Cleanup function for temporary files
 cleanup() {
-    local exit_code=$?
     rm -f /tmp/agent_update_*_$$
     rm -f /tmp/manual_additions_$$
-    exit $exit_code
 }
 
-# Set up cleanup trap
-trap cleanup EXIT INT TERM
+# Handler for normal script exit: preserve original exit code
+on_exit() {
+    local exit_code=$?
+    cleanup
+    return "$exit_code"
+}
+
+# Handler for termination signals: cleanup then exit with signal-specific code
+on_signal() {
+    local signal="$1"
+    case "$signal" in
+        INT)
+            cleanup
+            trap - EXIT
+            exit 130
+            ;;
+        TERM)
+            cleanup
+            trap - EXIT
+            exit 143
+            ;;
+        *)
+            cleanup
+            trap - EXIT
+            exit 1
+            ;;
+    esac
+}
+
+# Set up cleanup traps
+trap on_exit EXIT
+trap 'on_signal INT' INT
+trap 'on_signal TERM' TERM
 
 #==============================================================================
 # Validation Functions
