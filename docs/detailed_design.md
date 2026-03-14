@@ -196,6 +196,7 @@ classDiagram
     }
 
     class SessionListViewModel {
+        <<MainActor>>
         -SessionRepository repo
         +sessions: [SingingSession]
         +selectedIntent: Intent?
@@ -204,6 +205,7 @@ classDiagram
     }
 
     class RecordingViewModel {
+        <<MainActor>>
         -SessionRepository repo
         -TrackRepository trackRepo
         +save(intent, score, memo)
@@ -211,6 +213,7 @@ classDiagram
     }
 
     class SearchViewModel {
+        <<MainActor>>
         -TrackRepository trackRepo
         -SpotifySearchService spotify
         +localResults: [Track]
@@ -220,6 +223,7 @@ classDiagram
     }
 
     class InsightViewModel {
+        <<MainActor>>
         -InsightRepository repo
         -TrackMetadataService metadataService
         +timeMachine: [(Track, Int)]
