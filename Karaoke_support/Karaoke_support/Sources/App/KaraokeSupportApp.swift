@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 @main
 struct KaraokeSupportApp: App {
@@ -6,5 +7,6 @@ struct KaraokeSupportApp: App {
 		WindowGroup {
 			RootView()
 		}
+		.modelContainer(for: [Track.self, SingingSession.self])
 	}
 }
