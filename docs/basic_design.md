@@ -68,7 +68,7 @@
 | **プラットフォーム** | iPhone 専用（iPad非対応） | 要求仕様で対象デバイスをiPhoneのみと規定。画面設計・テスト範囲を限定し開発効率を確保。 |
 | **言語** | Swift 5.9+ | iOSネイティブ開発の標準。SwiftData・SwiftUIとの親和性が高い。 |
 | **UI フレームワーク** | SwiftUI | 宣言的UIで状態管理が明確。iOS 17+でSwiftDataと統合しやすい。 |
-| **ローカルDB** | SwiftData | iOS 17+のネイティブORM。Core Dataの後継として@Modelでスキーマ定義が簡潔。オフラインファーストの永続化層として最適。 |
+| **ローカルDB** | SwiftData | iOS 17+のネイティブORM。Core Dataの後継として@Modelでスキーマ定義が簡潔。オフラインファーストの永続化層として最適。GRDBと比較した場合、本プロジェクトのリレーションは Track 1:N SingingSession の単純な構造であり、複雑なSQL集計よりSwiftUIの@QueryおよびFetchDescriptorで賄えるスコープのため、サードパーティ非依存のSwiftDataを優先する。将来的に複雑なSQL集計が必要になった場合はGRDBへの移行を検討する。 |
 | **軽量キャッシュ** | インメモリ | Spotify視聴履歴は流動的で件数も限定的。最長24時間のTTLを持つインメモリキャッシュとして実装し、アプリ再起動で初期化される。SwiftDataより軽量で、起動時の即時表示に適する。Spotify メタデータ永続保存禁止に準拠。 |
 | **認証情報保存** | Keychain | OAuthトークンの安全な保存。UserDefaultsは平文で不適切。 |
 | **ネットワーク** | URLSession + 自前ラッパー | 軽量でSpotify APIのREST呼び出しに十分。Alamofire等は過剰。 |
