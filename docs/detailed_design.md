@@ -139,7 +139,6 @@ classDiagram
         +Date performedAt
         +Int score
         +String? memo
-        +String? spotifyTrackId
     }
 
     class Track {
@@ -269,7 +268,6 @@ erDiagram
         datetime performedAt
         int score "0-100"
         string memo "nullable"
-        string spotifyTrackId "nullable, 冗長だが検索用"
     }
 
     Track ||--o{ SingingSession : "1曲に複数セッション"
@@ -314,11 +312,10 @@ final class SingingSession {
     var performedAt: Date
     var score: Int
     var memo: String?
-    var spotifyTrackId: String?
 }
 ```
 
-**補足（紐付けの正本）**: Track と外部データの紐付けは `spotifyTrackId` を正本キーとして扱う。曲名・アーティスト名・アートワーク等は表示用の揮発データであり、SwiftData には保存しない。
+**補足（紐付けの正本）**: Track と外部データの紐付けは `Track.spotifyTrackId` を唯一の正本キーとして扱う。`SingingSession` は `Track` への外部キー（`track` リレーション）のみを持ち、`spotifyTrackId` を冗長に保持しない。曲名・アーティスト名・アートワーク等は表示用の揮発データであり、SwiftData には保存しない。
 
 ### 3.3 メタデータの一時キャッシュ（Spotify視聴履歴・表示用）
 
