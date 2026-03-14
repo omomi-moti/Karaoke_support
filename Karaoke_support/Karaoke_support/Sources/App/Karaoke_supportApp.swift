@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct Karaoke_supportApp: App {
+struct KaraokeSupportApp: App {
 	var body: some Scene {
 		WindowGroup {
 			RootView()
