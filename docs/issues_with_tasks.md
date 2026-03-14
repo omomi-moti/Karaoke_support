@@ -11,10 +11,10 @@
 ### [I-001] プロジェクト初期化
 - **Labels**: `priority:must`, `type:chore`, `phase:0-基盤`
 - **Tasks**:
-  - [ ] Xcodeで新規iOSプロジェクトを作成する（iOS 17+、Swift 5.9）
-  - [ ] SwiftUIを選択し、不要なデフォルトファイル（ContentView等）を整理する
-  - [ ] フォルダ構成の雛形を作成する（Sources/Presentation/Domain/Data のレイヤー構成）
-  - [ ] Info.plist / プロジェクト設定で最低デプロイメントターゲットを iOS 17.0 に設定する
+  - [x] Xcodeで新規iOSプロジェクトを作成する（iOS 17+、Swift 5.9）
+  - [x] SwiftUIを選択し、不要なデフォルトファイル（ContentView等）を整理する
+  - [x] フォルダ構成の雛形を作成する（Sources/Presentation/Domain/Data のレイヤー構成）
+  - [x] Info.plist / プロジェクト設定で最低デプロイメントターゲットを iOS 17.0 に設定する
 
 ---
 
