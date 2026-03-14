@@ -13,10 +13,9 @@
 - **Spotify 連携に関する前提**
   - ユーザーは有効な Spotify アカウント（v1 は **Spotify Free プランを前提**とし、Premium 固有機能は本イテレーション対象外）を所持していること
   - 認可フロー: Spotify OAuth（Authorization Code with PKCE）を使用
-  - 必須/候補スコープ（`docs/basic_design.md` の最小権限ポリシーと整合）:
-    - `user-read-recently-played`（最近再生トラックの参照。v1 での必須）
-    - `user-top-read`（ユーザーのトップトラック/アーティスト参照。将来の推薦・検索強化向け候補）
-    - `user-library-read`（ユーザーライブラリからの曲検索・選択を許可する場合の候補）
+  - v1 で要求するスコープ（`docs/basic_design.md` §4.3 の最小権限ポリシーと整合）:
+    - `user-read-recently-played`（最近再生トラックの参照。v1 必須）
+    - `user-top-read` および `user-library-read` は将来バージョンでの追加を検討するが、v1 では要求しない（最小権限の原則）。
   - Spotify の利用規約および開発者ポリシーに従い、**楽曲メタデータを永続キャッシュしない**（楽曲ID・参照用キーのみローカル保持可）。
 - **データ保持 / オフライン同期の前提**
   - 紐付けの正本キーは `spotifyTrackId` とし、Track エンティティに永続化する（必須）。
