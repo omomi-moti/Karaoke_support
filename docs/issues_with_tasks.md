@@ -83,6 +83,18 @@
 
 ---
 
+### [I-007A] 依存性注入（DI）接続
+- **依存**: I-002, I-003, I-004, I-005, I-007
+- **Labels**: `priority:must`, `type:chore`, `phase:1-MVP`
+- **Tasks**:
+  - [ ] App エントリで ModelContainer を参照（I-002 で登録済みの場合は確認のみ）
+  - [ ] SessionRepository / TrackRepository / InsightRepository の具体実装を生成する
+  - [ ] @Environment に統一。EnvironmentKey を定義し（例: `\.sessionRepository`, `\.trackRepository`, `\.insightRepository`）、ルート View に `.environment(\.sessionRepository, impl)` で渡す
+  - [ ] 各 ViewModel が View 経由で @Environment から Repository を取得し、初期化引数で受け取る形で接続する
+- **DoD**: 歌唱記録フロー（I-013）で RecordingViewModel が @Environment から SessionRepository / TrackRepository を取得し、保存処理が動作すること
+
+---
+
 ### [I-008] Intent選択画面
 - **Labels**: `priority:must`, `type:feat`, `phase:1-MVP`
 - **Tasks**:
