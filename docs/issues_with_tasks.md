@@ -67,7 +67,7 @@
   - [ ] NWPathMonitor を用いた NetworkMonitor クラス/構造体を作成する
   - [ ] 接続状態（online/offline）を @Published または AsyncStream で公開する
   - [ ] アプリ起動時に監視を開始し、状態変化を検知できるようにする
-  - [ ] オフライン時のフォールバック処理で参照できるよう DI または環境に注入する
+  - [ ] @Environment(\.networkMonitor) で参照できるよう EnvironmentKey を定義し、App 起点で注入する（I-012 等でオフライン判定に使用）
 
 ---
 
