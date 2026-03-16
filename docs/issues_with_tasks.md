@@ -67,7 +67,7 @@
   - [ ] NWPathMonitor を用いた NetworkMonitor クラス/構造体を作成する
   - [ ] 接続状態（online/offline）を @Published または AsyncStream で公開する
   - [ ] アプリ起動時に監視を開始し、状態変化を検知できるようにする
-  - [ ] オフライン時のフォールバック処理で参照できるよう DI または環境に注入する
+  - [ ] @Environment(\.networkMonitor) で参照できるよう EnvironmentKey を定義し、App 起点で注入する（I-012 等でオフライン判定に使用）
 
 ---
 
@@ -80,6 +80,18 @@
   - [ ] タブA: インテント、タブB: Spotify視聴履歴のセグメント/タブUIを配置する
   - [ ] History 画面への遷移をタブバーに追加する
   - [ ] 設定画面への遷移をタブバーに追加する
+
+---
+
+### [I-007A] 依存性注入（DI）接続
+- **依存**: I-002, I-003, I-004, I-005, I-007
+- **Labels**: `priority:must`, `type:chore`, `phase:1-MVP`
+- **Tasks**:
+  - [ ] App エントリで ModelContainer を参照（I-002 で登録済みの場合は確認のみ）
+  - [ ] SessionRepository / TrackRepository / InsightRepository の具体実装を生成する
+  - [ ] @Environment に統一。EnvironmentKey を定義し（例: `\.sessionRepository`, `\.trackRepository`, `\.insightRepository`。※ Swift の KeyPath 記法はバックスラッシュ 1 つ）、ルート View に `.environment(\.sessionRepository, impl)` で渡す
+  - [ ] 各 ViewModel が View 経由で @Environment から Repository を取得し、初期化引数で受け取る形で接続する
+- **DoD**: 歌唱記録フロー（I-013）で RecordingViewModel が @Environment から SessionRepository / TrackRepository を取得し、保存処理が動作すること
 
 ---
 
