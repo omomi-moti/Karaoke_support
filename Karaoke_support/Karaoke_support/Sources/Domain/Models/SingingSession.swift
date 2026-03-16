@@ -15,4 +15,20 @@ final class SingingSession {
 	var performedAt: Date
 	var score: Int
 	var memo: String?
+
+	init(
+		id: UUID = UUID(),
+		track: Track,
+		intent: Intent,
+		performedAt: Date = .now,
+		score: Int,
+		memo: String? = nil
+	) {
+		self.id = id
+		self.track = track
+		self.intent = intent
+		self.performedAt = performedAt
+		self.score = score
+		self.memo = memo
+	}
 }
