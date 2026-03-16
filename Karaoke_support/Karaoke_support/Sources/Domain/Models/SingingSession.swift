@@ -28,7 +28,7 @@ final class SingingSession {
 		self.track = track
 		self.intent = intent
 		self.performedAt = performedAt
-		self.score = score
+		self.score = min(100, max(0, score))
 		self.memo = memo
 	}
 }
