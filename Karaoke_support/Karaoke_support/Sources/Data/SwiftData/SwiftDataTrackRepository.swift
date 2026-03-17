@@ -21,7 +21,7 @@ final class SwiftDataTrackRepository: TrackRepositoryProtocol {
 			return []
 		}
 		let searchQuery = query
-		var descriptor = FetchDescriptor<Track>(
+		let descriptor = FetchDescriptor<Track>(
 			predicate: #Predicate<Track> { track in
 				(track.userEnteredName ?? "").contains(searchQuery)
 			},
