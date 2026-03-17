@@ -83,16 +83,16 @@ Phase 2: I-017 → I-018
 
 ---
 
-### [I-004] TrackRepository 実装
+### [I-004] TrackRepository 実装 ✅
 - **依存**: I-002
 - **Labels**: `priority:must`, `type:feat`, `phase:0-基盤`
 - **Tasks**:
-  - [ ] TrackRepository プロトコルを Domain/Repositories に定義する
-  - [ ] SwiftDataTrackRepository を Data/SwiftData に実装する
-  - [ ] searchLocal(query) を実装する（userEnteredName に対する predicate、歌った回数降順）
-  - [ ] getOrCreate(spotifyTrackId?, userEnteredName?) を実装する（既存検索 or 新規作成）。両方 nil の場合は throw で呼び出し側にエラーを返す（手動入力の空文字は I-012 でバリデーションするため、Repository には渡らない想定）
-  - [ ] incrementSingCount(trackId) を実装する（集計更新）
-  - [ ] 同一曲の2回目以降は既存 Track を返し、SingingSession のみ追加するロジックを確認する
+  - [x] TrackRepository プロトコルを Domain/Repositories に定義する
+  - [x] SwiftDataTrackRepository を Data/SwiftData に実装する
+  - [x] searchLocal(query) を実装する（userEnteredName に対する predicate、歌った回数降順）
+  - [x] getOrCreate(spotifyTrackId?, userEnteredName?) を実装する（既存検索 or 新規作成）。両方 nil の場合は throw で呼び出し側にエラーを返す（手動入力の空文字は I-012 でバリデーションするため、Repository には渡らない想定）
+  - [x] incrementSingCount(trackId) を実装する（集計更新）
+  - [x] 同一曲の2回目以降は既存 Track を返し、SingingSession のみ追加するロジックを確認する
 
 ---
 
