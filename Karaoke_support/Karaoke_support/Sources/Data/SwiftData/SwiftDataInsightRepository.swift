@@ -17,9 +17,7 @@ final class SwiftDataInsightRepository: InsightRepositoryProtocol {
 	}
 
 	func fetchTimeMachineRanking() async throws -> [InsightTrackCountRanking] {
-		guard let cutoff = Calendar.current.date(byAdding: .month, value: -1, to: .now) else {
-			return []
-		}
+		let cutoff = try InsightPeriod.oneMonth.cutoffDate()
 
 		let cutoffToMatch = cutoff
 		let descriptor = FetchDescriptor<SingingSession>(
@@ -56,9 +54,7 @@ final class SwiftDataInsightRepository: InsightRepositoryProtocol {
 	}
 
 	func fetchMyAnthemRankings(period: InsightPeriod) async throws -> [MyAnthemRanking] {
-		guard let cutoff = period.cutoffDate() else {
-			return []
-		}
+		let cutoff = try period.cutoffDate()
 
 		let cutoffToMatch = cutoff
 		let descriptor = FetchDescriptor<SingingSession>(
