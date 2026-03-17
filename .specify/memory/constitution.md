@@ -77,6 +77,7 @@ Sources/
 ```
 
 - Presentation → Domain Protocol に依存。Data の具体実装には依存しない
+- **Data 層は SwiftUI に依存しない**。EnvironmentKey 等の SwiftUI DI 配線は App 層（Sources/App/）に配置する。
 - Domain は原則として外部フレームワーク（SwiftData 等）に依存しない純粋な Swift とする。**例外**: 永続化に SwiftData を用いる場合に限り、Track および SingingSession の @Model 定義を Domain/Models に置くことを許容する（型の二重定義とマッピング層を避け、実装をシンプルに保つため）。
 - 新機能追加時は必ず上記レイヤーに従って配置する
 
