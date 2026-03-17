@@ -8,7 +8,8 @@
 - **タイムマシン**: 「過去1ヶ月で歌った曲のランキング」
   - 実装: `SingingSession.performedAt >= now - 1 month` で絞り込み、`Track` 単位に回数集計して降順ソート。
 - **マイアンセム**: intent（emo/shout/practice）ごとの「回数ランキング」「点数ランキング」
-  - 実装: intent ごとに `SingingSession` を取得し、`Track` 単位に
+  - 仕様: デフォルトは過去3ヶ月、必要なら過去1ヶ月に切り替え可能。
+  - 実装: 期間で絞った `SingingSession` を 1 回取得し、intent で分割した上で `Track` 単位に
     - 回数（count）
     - 点数（bestScore = max）
     を集計してそれぞれ降順ソート。
