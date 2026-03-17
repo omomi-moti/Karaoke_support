@@ -24,7 +24,7 @@ struct SongsRootView: View {
 				switch segment {
 				case .intent:
 					EmptyPlaceholderView(
-						title: "インサイト（準備中）",
+						title: "インテント（準備中）",
 						message: "V1では表示の土台のみ用意します。まずは1曲歌ってデータを作りましょう。"
 					)
 				case .spotify:
