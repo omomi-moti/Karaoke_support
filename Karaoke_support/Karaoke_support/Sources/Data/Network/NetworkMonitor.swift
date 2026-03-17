@@ -12,32 +12,42 @@ import SwiftUI
 
 @Observable
 public final class NetworkMonitor {
-	private let monitor: NWPathMonitor
+	private let monitor: NWPathMonitor?
 	private let queue: DispatchQueue
-	/// 接続状態。true: online, false: offline。
+	/// 接続状態。true: online, false: offline。監視しないインスタンス（startsMonitoring: false）のときは常に false。
 	public private(set) var isOnline: Bool = false
 
-	public init(queue: DispatchQueue = DispatchQueue(label: "com.karaokesupport.networkmonitor")) {
-		self.monitor = NWPathMonitor()
+	/// - Parameter startsMonitoring: false のときは NWPathMonitor を起動しない（プレビュー・EnvironmentKey の default 用）。
+	public init(
+		queue: DispatchQueue = DispatchQueue(label: "com.karaokesupport.networkmonitor"),
+		startsMonitoring: Bool = true
+	) {
 		self.queue = queue
-		self.isOnline = monitor.currentPath.status == .satisfied
-		monitor.pathUpdateHandler = { [weak self] path in
-			DispatchQueue.main.async {
-				self?.isOnline = path.status == .satisfied
+		if startsMonitoring {
+			let m = NWPathMonitor()
+			self.monitor = m
+			self.isOnline = m.currentPath.status == .satisfied
+			m.pathUpdateHandler = { [weak self] path in
+				DispatchQueue.main.async {
+					self?.isOnline = path.status == .satisfied
+				}
 			}
+			m.start(queue: queue)
+		} else {
+			self.monitor = nil
 		}
-		monitor.start(queue: queue)
 	}
 
 	deinit {
-		monitor.cancel()
+		monitor?.cancel()
 	}
 }
 
 // MARK: - Environment
 
 private struct NetworkMonitorEnvironmentKey: EnvironmentKey {
-	static let defaultValue: NetworkMonitor = NetworkMonitor()
+	/// 注入されていないコンテキスト（プレビュー等）用。監視は行わず、isOnline は常に false。
+	static let defaultValue: NetworkMonitor = NetworkMonitor(startsMonitoring: false)
 }
 
 public extension EnvironmentValues {
