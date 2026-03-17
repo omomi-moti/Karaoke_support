@@ -43,7 +43,16 @@ final class SwiftDataInsightRepository: InsightRepositoryProtocol {
 		return countsByTrackId
 			.values
 			.sorted { $0.count > $1.count }
-			.map { InsightTrackCountRanking(id: $0.track.id, track: $0.track, countInPeriod: $0.count) }
+			.map {
+				let track = $0.track
+				return InsightTrackCountRanking(
+					id: track.id,
+					trackId: track.id,
+					spotifyTrackId: track.spotifyTrackId,
+					userEnteredName: track.userEnteredName,
+					countInPeriod: $0.count
+				)
+			}
 	}
 
 	func fetchMyAnthemRankings(period: InsightPeriod) async throws -> [MyAnthemRanking] {
@@ -86,11 +95,29 @@ final class SwiftDataInsightRepository: InsightRepositoryProtocol {
 
 		let byCount = aggregatesByTrackId.values
 			.sorted { $0.count > $1.count }
-			.map { InsightTrackCountRanking(id: $0.track.id, track: $0.track, countInPeriod: $0.count) }
+			.map {
+				let track = $0.track
+				return InsightTrackCountRanking(
+					id: track.id,
+					trackId: track.id,
+					spotifyTrackId: track.spotifyTrackId,
+					userEnteredName: track.userEnteredName,
+					countInPeriod: $0.count
+				)
+			}
 
 		let byScore = aggregatesByTrackId.values
 			.sorted { $0.bestScore > $1.bestScore }
-			.map { InsightTrackScoreRanking(id: $0.track.id, track: $0.track, bestScore: $0.bestScore) }
+			.map {
+				let track = $0.track
+				return InsightTrackScoreRanking(
+					id: track.id,
+					trackId: track.id,
+					spotifyTrackId: track.spotifyTrackId,
+					userEnteredName: track.userEnteredName,
+					bestScore: $0.bestScore
+				)
+			}
 
 		return MyAnthemRanking(intent: intent, byCount: byCount, byScore: byScore)
 	}
