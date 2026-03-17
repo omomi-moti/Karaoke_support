@@ -12,16 +12,21 @@ struct KaraokeSupportApp: App {
 	@MainActor
 	init() {
 		do {
-			let container = try ModelContainer(for: Track.self, SingingSession.self)
+			let container = try Self.makeModelContainer(isInMemory: false)
 			self.modelContainer = container
-
-			let context = container.mainContext
-			self.sessionRepository = SwiftDataSessionRepository(modelContext: context)
-			self.trackRepository = SwiftDataTrackRepository(modelContext: context)
-			self.insightRepository = SwiftDataInsightRepository(modelContext: context)
 		} catch {
-			fatalError("Failed to create ModelContainer: \(error)")
+			assertionFailure("Failed to create persistent ModelContainer: \(error). Falling back to in-memory store.")
+			do {
+				self.modelContainer = try Self.makeModelContainer(isInMemory: true)
+			} catch {
+				fatalError("Failed to create in-memory ModelContainer: \(error)")
+			}
 		}
+
+		let context = modelContainer.mainContext
+		self.sessionRepository = SwiftDataSessionRepository(modelContext: context)
+		self.trackRepository = SwiftDataTrackRepository(modelContext: context)
+		self.insightRepository = SwiftDataInsightRepository(modelContext: context)
 	}
 
 	var body: some Scene {
@@ -33,5 +38,11 @@ struct KaraokeSupportApp: App {
 				.environment(\.insightRepository, insightRepository)
 		}
 		.modelContainer(modelContainer)
+	}
+
+	@MainActor
+	private static func makeModelContainer(isInMemory: Bool) throws -> ModelContainer {
+		let configuration = ModelConfiguration(isStoredInMemoryOnly: isInMemory)
+		return try ModelContainer(for: Track.self, SingingSession.self, configurations: configuration)
 	}
 }
