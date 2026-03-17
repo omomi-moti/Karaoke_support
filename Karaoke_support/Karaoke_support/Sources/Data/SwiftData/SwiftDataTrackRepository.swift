@@ -23,7 +23,11 @@ final class SwiftDataTrackRepository: TrackRepositoryProtocol {
 		let searchQuery = query
 		let descriptor = FetchDescriptor<Track>(
 			predicate: #Predicate<Track> { track in
-				(track.userEnteredName ?? "").contains(searchQuery)
+				if let name = track.userEnteredName {
+					name.contains(searchQuery)
+				} else {
+					false
+				}
 			},
 			sortBy: [SortDescriptor(\.singCount, order: .reverse)]
 		)
@@ -45,8 +49,13 @@ final class SwiftDataTrackRepository: TrackRepositoryProtocol {
 			// Spotify 由来では userEnteredName を永続化しない（API 規約準拠）
 			let track = Track(spotifyTrackId: sid, userEnteredName: nil)
 			modelContext.insert(track)
-			try modelContext.save()
-			return track
+			do {
+				try modelContext.save()
+				return track
+			} catch {
+				modelContext.delete(track)
+				throw error
+			}
 		}
 
 		if let name = userEnteredName, !name.isEmpty {
@@ -55,8 +64,13 @@ final class SwiftDataTrackRepository: TrackRepositoryProtocol {
 			}
 			let track = Track(userEnteredName: name, spotifyTrackId: nil)
 			modelContext.insert(track)
-			try modelContext.save()
-			return track
+			do {
+				try modelContext.save()
+				return track
+			} catch {
+				modelContext.delete(track)
+				throw error
+			}
 		}
 
 		throw TrackRepositoryError.bothIdsNil
