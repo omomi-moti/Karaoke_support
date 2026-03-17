@@ -14,6 +14,14 @@ protocol InsightRepositoryProtocol {
 	func fetchTimeMachineRanking() async throws -> [InsightTrackCountRanking]
 
 	/// Intent 別の「歌った回数ランキング」「点数ランキング」を取得する。
-	func fetchMyAnthemRankings() async throws -> [MyAnthemRanking]
+	///
+	/// - Parameter period: 集計対象期間。デフォルトは 3 ヶ月。
+	func fetchMyAnthemRankings(period: InsightPeriod) async throws -> [MyAnthemRanking]
+}
+
+extension InsightRepositoryProtocol {
+	func fetchMyAnthemRankings() async throws -> [MyAnthemRanking] {
+		try await fetchMyAnthemRankings(period: .threeMonths)
+	}
 }
 
