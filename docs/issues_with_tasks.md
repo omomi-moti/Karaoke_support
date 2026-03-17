@@ -57,8 +57,8 @@
 - **Labels**: `priority:must`, `type:feat`, `phase:0-基盤`
 - **Tasks**:
   - [ ] InsightRepository プロトコルを定義する
-  - [ ] getTimeMachineRanking() を実装する（過去1ヶ月、歌唱回数降順）
-  - [ ] getMyAnthemRanking() を実装する（Intent別の回数・点数ランキング）
+  - [ ] fetchTimeMachineRanking() を実装する（過去1ヶ月、歌唱回数降順）
+  - [ ] fetchMyAnthemRankings(period:) を実装する（Intent別の回数・点数ランキング。デフォルト: 過去3ヶ月、切替: 過去1ヶ月）
   - [ ] SwiftData の @Query または FetchDescriptor で集計クエリを実装する
 
 ---
@@ -202,7 +202,7 @@
 ### [I-018] タイムマシン表示
 - **Labels**: `priority:must`, `type:feat`, `phase:2-インサイト`
 - **Tasks**:
-  - [ ] getTimeMachineRanking() で過去1ヶ月のランキングを取得する
+  - [ ] fetchTimeMachineRanking() で過去1ヶ月のランキングを取得する
   - [ ] 歌った回数降順でリスト表示する
   - [ ] Phase 2 では userEnteredName で曲名を表示する
   - [ ] ランキング内の曲をタップすると歌唱記録フローへ遷移する
@@ -212,7 +212,7 @@
 ### [I-019] マイアンセム表示
 - **Labels**: `priority:must`, `type:feat`, `phase:2-インサイト`
 - **Tasks**:
-  - [ ] getMyAnthemRanking() で Intent 別ランキングを取得する
+  - [ ] fetchMyAnthemRankings(period:) で Intent 別ランキングを取得する（デフォルト: 過去3ヶ月、切替: 過去1ヶ月）
   - [ ] Shout/Emo/Practice ごとの回数ランキング・点数ランキングを表示する
   - [ ] セグメントまたはタブで Intent を切り替える
   - [ ] 曲をタップすると歌唱記録フローへ遷移する
