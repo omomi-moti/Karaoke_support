@@ -68,7 +68,7 @@
   - [x] 接続状態（online/offline）を @Published、AsyncStream、または @Observable で公開する
   - [x] アプリ起動時に監視を開始し、状態変化を検知できるようにする
   - [x] @Environment(\.networkMonitor) で参照できるよう EnvironmentKey を定義し、App 起点で注入する（I-012 等でオフライン判定に使用）
-  - [x] NetworkMonitor に @MainActor を付与し、pathUpdateHandler は queue: .main で実行する（Swift 6 厳格並行性対応）
+  - [x] NetworkMonitor に @MainActor を付与し、pathUpdateHandler 内で Task { @MainActor in } により isOnline をメインスレッドで更新する（Swift 6 厳格並行性対応）
   - [x] EnvironmentKey を App 層（NetworkMonitorEnvironment.swift）に配置し、Data 層は SwiftUI に依存しない（レイヤー設計準拠）
 
 ---
