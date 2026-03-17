@@ -64,10 +64,12 @@
 ### [I-006] ネットワーク監視ユーティリティ
 - **Labels**: `priority:must`, `type:feat`, `phase:0-基盤`
 - **Tasks**:
-  - [ ] NWPathMonitor を用いた NetworkMonitor クラス/構造体を作成する
-  - [ ] 接続状態（online/offline）を @Published または AsyncStream で公開する
-  - [ ] アプリ起動時に監視を開始し、状態変化を検知できるようにする
-  - [ ] @Environment(\.networkMonitor) で参照できるよう EnvironmentKey を定義し、App 起点で注入する（I-012 等でオフライン判定に使用）
+  - [x] NWPathMonitor を用いた NetworkMonitor クラス/構造体を作成する
+  - [x] 接続状態（online/offline）を @Published、AsyncStream、または @Observable で公開する
+  - [x] アプリ起動時に監視を開始し、状態変化を検知できるようにする
+  - [x] @Environment(\.networkMonitor) で参照できるよう EnvironmentKey を定義し、App 起点で注入する（I-012 等でオフライン判定に使用）
+  - [x] NetworkMonitor に @MainActor を付与し、pathUpdateHandler 内で Task { @MainActor in } により isOnline をメインスレッドで更新する（Swift 6 厳格並行性対応）
+  - [x] EnvironmentKey を App 層（NetworkMonitorEnvironment.swift）に配置し、Data 層は SwiftUI に依存しない（レイヤー設計準拠）
 
 ---
 
@@ -89,7 +91,7 @@
 - **Tasks**:
   - [ ] App エントリで ModelContainer を参照（I-002 で登録済みの場合は確認のみ）
   - [ ] SessionRepository / TrackRepository / InsightRepository の具体実装を生成する
-  - [ ] @Environment に統一。EnvironmentKey を定義し（例: `\.sessionRepository`, `\.trackRepository`, `\.insightRepository`。※ Swift の KeyPath 記法はバックスラッシュ 1 つ）、ルート View に `.environment(\.sessionRepository, impl)` で渡す
+  - [ ] @Environment に統一。EnvironmentKey は App 層に定義し（例: `\.sessionRepository`, `\.trackRepository`, `\.insightRepository`。※ Swift の KeyPath 記法はバックスラッシュ 1 つ）、ルート View に `.environment(\.sessionRepository, impl)` で渡す
   - [ ] 各 ViewModel が View 経由で @Environment から Repository を取得し、初期化引数で受け取る形で接続する
 - **DoD**: 歌唱記録フロー（I-013）で RecordingViewModel が @Environment から SessionRepository / TrackRepository を取得し、保存処理が動作すること
 

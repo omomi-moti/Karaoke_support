@@ -41,7 +41,7 @@
 | I-003 | SessionRepository 実装 | Must | save, fetchAll, fetchByIntent, exists（UUID） |
 | I-004 | TrackRepository 実装 | Must | searchLocal(query), getOrCreate(spotifyTrackId?, userEnteredName?), incrementSingCount |
 | I-005 | InsightRepository 実装 | Must | getTimeMachineRanking, getMyAnthemRanking |
-| I-006 | ネットワーク監視ユーティリティ | Must | NWPathMonitor による接続状態の検知 |
+| I-006 | ネットワーク監視ユーティリティ | Must | NWPathMonitor による接続状態の検知。EnvironmentKey は App 層に配置（Data 層は SwiftUI 非依存） |
 
 ### Phase 1: MVP
 
