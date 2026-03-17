@@ -100,11 +100,11 @@ Phase 2: I-017 → I-018
 - **依存**: I-002
 - **Labels**: `priority:must`, `type:feat`, `phase:0-基盤`
 - **Tasks**:
-  - [ ] InsightRepository プロトコルを Domain/Repositories に定義する
-  - [ ] SwiftDataInsightRepository を Data/SwiftData に実装する
-  - [ ] getTimeMachineRanking() を実装する（過去1ヶ月、歌唱回数降順）
-  - [ ] getMyAnthemRanking() を実装する（Intent別の回数・点数ランキング）
-  - [ ] SwiftData の @Query または FetchDescriptor で集計クエリを実装する
+  - [x] InsightRepository プロトコルを Domain/Repositories に定義する
+  - [x] SwiftDataInsightRepository を Data/SwiftData に実装する
+  - [x] fetchTimeMachineRanking() を実装する（過去1ヶ月、歌唱回数降順）
+  - [x] fetchMyAnthemRankings(period:) を実装する（Intent別の回数・点数ランキング。デフォルト: 過去3ヶ月、切替: 過去1ヶ月）
+  - [x] SwiftData の @Query または FetchDescriptor で集計クエリを実装する
 
 ---
 
@@ -253,7 +253,7 @@ Phase 2: I-017 → I-018
 - **依存**: I-005, I-017
 - **Labels**: `priority:must`, `type:feat`, `phase:2-インサイト`
 - **Tasks**:
-  - [ ] getTimeMachineRanking() で過去1ヶ月のランキングを取得する
+  - [ ] fetchTimeMachineRanking() で過去1ヶ月のランキングを取得する
   - [ ] 歌った回数降順でリスト表示する
   - [ ] V1 では `track.userEnteredName ?? "不明"` で曲名を表示する
   - [ ] ランキング内の曲をタップすると `SelectedTrack(spotifyTrackId: track.spotifyTrackId, userEnteredName: track.userEnteredName)` を navigationDestination で渡し、歌唱記録フローへ遷移する
