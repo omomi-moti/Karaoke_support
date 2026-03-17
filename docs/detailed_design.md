@@ -112,13 +112,13 @@ sequenceDiagram
     participant SwiftData
 
     App->>InsightViewModel: 画面表示
-    InsightViewModel->>Repository: getTimeMachineRanking()
+    InsightViewModel->>Repository: fetchTimeMachineRanking()
     Repository->>SwiftData: fetch(過去1ヶ月, group by track, count)
     SwiftData-->>Repository: [(track, count)]
     Repository-->>InsightViewModel: タイムマシン
 
-    InsightViewModel->>Repository: getMyAnthemRanking()
-    Repository->>SwiftData: fetch(group by intent, track, count/score)
+    InsightViewModel->>Repository: fetchMyAnthemRankings(period: threeMonths)
+    Repository->>SwiftData: fetch(過去3ヶ月, group by intent, track, count/score)
     SwiftData-->>Repository: [(intent, track, count, avgScore)]
     Repository-->>InsightViewModel: マイアンセム
 
@@ -191,8 +191,8 @@ classDiagram
 
     class InsightRepository {
         <<interface>>
-        +getTimeMachineRanking() async
-        +getMyAnthemRanking() async
+        +fetchTimeMachineRanking() async throws
+        +fetchMyAnthemRankings(period: InsightPeriod) async throws
     }
 
     class SessionListViewModel {
