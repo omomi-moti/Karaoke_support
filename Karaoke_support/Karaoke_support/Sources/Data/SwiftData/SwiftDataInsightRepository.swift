@@ -16,7 +16,7 @@ final class SwiftDataInsightRepository: InsightRepositoryProtocol {
 		self.modelContext = modelContext
 	}
 
-	func getTimeMachineRanking() async throws -> [InsightTrackCountRanking] {
+	func fetchTimeMachineRanking() async throws -> [InsightTrackCountRanking] {
 		guard let cutoff = Calendar.current.date(byAdding: .month, value: -1, to: .now) else {
 			return []
 		}
@@ -46,7 +46,7 @@ final class SwiftDataInsightRepository: InsightRepositoryProtocol {
 			.map { InsightTrackCountRanking(id: $0.track.id, track: $0.track, singCount: $0.count) }
 	}
 
-	func getMyAnthemRanking() async throws -> [MyAnthemRanking] {
+	func fetchMyAnthemRankings() async throws -> [MyAnthemRanking] {
 		try Intent.allCases.map { intent in
 			try buildMyAnthemRanking(intent: intent)
 		}

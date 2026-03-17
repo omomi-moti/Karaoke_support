@@ -11,9 +11,9 @@ import Foundation
 @MainActor
 protocol InsightRepositoryProtocol {
 	/// 過去 1 ヶ月の歌唱回数ランキング（Track 単位）。
-	func getTimeMachineRanking() async throws -> [InsightTrackCountRanking]
+	func fetchTimeMachineRanking() async throws -> [InsightTrackCountRanking]
 
 	/// Intent 別の「歌った回数ランキング」「点数ランキング」を取得する。
-	func getMyAnthemRanking() async throws -> [MyAnthemRanking]
+	func fetchMyAnthemRankings() async throws -> [MyAnthemRanking]
 }
 
