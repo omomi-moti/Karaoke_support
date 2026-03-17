@@ -24,11 +24,12 @@ final class SingingSession {
 		score: Int,
 		memo: String? = nil
 	) {
+		precondition(score >= 0 && score <= 100, "SingingSession score must be in 0...100.")
 		self.id = id
 		self.track = track
 		self.intent = intent
 		self.performedAt = performedAt
-		self.score = min(100, max(0, score))
+		self.score = score
 		self.memo = memo
 	}
 }
