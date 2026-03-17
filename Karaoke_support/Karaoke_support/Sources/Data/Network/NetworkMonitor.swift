@@ -30,7 +30,9 @@ public final class NetworkMonitor {
 			self.monitor = m
 			self.isOnline = m.currentPath.status == .satisfied
 			m.pathUpdateHandler = { [weak self] path in
-				self?.isOnline = path.status == .satisfied
+				Task { @MainActor [weak self] in
+					self?.isOnline = path.status == .satisfied
+				}
 			}
 			m.start(queue: queue)
 		} else {
