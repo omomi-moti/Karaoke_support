@@ -42,10 +42,8 @@ final class SwiftDataTrackRepository: TrackRepositoryProtocol {
 			if let existing = try fetchBySpotifyTrackId(sid) {
 				return existing
 			}
-			let track = Track(
-				spotifyTrackId: sid,
-				userEnteredName: userEnteredName
-			)
+			// Spotify 由来では userEnteredName を永続化しない（API 規約準拠）
+			let track = Track(spotifyTrackId: sid, userEnteredName: nil)
 			modelContext.insert(track)
 			try modelContext.save()
 			return track
