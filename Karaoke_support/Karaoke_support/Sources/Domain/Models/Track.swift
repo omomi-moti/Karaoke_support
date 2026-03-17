@@ -42,16 +42,17 @@ final class Track {
 	}
 
 	/// Spotify 由来の曲用。`spotifyTrackId` 必須。
-	init(
+	convenience init(
 		id: UUID = UUID(),
 		spotifyTrackId: String,
 		userEnteredName: String? = nil,
 		singCount: Int = 0,
 		latestScore: Double? = nil,
 		createdAt: Date = .now,
-		updatedAt: Date? = nil
+		updatedAtOverride: Date? = nil
 	) {
 		precondition(!spotifyTrackId.isEmpty, "spotifyTrackId must be non-empty.")
+		let resolvedUpdatedAt = updatedAtOverride ?? createdAt
 		self.init(
 			id: id,
 			spotifyTrackId: spotifyTrackId,
@@ -59,21 +60,22 @@ final class Track {
 			singCount: singCount,
 			latestScore: latestScore,
 			createdAt: createdAt,
-			updatedAt: updatedAt ?? createdAt
+			updatedAt: resolvedUpdatedAt
 		)
 	}
 
 	/// 手動入力曲用。`userEnteredName` 必須。
-	init(
+	convenience init(
 		id: UUID = UUID(),
 		userEnteredName: String,
 		spotifyTrackId: String? = nil,
 		singCount: Int = 0,
 		latestScore: Double? = nil,
 		createdAt: Date = .now,
-		updatedAt: Date? = nil
+		updatedAtOverride: Date? = nil
 	) {
 		precondition(!userEnteredName.isEmpty, "userEnteredName must be non-empty.")
+		let resolvedUpdatedAt = updatedAtOverride ?? createdAt
 		self.init(
 			id: id,
 			spotifyTrackId: spotifyTrackId,
@@ -81,7 +83,7 @@ final class Track {
 			singCount: singCount,
 			latestScore: latestScore,
 			createdAt: createdAt,
-			updatedAt: updatedAt ?? createdAt
+			updatedAt: resolvedUpdatedAt
 		)
 	}
 }
