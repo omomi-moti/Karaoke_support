@@ -43,26 +43,32 @@ final class SwiftDataInsightRepository: InsightRepositoryProtocol {
 		return countsByTrackId
 			.values
 			.sorted { $0.count > $1.count }
-			.map { InsightTrackCountRanking(id: $0.track.id, track: $0.track, singCount: $0.count) }
+			.map { InsightTrackCountRanking(id: $0.track.id, track: $0.track, countInPeriod: $0.count) }
 	}
 
-	func fetchMyAnthemRankings() async throws -> [MyAnthemRanking] {
-		try Intent.allCases.map { intent in
-			try buildMyAnthemRanking(intent: intent)
+	func fetchMyAnthemRankings(period: InsightPeriod) async throws -> [MyAnthemRanking] {
+		guard let cutoff = period.cutoffDate() else {
+			return []
+		}
+
+		let cutoffToMatch = cutoff
+		let descriptor = FetchDescriptor<SingingSession>(
+			predicate: #Predicate<SingingSession> { session in
+				session.performedAt >= cutoffToMatch
+			}
+		)
+		let allSessionsInPeriod = try modelContext.fetch(descriptor)
+
+		let sessionsByIntent = Dictionary(grouping: allSessionsInPeriod, by: { $0.intent })
+		return Intent.allCases.map { intent in
+			let sessionsForIntent = sessionsByIntent[intent] ?? []
+			return buildMyAnthemRanking(intent: intent, sessions: sessionsForIntent)
 		}
 	}
 
 	// MARK: - Private
 
-	private func buildMyAnthemRanking(intent: Intent) throws -> MyAnthemRanking {
-		let intentToMatch = intent
-		let descriptor = FetchDescriptor<SingingSession>(
-			predicate: #Predicate<SingingSession> { session in
-				session.intent == intentToMatch
-			}
-		)
-		let sessions = try modelContext.fetch(descriptor)
-
+	private func buildMyAnthemRanking(intent: Intent, sessions: [SingingSession]) -> MyAnthemRanking {
 		var aggregatesByTrackId: [UUID: (track: Track, count: Int, bestScore: Double)] = [:]
 		for session in sessions {
 			let track = session.track
@@ -80,7 +86,7 @@ final class SwiftDataInsightRepository: InsightRepositoryProtocol {
 
 		let byCount = aggregatesByTrackId.values
 			.sorted { $0.count > $1.count }
-			.map { InsightTrackCountRanking(id: $0.track.id, track: $0.track, singCount: $0.count) }
+			.map { InsightTrackCountRanking(id: $0.track.id, track: $0.track, countInPeriod: $0.count) }
 
 		let byScore = aggregatesByTrackId.values
 			.sorted { $0.bestScore > $1.bestScore }
