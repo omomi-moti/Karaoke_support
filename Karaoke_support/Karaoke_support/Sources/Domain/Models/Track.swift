@@ -31,6 +31,10 @@ final class Track {
 		createdAt: Date = .now,
 		updatedAt: Date? = nil
 	) {
+		precondition(
+			(spotifyTrackId?.isEmpty == false) || (userEnteredName?.isEmpty == false),
+			"Track must have either a non-empty spotifyTrackId or a non-empty userEnteredName."
+		)
 		self.id = id
 		self.spotifyTrackId = spotifyTrackId
 		self.userEnteredName = userEnteredName
