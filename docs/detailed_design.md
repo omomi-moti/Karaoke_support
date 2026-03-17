@@ -58,9 +58,9 @@ sequenceDiagram
     User->>View: 保存ボタンタップ
     View->>ViewModel: saveSession(intent, score, memo)
     ViewModel->>Repository: saveSession(session)
-    Repository->>SwiftData: insert(track(spotifyTrackId=nil, userEnteredName 等のユーザー生成データのみ))
+    Repository->>SwiftData: insert(Track(userEnteredName: ...) 等のユーザー生成データのみ)
     Repository->>SwiftData: insert(session, trackId=track.id)
-    Note over Repository,SwiftData: trackId FK は必須。オフライン時は spotifyTrackId=nil の Track（userEnteredName 等のユーザー生成データのみ永続化）を生成して紐付ける。Spotify 由来メタデータは最長24時間のインメモリTTLキャッシュでのみ保持し、SwiftData へ永続化しない
+    Note over Repository,SwiftData: trackId FK は必須。オフライン時は Track(userEnteredName:) で手動入力曲を生成して紐付ける。Spotify 由来メタデータは最長24時間のインメモリTTLキャッシュでのみ保持し、SwiftData へ永続化しない
     SwiftData-->>Repository: OK
     Repository-->>ViewModel: success
     ViewModel-->>View: 完了
@@ -137,7 +137,7 @@ classDiagram
         +UUID id
         +Intent intent
         +Date performedAt
-        +Int score
+        +Double score
         +String? memo
     }
 
@@ -273,7 +273,7 @@ erDiagram
         uuid trackId FK
         string intent "shout|emo|practice"
         datetime performedAt
-        int score "0-100"
+        double score "0-100"
         string memo "nullable"
     }
 
@@ -317,10 +317,12 @@ final class SingingSession {
     /// ドメインでは enum を使用し、永続化時は RawValue(String) で扱う。
     var intent: Intent
     var performedAt: Date
-    var score: Int
+    var score: Double
     var memo: String?
 }
 ```
+
+**補足（Track の生成）**: Track は「どちらか必須」を型で保証するため、public の初期化子を 2 本用意している。`init(spotifyTrackId: String, userEnteredName: String? = nil, ...)`（Spotify 由来の曲用）と `init(userEnteredName: String, spotifyTrackId: String? = nil, ...)`（手動入力曲用）。`Track()` や両方 nil での生成はコンパイル不可。空文字は precondition で拒否。代入ロジックは private init に集約している。
 
 **補足（紐付けの正本）**: Track と外部データの紐付けは `Track.spotifyTrackId` を唯一の正本キーとして扱う。`SingingSession` は `Track` への外部キー（`track` リレーション）のみを持ち、`spotifyTrackId` を冗長に保持しない。曲名・アーティスト名・アートワーク等は表示用の揮発データであり、SwiftData には保存しない。
 
