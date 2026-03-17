@@ -2,14 +2,15 @@
 //  NetworkMonitor.swift
 //  Karaoke_support
 //
-//  I-006: ネットワーク監視ユーティリティ。NWPathMonitor で online/offline を検知し、
-//  @Environment(\.networkMonitor) で参照できるよう App 起点で注入する（I-012 等でオフライン判定に使用）。
+//  I-006: ネットワーク監視ユーティリティ。NWPathMonitor で online/offline を検知する。
+//  Environment 注入は App 層の NetworkMonitorEnvironment.swift で行う（Data 層は SwiftUI 非依存）。
 //
 
 import Foundation
 import Network
-import SwiftUI
+import Observation
 
+@MainActor
 @Observable
 public final class NetworkMonitor {
 	private let monitor: NWPathMonitor?
@@ -17,9 +18,10 @@ public final class NetworkMonitor {
 	/// 接続状態。true: online, false: offline。監視しないインスタンス（startsMonitoring: false）のときは常に false。
 	public private(set) var isOnline: Bool = false
 
+	/// - Parameter queue: pathUpdateHandler が実行されるキュー。.main にすると isOnline の更新がメインスレッドで行われる（推奨）。
 	/// - Parameter startsMonitoring: false のときは NWPathMonitor を起動しない（プレビュー・EnvironmentKey の default 用）。
 	public init(
-		queue: DispatchQueue = DispatchQueue(label: "com.karaokesupport.networkmonitor"),
+		queue: DispatchQueue = .main,
 		startsMonitoring: Bool = true
 	) {
 		self.queue = queue
@@ -28,9 +30,7 @@ public final class NetworkMonitor {
 			self.monitor = m
 			self.isOnline = m.currentPath.status == .satisfied
 			m.pathUpdateHandler = { [weak self] path in
-				DispatchQueue.main.async {
-					self?.isOnline = path.status == .satisfied
-				}
+				self?.isOnline = path.status == .satisfied
 			}
 			m.start(queue: queue)
 		} else {
@@ -40,19 +40,5 @@ public final class NetworkMonitor {
 
 	deinit {
 		monitor?.cancel()
-	}
-}
-
-// MARK: - Environment
-
-private struct NetworkMonitorEnvironmentKey: EnvironmentKey {
-	/// 注入されていないコンテキスト（プレビュー等）用。監視は行わず、isOnline は常に false。
-	static let defaultValue: NetworkMonitor = NetworkMonitor(startsMonitoring: false)
-}
-
-public extension EnvironmentValues {
-	var networkMonitor: NetworkMonitor {
-		get { self[NetworkMonitorEnvironmentKey.self] }
-		set { self[NetworkMonitorEnvironmentKey.self] = newValue }
 	}
 }
