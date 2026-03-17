@@ -20,6 +20,7 @@ public final class NetworkMonitor {
 	public init(queue: DispatchQueue = DispatchQueue(label: "com.karaokesupport.networkmonitor")) {
 		self.monitor = NWPathMonitor()
 		self.queue = queue
+		self.isOnline = monitor.currentPath.status == .satisfied
 		monitor.pathUpdateHandler = { [weak self] path in
 			DispatchQueue.main.async {
 				self?.isOnline = path.status == .satisfied
