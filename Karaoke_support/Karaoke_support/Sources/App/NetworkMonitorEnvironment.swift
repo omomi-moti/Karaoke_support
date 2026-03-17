@@ -11,7 +11,8 @@ import SwiftUI
 private struct NetworkMonitorEnvironmentKey: EnvironmentKey {
 	/// App 起点で注入されるのが基本だが、未注入（プレビュー等）でも落ちないよう
 	/// 監視しないインスタンスを MainActor 上で生成して返す。
-	@MainActor static var defaultValue: NetworkMonitor { NetworkMonitor(startsMonitoring: false) }
+	@MainActor private static let previewDefault = NetworkMonitor(startsMonitoring: false)
+	@MainActor static var defaultValue: NetworkMonitor { previewDefault }
 }
 
 public extension EnvironmentValues {
