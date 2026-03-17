@@ -64,10 +64,10 @@
 ### [I-006] ネットワーク監視ユーティリティ
 - **Labels**: `priority:must`, `type:feat`, `phase:0-基盤`
 - **Tasks**:
-  - [ ] NWPathMonitor を用いた NetworkMonitor クラス/構造体を作成する
-  - [ ] 接続状態（online/offline）を @Published または AsyncStream で公開する
-  - [ ] アプリ起動時に監視を開始し、状態変化を検知できるようにする
-  - [ ] @Environment(\.networkMonitor) で参照できるよう EnvironmentKey を定義し、App 起点で注入する（I-012 等でオフライン判定に使用）
+  - [x] NWPathMonitor を用いた NetworkMonitor クラス/構造体を作成する
+  - [x] 接続状態（online/offline）を @Published または AsyncStream で公開する
+  - [x] アプリ起動時に監視を開始し、状態変化を検知できるようにする
+  - [x] @Environment(\.networkMonitor) で参照できるよう EnvironmentKey を定義し、App 起点で注入する（I-012 等でオフライン判定に使用）
 
 ---
 
