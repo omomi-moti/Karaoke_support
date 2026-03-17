@@ -125,9 +125,9 @@ Phase 2: I-017 → I-018
 - **依存**: I-002, I-003, I-004, I-005, I-007
 - **Labels**: `priority:must`, `type:chore`, `phase:1-MVP`
 - **Tasks**:
-  - [ ] App エントリで ModelContainer を参照（I-002 で登録済みの場合は確認のみ）
-  - [ ] SessionRepository / TrackRepository / InsightRepository の具体実装を生成する
-  - [ ] @Environment に統一。EnvironmentKey は App 層に定義し（例: `\.sessionRepository`, `\.trackRepository`, `\.insightRepository`。※ Swift の KeyPath 記法はバックスラッシュ 1 つ）、ルート View に `.environment(\.sessionRepository, impl)` で渡す
+  - [x] App エントリで ModelContainer を参照（I-002 で登録済みの場合は確認のみ）
+  - [x] SessionRepository / TrackRepository / InsightRepository の具体実装を生成する
+  - [x] @Environment に統一。EnvironmentKey は App 層に定義し（例: `\.sessionRepository`, `\.trackRepository`, `\.insightRepository`。※ Swift の KeyPath 記法はバックスラッシュ 1 つ）、ルート View に `.environment(\.sessionRepository, impl)` で渡す
   - [ ] 各 ViewModel が View 経由で @Environment から Repository を取得し、初期化引数で受け取る形で接続する
 - **DoD**: 歌唱記録フロー（I-013）で RecordingViewModel が @Environment から SessionRepository / TrackRepository を取得し、保存処理が動作すること
 
