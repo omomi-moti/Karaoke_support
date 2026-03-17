@@ -96,7 +96,7 @@ Phase 2: I-017 → I-018
 
 ---
 
-### [I-005] InsightRepository 実装
+### [I-005] InsightRepository 実装　✅
 - **依存**: I-002
 - **Labels**: `priority:must`, `type:feat`, `phase:0-基盤`
 - **Tasks**:
@@ -114,10 +114,10 @@ Phase 2: I-017 → I-018
 - **依存**: I-001
 - **Labels**: `priority:must`, `type:feat`, `phase:1-MVP`
 - **Tasks**:
-  - [ ] TabView で選曲画面（2タブ）、History、設定の3タブを構成する。各タブ内に独立した NavigationStack を配置する（タブバーが常に表示され、各タブのナビ履歴が独立する構成）
-  - [ ] タブA: インテント、タブB: Spotify視聴履歴のセグメント/タブUIを配置する。V1 ではタブB・設定は `EmptyPlaceholderView` 等の共通プレースホルダーを使用し、V2 で同型の View に差し替える
-  - [ ] History 画面への遷移をタブバーに追加する
-  - [ ] 設定画面への遷移をタブバーに追加する
+  - [x] TabView で選曲画面（2タブ）、History、設定の3タブを構成する。各タブ内に独立した NavigationStack を配置する（タブバーが常に表示され、各タブのナビ履歴が独立する構成）
+  - [x] タブA: インテント、タブB: Spotify視聴履歴のセグメント/タブUIを配置する。V1 ではタブB・設定は `EmptyPlaceholderView` 等の共通プレースホルダーを使用し、V2 で同型の View に差し替える
+  - [x] History 画面への遷移をタブバーに追加する
+  - [x] 設定画面への遷移をタブバーに追加する
 
 ---
 
