@@ -70,7 +70,7 @@ Phase 2: I-017 → I-018
 
 ---
 
-### [I-003] SessionRepository 実装 ✅ ✅
+### [I-003] SessionRepository 実装 ✅ 
 - **依存**: I-002
 - **Labels**: `priority:must`, `type:feat`, `phase:0-基盤`
 - **Tasks**:
