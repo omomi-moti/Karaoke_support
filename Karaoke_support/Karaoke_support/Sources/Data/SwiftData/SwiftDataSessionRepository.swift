@@ -22,6 +22,9 @@ final class SwiftDataSessionRepository: SessionRepositoryProtocol {
 	}
 
 	func fetchAll(limit: Int, offset: Int) async throws -> [SingingSession] {
+		guard limit >= 0, offset >= 0 else {
+			throw SessionRepositoryError.invalidParameter("limit and offset must be non-negative")
+		}
 		var descriptor = FetchDescriptor<SingingSession>(
 			sortBy: [SortDescriptor(\.performedAt, order: .reverse)]
 		)
