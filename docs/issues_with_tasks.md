@@ -29,14 +29,15 @@
 
 ---
 
-### [I-003] SessionRepository 実装
+### [I-003] SessionRepository 実装 ✅
 - **Labels**: `priority:must`, `type:feat`, `phase:0-基盤`
 - **Tasks**:
-  - [ ] SessionRepository プロトコル（インターフェース）を定義する
-  - [ ] save(session) メソッドを実装する（SwiftData insert）
-  - [ ] fetchAll(limit, offset) を実装する（日時降順）
-  - [ ] fetchByIntent(intent) を実装する
-  - [ ] exists(uuid) を実装する（冪等性チェック用）
+  - [x] SessionRepository プロトコル（インターフェース）を Domain/Repositories に定義する
+  - [x] SwiftDataSessionRepository を Data/SwiftData に実装する
+  - [x] save(session) メソッドを実装する（SwiftData insert）
+  - [x] fetchAll(limit, offset) を実装する（日時降順）。offset はスキップ件数（0-based）
+  - [x] fetchByIntent(intent) を実装する
+  - [x] exists(uuid) を実装する（冪等性チェック用）
 
 ---
 
