@@ -21,4 +21,67 @@ final class Track {
 
 	@Relationship(deleteRule: .cascade, inverse: \SingingSession.track)
 	var sessions: [SingingSession] = []
+
+	/// 代入ロジックの単一化用。呼び出しは 2 本の public init からのみ。
+	private init(
+		id: UUID,
+		spotifyTrackId: String?,
+		userEnteredName: String?,
+		singCount: Int,
+		latestScore: Double?,
+		createdAt: Date,
+		updatedAt: Date
+	) {
+		self.id = id
+		self.spotifyTrackId = spotifyTrackId
+		self.userEnteredName = userEnteredName
+		self.singCount = singCount
+		self.latestScore = latestScore
+		self.createdAt = createdAt
+		self.updatedAt = updatedAt
+	}
+
+	/// Spotify 由来の曲用。`spotifyTrackId` 必須。
+	init(
+		id: UUID = UUID(),
+		spotifyTrackId: String,
+		userEnteredName: String? = nil,
+		singCount: Int = 0,
+		latestScore: Double? = nil,
+		createdAt: Date = .now,
+		updatedAt: Date? = nil
+	) {
+		precondition(!spotifyTrackId.isEmpty, "spotifyTrackId must be non-empty.")
+		self.init(
+			id: id,
+			spotifyTrackId: spotifyTrackId,
+			userEnteredName: userEnteredName,
+			singCount: singCount,
+			latestScore: latestScore,
+			createdAt: createdAt,
+			updatedAt: updatedAt ?? createdAt
+		)
+	}
+
+	/// 手動入力曲用。`userEnteredName` 必須。
+	init(
+		id: UUID = UUID(),
+		userEnteredName: String,
+		spotifyTrackId: String? = nil,
+		singCount: Int = 0,
+		latestScore: Double? = nil,
+		createdAt: Date = .now,
+		updatedAt: Date? = nil
+	) {
+		precondition(!userEnteredName.isEmpty, "userEnteredName must be non-empty.")
+		self.init(
+			id: id,
+			spotifyTrackId: spotifyTrackId,
+			userEnteredName: userEnteredName,
+			singCount: singCount,
+			latestScore: latestScore,
+			createdAt: createdAt,
+			updatedAt: updatedAt ?? createdAt
+		)
+	}
 }
