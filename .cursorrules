@@ -14,6 +14,7 @@
 - **1 画面 1 ViewModel**: 画面（またはタブ）ごとに 1 つの ViewModel を割り当てる。
 - **Repository は注入**: ViewModel は Repository を初期化時に受け取る（DI）。View から直接 Repository を生成しない。
 - **DI の実装**: Repository はアプリ起動時に生成し `@Environment` で注入。View は `@Environment` から Repository を取得し、ViewModel の初期化時に渡す。
+- **EnvironmentKey の配置**: EnvironmentKey と EnvironmentValues 拡張は App 層（Sources/App/）に定義する。Data 層は SwiftUI に依存せず、Observation / Network 等のみに限定する（レイヤー設計準拠）。
 
 ### 1.2 プロパティラッパーの使い分け
 
