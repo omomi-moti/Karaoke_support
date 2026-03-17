@@ -8,6 +8,7 @@
 import Foundation
 
 /// 歌唱セッションの永続化・取得を担当する Repository のプロトコル。
+@MainActor
 protocol SessionRepositoryProtocol {
 	/// セッションを保存する（insert）。
 	func save(session: SingingSession) async throws
