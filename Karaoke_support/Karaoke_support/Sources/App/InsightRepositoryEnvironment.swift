@@ -4,7 +4,7 @@ private struct InsightRepositoryEnvironmentKey: EnvironmentKey {
 	@MainActor static let defaultValue: any InsightRepositoryProtocol = PreviewInsightRepository()
 }
 
-public extension EnvironmentValues {
+extension EnvironmentValues {
 	var insightRepository: any InsightRepositoryProtocol {
 		get { self[InsightRepositoryEnvironmentKey.self] }
 		set { self[InsightRepositoryEnvironmentKey.self] = newValue }
