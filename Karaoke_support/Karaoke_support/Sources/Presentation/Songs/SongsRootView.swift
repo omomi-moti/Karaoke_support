@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct SongsRootView: View {
+	let onSavedMoveToHistory: () -> Void
+
 	private enum Segment: String, CaseIterable, Identifiable {
 		case intent = "インテント"
 		case spotify = "Spotify"
@@ -9,6 +11,7 @@ struct SongsRootView: View {
 	}
 
 	@State private var segment: Segment = .intent
+	@State private var isPresentingRecordingSheet: Bool = false
 
 	var body: some View {
 		VStack(spacing: 16) {
@@ -38,12 +41,26 @@ struct SongsRootView: View {
 		}
 		.navigationTitle("選曲")
 		.navigationBarTitleDisplayMode(.inline)
+		.toolbar {
+			ToolbarItem(placement: .topBarTrailing) {
+				Button {
+					isPresentingRecordingSheet = true
+				} label: {
+					Label("記録を追加", systemImage: "plus")
+				}
+			}
+		}
+		.sheet(isPresented: $isPresentingRecordingSheet) {
+			RecordingSheetContainerView(trackMode: .manual) {
+				onSavedMoveToHistory()
+			}
+		}
 	}
 }
 
 #Preview {
 	NavigationStack {
-		SongsRootView()
+		SongsRootView(onSavedMoveToHistory: {})
 	}
 }
 
