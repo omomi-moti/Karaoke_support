@@ -43,4 +43,13 @@ public final class NetworkMonitor {
 	deinit {
 		monitor?.cancel()
 	}
+
+	/// 「リトライ」等の明示操作時に、現在のネットワーク状態を再評価する。
+	public func refreshStatus() {
+		guard let monitor else {
+			isOnline = false
+			return
+		}
+		isOnline = monitor.currentPath.status == .satisfied
+	}
 }

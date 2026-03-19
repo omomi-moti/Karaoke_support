@@ -18,7 +18,7 @@ struct RecordingSheetContentView: View {
 					if !networkMonitor.isOnline {
 						OfflineBannerView(
 							onOpenSettings: openAppSettings,
-							onRetry: {}
+							onRetry: { networkMonitor.refreshStatus() }
 						)
 					}
 
