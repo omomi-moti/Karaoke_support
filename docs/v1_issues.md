@@ -61,10 +61,10 @@ Phase 2: I-017 → I-018
 - **依存**: I-001
 - **Labels**: `priority:must`, `type:feat`, `phase:0-基盤`
 - **Tasks**:
-  - [ ] NWPathMonitor を用いた NetworkMonitor クラス/構造体を作成する
-  - [ ] 接続状態（online/offline）を @Published または AsyncStream で公開する
-  - [ ] アプリ起動時に監視を開始し、状態変化を検知できるようにする
-  - [ ] @Environment(\.networkMonitor) で参照できるよう EnvironmentKey を定義し、App 起点で注入する（I-012 等でオフライン判定に使用）
+  - [x] NWPathMonitor を用いた NetworkMonitor クラス/構造体を作成する
+  - [x] 接続状態（online/offline）を @Observable で公開する
+  - [x] アプリ起動時に監視を開始し、状態変化を検知できるようにする
+  - [x] @Environment(\.networkMonitor) で参照できるよう EnvironmentKey を定義し、App 起点で注入する（I-012 等でオフライン判定に使用）
 
 ---
 
@@ -72,12 +72,12 @@ Phase 2: I-017 → I-018
 - **依存**: I-002
 - **Labels**: `priority:must`, `type:feat`, `phase:0-基盤`
 - **Tasks**:
-  - [ ] SessionRepository プロトコル（インターフェース）を Domain/Repositories に定義する
-  - [ ] SwiftDataSessionRepository を Data/SwiftData に実装する
-  - [ ] save(session) メソッドを実装する（SwiftData insert）
-  - [ ] fetchAll(limit, offset) を実装する（日時降順）。offset はスキップ件数（0-based）。例: limit=20, offset=0 で 1〜20 件目、offset=20 で 21〜40 件目
-  - [ ] fetchByIntent(intent) を実装する
-  - [ ] exists(uuid) を実装する（冪等性チェック用）
+  - [x] SessionRepository プロトコル（インターフェース）を Domain/Repositories に定義する
+  - [x] SwiftDataSessionRepository を Data/SwiftData に実装する
+  - [x] save(session) メソッドを実装する（SwiftData insert）
+  - [x] fetchAll(limit, offset) を実装する（日時降順）。offset はスキップ件数（0-based）。例: limit=20, offset=0 で 1〜20 件目、offset=20 で 21〜40 件目
+  - [x] fetchByIntent(intent) を実装する
+  - [x] exists(uuid) を実装する（冪等性チェック用）
 
 ---
 
@@ -85,12 +85,12 @@ Phase 2: I-017 → I-018
 - **依存**: I-002
 - **Labels**: `priority:must`, `type:feat`, `phase:0-基盤`
 - **Tasks**:
-  - [ ] TrackRepository プロトコルを Domain/Repositories に定義する
-  - [ ] SwiftDataTrackRepository を Data/SwiftData に実装する
-  - [ ] searchLocal(query) を実装する（userEnteredName に対する predicate、歌った回数降順）
-  - [ ] getOrCreate(spotifyTrackId?, userEnteredName?) を実装する（既存検索 or 新規作成）。両方 nil の場合は throw で呼び出し側にエラーを返す（手動入力の空文字は I-012 でバリデーションするため、Repository には渡らない想定）
-  - [ ] incrementSingCount(trackId) を実装する（集計更新）
-  - [ ] 同一曲の2回目以降は既存 Track を返し、SingingSession のみ追加するロジックを確認する
+  - [x] TrackRepository プロトコルを Domain/Repositories に定義する
+  - [x] SwiftDataTrackRepository を Data/SwiftData に実装する
+  - [x] searchLocal(query) を実装する（userEnteredName に対する predicate、歌った回数降順）
+  - [x] getOrCreate(spotifyTrackId?, userEnteredName?) を実装する（既存検索 or 新規作成）。両方 nil の場合は throw で呼び出し側にエラーを返す（手動入力の空文字は I-012 でバリデーションするため、Repository には渡らない想定）
+  - [x] incrementSingCount(trackId) を実装する（集計更新）
+  - [x] 同一曲の2回目以降は既存 Track を返し、SingingSession のみ追加するロジックを確認する
 
 ---
 
@@ -98,11 +98,11 @@ Phase 2: I-017 → I-018
 - **依存**: I-002
 - **Labels**: `priority:must`, `type:feat`, `phase:0-基盤`
 - **Tasks**:
-  - [ ] InsightRepository プロトコルを Domain/Repositories に定義する
-  - [ ] SwiftDataInsightRepository を Data/SwiftData に実装する
-  - [ ] getTimeMachineRanking() を実装する（過去1ヶ月、歌唱回数降順）
-  - [ ] getMyAnthemRanking() を実装する（Intent別の回数・点数ランキング）
-  - [ ] SwiftData の @Query または FetchDescriptor で集計クエリを実装する
+  - [x] InsightRepository プロトコルを Domain/Repositories に定義する
+  - [x] SwiftDataInsightRepository を Data/SwiftData に実装する
+  - [x] fetchTimeMachineRanking() を実装する（過去1ヶ月、歌唱回数降順）
+  - [x] fetchMyAnthemRankings(period:) を実装する（Intent別の回数・点数ランキング）
+  - [x] SwiftData の @Query または FetchDescriptor で集計クエリを実装する
 
 ---
 
