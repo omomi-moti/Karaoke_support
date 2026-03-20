@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RecordingSheetScoreSection: View {
 	@Binding var score: Double
+	let isDisabled: Bool
 
 	var body: some View {
 		VStack(spacing: 12) {
@@ -14,6 +15,7 @@ struct RecordingSheetScoreSection: View {
 				.monospacedDigit()
 
 			Slider(value: $score, in: 0...100, step: 0.1)
+				.disabled(isDisabled)
 		}
 		.padding()
 		.background(.thinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
@@ -22,7 +24,7 @@ struct RecordingSheetScoreSection: View {
 
 #Preview {
 	@Previewable @State var score: Double = 92.5
-	return RecordingSheetScoreSection(score: $score)
+	return RecordingSheetScoreSection(score: $score, isDisabled: false)
 		.padding()
 }
 
