@@ -11,6 +11,8 @@ struct RecordingSheetContentView: View {
 
 	var body: some View {
 		ZStack {
+			let isRetrying = viewModel.inlineErrorMessage != nil
+
 			ScrollView {
 				VStack(spacing: 16) {
 					header
@@ -22,10 +24,22 @@ struct RecordingSheetContentView: View {
 						)
 					}
 
-					TrackInputSectionView(state: $viewModel.trackState)
-					RecordingSheetScoreSection(score: $viewModel.draft.score)
-					RecordingSheetIntentSection(intent: $viewModel.draft.intent)
-					RecordingSheetMemoSection(memo: $viewModel.draft.memo)
+					TrackInputSectionView(
+						state: $viewModel.trackState,
+						isDisabled: isRetrying
+					)
+					RecordingSheetScoreSection(
+						score: $viewModel.draft.score,
+						isDisabled: isRetrying
+					)
+					RecordingSheetIntentSection(
+						intent: $viewModel.draft.intent,
+						isDisabled: isRetrying
+					)
+					RecordingSheetMemoSection(
+						memo: $viewModel.draft.memo,
+						isDisabled: isRetrying
+					)
 
 					if let msg = viewModel.inlineErrorMessage {
 						InlineErrorRetryView(
