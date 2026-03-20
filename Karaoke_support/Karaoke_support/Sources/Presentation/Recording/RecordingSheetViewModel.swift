@@ -59,6 +59,7 @@ final class RecordingSheetViewModel {
 			)
 
 			try await sessionRepository.save(session: session)
+
 			return true
 		} catch {
 			inlineErrorMessage = "保存に失敗しました。もう一度お試しください"

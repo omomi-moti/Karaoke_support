@@ -9,10 +9,21 @@ struct RecordingSheetMemoSection: View {
 			Text("メモ（オプション）")
 				.font(.subheadline.bold())
 
-			TextField("メモ（オプション）", text: $memo, axis: .vertical)
-				.lineLimit(3...6)
-				.textFieldStyle(.roundedBorder)
-				.disabled(isDisabled)
+			ZStack(alignment: .topLeading) {
+				if memo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+					Text("メモ（オプション）")
+						.foregroundStyle(.tertiary)
+						.padding(.top, 10)
+						.padding(.horizontal, 12)
+						.allowsHitTesting(false)
+				}
+
+				TextEditor(text: $memo)
+					.disabled(isDisabled)
+					.scrollContentBackground(.hidden)
+					.frame(minHeight: 80, maxHeight: 120)
+					.padding(4)
+			}
 		}
 		.padding()
 		.background(.thinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
