@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RecordingSheetIntentSection: View {
 	@Binding var intent: Intent
+	let isDisabled: Bool
 
 	var body: some View {
 		VStack(alignment: .leading, spacing: 12) {
@@ -46,12 +47,13 @@ struct RecordingSheetIntentSection: View {
 			)
 		}
 		.buttonStyle(.plain)
+		.disabled(isDisabled)
 	}
 }
 
 #Preview {
 	@Previewable @State var intent: Intent = .shout
-	return RecordingSheetIntentSection(intent: $intent)
+	return RecordingSheetIntentSection(intent: $intent, isDisabled: false)
 		.padding()
 }
 
