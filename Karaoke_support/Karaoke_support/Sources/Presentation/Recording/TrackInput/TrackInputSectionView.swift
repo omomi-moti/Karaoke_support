@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TrackInputSectionView: View {
 	@Binding var state: TrackInputState
+	let isDisabled: Bool
 
 	var body: some View {
 		VStack(alignment: .leading, spacing: 10) {
@@ -13,6 +14,7 @@ struct TrackInputSectionView: View {
 					.textInputAutocapitalization(.never)
 					.autocorrectionDisabled(true)
 					.textFieldStyle(.roundedBorder)
+					.disabled(isDisabled)
 					.onChange(of: state.manualName) { _, _ in
 						state.validationMessage = nil
 					}
@@ -44,7 +46,7 @@ struct TrackInputSectionView: View {
 
 #Preview {
 	@Previewable @State var state = TrackInputState(mode: .manual)
-	return TrackInputSectionView(state: $state)
+	return TrackInputSectionView(state: $state, isDisabled: false)
 		.padding()
 }
 
