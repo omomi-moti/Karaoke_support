@@ -49,10 +49,11 @@ final class RecordingSheetViewModel {
 				spotifyTrackId: selectedTrack.spotifyTrackId,
 				userEnteredName: selectedTrack.userEnteredName
 			)
+			let score = Self.normalizedScoreForPersistence(draft.score)
 			let session = SingingSession(
 				track: track,
 				intent: draft.intent,
-				score: draft.score,
+				score: score,
 				memo: draft.normalizedMemo
 			)
 			try await sessionRepository.saveNewRecordingSession(session)
@@ -61,5 +62,11 @@ final class RecordingSheetViewModel {
 			inlineErrorMessage = "保存に失敗しました。もう一度お試しください"
 			return false
 		}
+	}
+
+	/// ``SingingSession`` の仕様（0〜100・小数第二位）に合わせ、Slider の `Double` 表現誤差を抑える。
+	private static func normalizedScoreForPersistence(_ raw: Double) -> Double {
+		let rounded = (raw * 100).rounded() / 100
+		return min(100, max(0, rounded))
 	}
 }
