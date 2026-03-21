@@ -6,8 +6,10 @@ import Observation
 final class HistoryViewModel {
 	private let sessionRepository: any SessionRepositoryProtocol
 
+	/// 「すべて」も Intent フィルターも **同一の直近ウィンドウ**（件数上限）で揃える。
+	/// Intent 絞り込みは `fetchAll` の結果をメモリ上で `filter`（直近 N 件に該当 Intent が無いと空になる仕様）。
 	/// 初回は I-015 前でも一覧を出すための上限（大量データは I-015 でページネーション）。
-	private static let fetchLimit = 200
+	static let recentSessionsFetchLimit = 200
 
 	var sessions: [SingingSession] = []
 	var filter: HistoryIntentFilter = .all
@@ -24,11 +26,12 @@ final class HistoryViewModel {
 		defer { isLoading = false }
 
 		do {
+			let rows = try await sessionRepository.fetchAll(limit: Self.recentSessionsFetchLimit, offset: 0)
 			switch filter {
 			case .all:
-				sessions = try await sessionRepository.fetchAll(limit: Self.fetchLimit, offset: 0)
+				sessions = rows
 			case .intent(let intent):
-				sessions = try await sessionRepository.fetchByIntent(intent)
+				sessions = rows.filter { $0.intent == intent }
 			}
 		} catch {
 			sessions = []
