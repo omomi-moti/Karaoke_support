@@ -39,6 +39,7 @@ final class RecordingSheetViewModel {
 			}
 			return false
 		} catch {
+			inlineErrorMessage = "予期しないエラーが発生しました。もう一度お試しください"
 			return false
 		}
 	}
