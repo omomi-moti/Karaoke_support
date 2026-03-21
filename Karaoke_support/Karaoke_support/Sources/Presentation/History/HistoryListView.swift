@@ -48,11 +48,9 @@ struct HistoryListView: View {
 		}
 		.navigationTitle("履歴")
 		.navigationBarTitleDisplayMode(.inline)
-		.task {
+		/// `filter` 変更時に前の非同期タスクをキャンセルし、最新の絞り込みだけ `load()` させる（連打時のレース回避）。
+		.task(id: viewModel.filter) {
 			await viewModel.load()
-		}
-		.onChange(of: viewModel.filter) { _, _ in
-			Task { await viewModel.load() }
 		}
 	}
 
