@@ -189,6 +189,9 @@ Phase 2: I-017 → I-018
   - [x] 既存の場合はスキップし、二重登録を防止する
   - [x] クライアント生成の UUID を Idempotency Key として使用する
   - [x] 冪等性が保証されることを確認する（`Karaoke_supportTests/I011SessionIdempotencyTests.swift`）
+- **MVP 仕様メモ（冪等の意味）**:
+  - **同一 Idempotency Key（`SingingSession.id`）の再送**は、データ層では **既存なら insert・`singCount` 加算を行わず成功扱い**（＝**同一キーの再送は無視**）。
+  - **V1 / MVP** では、保存失敗後の **再試行は「同じ入力内容でのやり直し」を推奨**とする。失敗後に曲名・スコア・Intent 等を変えてから再試行した場合、**既に同一キーで保存済み**だと **画面上の変更が DB に反映されないのに成功に見える**可能性がある（境界仕様）。詳細は [`manual_qa_I008_I009_record_save.md`](./manual_qa_I008_I009_record_save.md) の任意シナリオを参照。
 
 ---
 
