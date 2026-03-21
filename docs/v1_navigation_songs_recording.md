@@ -31,7 +31,7 @@
 
 ## 関連コード
 
-- `Sources/Presentation/Songs/SongsRootView.swift` — `NavigationStack(path:)` と `navigationDestination`
+- `Sources/Presentation/Songs/SongsRootView.swift` — `NavigationStack(path:)` と `navigationDestination`。ランキング未実装時のスタブは `private static let stubRankingSample`（`SelectedTrack`）に集約し、`recording(SelectedTrack)` で push（`raw_spec` 6.7 の例外。I-018 でリスト行に置き換え）
 - `Sources/Presentation/Songs/SongsRecordingRoute.swift` — ルート列挙
 - `Sources/Presentation/Recording/RecordingSheetContainerView.swift` — `presentation: .navigationStack` / `.sheet`
 - `Sources/Presentation/Root/RootView.swift` — `onSavedMoveToHistory` で `selectedTab = .history`
