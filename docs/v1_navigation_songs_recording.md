@@ -34,4 +34,5 @@
 - `Sources/Presentation/Songs/SongsRootView.swift` — `NavigationStack(path:)` と `navigationDestination`。ランキング未実装時のスタブは `private static let stubRankingSample`（`SelectedTrack`）に集約し、`recording(SelectedTrack)` で push（`raw_spec` 6.7 の例外。I-018 でリスト行に置き換え）
 - `Sources/Presentation/Songs/SongsRecordingRoute.swift` — ルート列挙
 - `Sources/Presentation/Recording/RecordingSheetContainerView.swift` — `presentation: .navigationStack` / `.sheet`
+- `Sources/Presentation/Recording/RecordingSheetViewModel.swift` — `SelectedTrack` から `TrackInputState` へ変換。不変条件に反する `(nil, nil)` は `assertionFailure` + 手動モード + インラインエラー（`raw_spec` 6.7。本番では `fatalError` しない）
 - `Sources/Presentation/Root/RootView.swift` — `onSavedMoveToHistory` で `selectedTab = .history`
