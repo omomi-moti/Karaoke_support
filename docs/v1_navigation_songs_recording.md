@@ -1,0 +1,37 @@
+# 選曲タブ × 歌唱記録のナビゲーション（I-013）
+
+## 方針
+
+- **単一の `NavigationStack`** を選曲タブ内に持つ（`SongsRootView`）。`RootView` の選曲タブ側では **外側に `NavigationStack` を重ねない**（二重スタック回避）。
+- **状態**: `@State private var path = NavigationPath()` に `SongsRecordingRoute` を積む。
+- **保存成功**: `path = NavigationPath()` でスタックをリセットし、親から `selectedTab = .history`（`RootView`）で履歴タブへ。
+
+## ルート型
+
+| ルート | 意味 |
+|--------|------|
+| `manualRecording` | ツールバー「記録を追加」→ 手動入力から Intent・スコアへ |
+| `recording(SelectedTrack)` | ランキング等で確定済みの曲から同じ記録 UI へ（V2 の検索・Spotify 履歴も同型） |
+
+## 遷移図（テキスト）
+
+```
+[選曲ルート]
+    │
+    ├─(+) 記録を追加 ──► manualRecording ──► RecordingSheetContainerView(seed: .mode(.manual))
+    │
+    └─(ランキングスタブ等) recording(SelectedTrack) ──► RecordingSheetContainerView(seed: .selectedTrack)
+                              │
+                              ▼
+                    Intent / スコア / メモ / 保存
+                              │
+                              ▼ 成功
+                    path クリア + 履歴タブ
+```
+
+## 関連コード
+
+- `Sources/Presentation/Songs/SongsRootView.swift` — `NavigationStack(path:)` と `navigationDestination`
+- `Sources/Presentation/Songs/SongsRecordingRoute.swift` — ルート列挙
+- `Sources/Presentation/Recording/RecordingSheetContainerView.swift` — `presentation: .navigationStack` / `.sheet`
+- `Sources/Presentation/Root/RootView.swift` — `onSavedMoveToHistory` で `selectedTab = .history`
