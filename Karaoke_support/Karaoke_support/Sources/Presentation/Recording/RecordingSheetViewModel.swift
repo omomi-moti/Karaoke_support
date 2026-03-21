@@ -26,6 +26,44 @@ final class RecordingSheetViewModel {
 		self.trackRepository = trackRepository
 	}
 
+	/// 確定済み ``SelectedTrack`` から開始（ランキング・検索など I-013）。
+	init(
+		selectedTrack: SelectedTrack,
+		sessionRepository: any SessionRepositoryProtocol,
+		trackRepository: any TrackRepositoryProtocol
+	) {
+		self.sessionRepository = sessionRepository
+		self.trackRepository = trackRepository
+		self.trackState = Self.trackInputState(from: selectedTrack)
+	}
+
+	private static func trackInputState(from selected: SelectedTrack) -> TrackInputState {
+		switch (selected.spotifyTrackId, selected.userEnteredName) {
+		case let (spotify?, nil):
+			return TrackInputState(
+				mode: .spotifyHistory(spotifyTrackId: spotify, displayName: Self.fallbackDisplayName(forSpotifyId: spotify))
+			)
+		case let (nil, name?):
+			var state = TrackInputState(mode: .manual)
+			state.manualName = name
+			return state
+		case let (spotify?, name?):
+			return TrackInputState(
+				mode: .spotifyHistory(spotifyTrackId: spotify, displayName: name)
+			)
+		case (nil, nil):
+			fatalError("SelectedTrack must have at least one non-empty field")
+		}
+	}
+
+	/// V2 の TrackMetadata まで表示名は置き換え。
+	private static func fallbackDisplayName(forSpotifyId id: String) -> String {
+		if id.count > 12 {
+			return String(id.prefix(12)) + "…"
+		}
+		return id
+	}
+
 	func validate() -> Bool {
 		inlineErrorMessage = nil
 		do {
