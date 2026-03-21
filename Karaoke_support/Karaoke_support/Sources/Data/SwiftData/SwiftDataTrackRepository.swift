@@ -78,19 +78,12 @@ final class SwiftDataTrackRepository: TrackRepositoryProtocol {
 	}
 
 	func incrementSingCount(trackId: UUID) async throws {
-		do {
-			guard let track = try fetchById(trackId) else {
-				throw TrackRepositoryError.trackNotFound(trackId)
-			}
-
-			let before = track.singCount
-			track.singCount += 1
-			track.updatedAt = .now
-
-			try modelContext.save()
-		} catch {
-			throw error
+		guard let track = try fetchById(trackId) else {
+			throw TrackRepositoryError.trackNotFound(trackId)
 		}
+		track.singCount += 1
+		track.updatedAt = .now
+		try modelContext.save()
 	}
 
 	// MARK: - Private
