@@ -6,6 +6,10 @@ final class PreviewSessionRepository: SessionRepositoryProtocol {
 		// no-op
 	}
 
+	func saveNewRecordingSession(_ session: SingingSession) async throws {
+		// no-op（プレビューでは永続化しない）
+	}
+
 	func fetchAll(limit: Int, offset: Int) async throws -> [SingingSession] {
 		let sessions = Self.sampleSessions
 		let start = min(offset, sessions.count)
