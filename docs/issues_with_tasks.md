@@ -34,7 +34,7 @@
 - **Tasks**:
   - [x] SessionRepository プロトコル（インターフェース）を Domain/Repositories に定義する
   - [x] SwiftDataSessionRepository を Data/SwiftData に実装する
-  - [x] save(session) メソッドを実装する（SwiftData insert）
+  - [x] `saveNewRecordingSession` で歌唱記録を永続化する（SwiftData insert + `Track.singCount` 更新。記録の単一入口）
   - [x] fetchAll(limit, offset) を実装する（日時降順）。offset はスキップ件数（0-based）
   - [x] fetchByIntent(intent) を実装する
   - [x] exists(uuid) を実装する（冪等性チェック用）
