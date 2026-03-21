@@ -166,6 +166,7 @@ Phase 2: I-017 → I-018
   - [x] 保存ボタンを配置し、RecordingSheetViewModel 経由で TrackRepository.getOrCreate → SessionRepository.save を実行する
   - [x] 保存成功時は `selectedTab = .history` で履歴タブへ切り替える
   - [x] 保存失敗時は共通エラー表示コンポーネント（メッセージ「保存に失敗しました。もう一度お試しください」+ 再試行ボタン）を使用する（インライン表示）
+- **手動QA**: 記録保存フローの確認手順は [`manual_qa_I008_I009_record_save.md`](./manual_qa_I008_I009_record_save.md) を参照
 
 ---
 
