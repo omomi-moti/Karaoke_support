@@ -1,14 +1,27 @@
 import SwiftUI
 
 struct RootView: View {
+	enum RootTab: Hashable {
+		case songs
+		case history
+		case settings
+	}
+
+	@State private var selectedTab: RootTab = .songs
+
 	var body: some View {
-		TabView {
+		TabView(selection: $selectedTab) {
 			NavigationStack {
-				SongsRootView()
+				SongsRootView(
+					onSavedMoveToHistory: {
+						selectedTab = .history
+					}
+				)
 			}
 			.tabItem {
 				Label("選曲", systemImage: "music.note.list")
 			}
+			.tag(RootTab.songs)
 
 			NavigationStack {
 				HistoryRootView()
@@ -16,6 +29,7 @@ struct RootView: View {
 			.tabItem {
 				Label("履歴", systemImage: "clock")
 			}
+			.tag(RootTab.history)
 
 			NavigationStack {
 				SettingsRootView()
@@ -23,6 +37,7 @@ struct RootView: View {
 			.tabItem {
 				Label("設定", systemImage: "gearshape")
 			}
+			.tag(RootTab.settings)
 		}
 	}
 }

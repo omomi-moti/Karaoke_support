@@ -61,6 +61,9 @@ fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
 
+# Cursor / デバッグセッション
+.cursor/debug-*.log
+
 # macOS
 .DS_Store
 **/.DS_Store

@@ -13,7 +13,9 @@ import Observation
 @MainActor
 @Observable
 public final class NetworkMonitor {
-	private let monitor: NWPathMonitor?
+	/// `deinit` は非隔離のため、`NWPathMonitor` の参照だけ `nonisolated(unsafe)` にして `cancel()` を許可する。
+	/// 読み書きは `@MainActor` の `init` / `refreshStatus` に限定する。
+	nonisolated(unsafe) private var monitor: NWPathMonitor?
 	private let queue: DispatchQueue
 	/// 接続状態。true: online, false: offline。監視しないインスタンス（startsMonitoring: false）のときは常に false。
 	public private(set) var isOnline: Bool = false
@@ -29,6 +31,7 @@ public final class NetworkMonitor {
 			let m = NWPathMonitor()
 			self.monitor = m
 			self.isOnline = m.currentPath.status == .satisfied
+
 			m.pathUpdateHandler = { [weak self] path in
 				Task { @MainActor [weak self] in
 					self?.isOnline = path.status == .satisfied
@@ -42,5 +45,23 @@ public final class NetworkMonitor {
 
 	deinit {
 		monitor?.cancel()
+	}
+
+	/// 「リトライ」等の明示操作時に、現在のネットワーク状態を再評価する。
+	public func refreshStatus() {
+		// エミュレータ等で経路切替後に currentPath が更新されないケースがあるため、
+		// stuck した NWPathMonitor インスタンスを作り直して回復を狙う。
+		monitor?.cancel()
+		let newMonitor = NWPathMonitor()
+		self.monitor = newMonitor
+		newMonitor.pathUpdateHandler = { [weak self] path in
+			Task { @MainActor [weak self] in
+				guard let self else { return }
+				self.isOnline = path.status == .satisfied
+			}
+		}
+
+		newMonitor.start(queue: queue)
+		isOnline = newMonitor.currentPath.status == .satisfied
 	}
 }

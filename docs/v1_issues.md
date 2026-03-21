@@ -15,7 +15,7 @@
 
 | 項目 | 選定 | 理由 |
 |------|------|------|
-| **DI 注入方法** | `@Environment` + カスタム EnvironmentKey | 憲法の「環境に注入」に準拠。EnvironmentKey は App 層に定義し、Data 層は SwiftUI に依存しない。Repository ごとに Key を切ることで、V2 で TrackMetadataService 等を追加する際に Key を追加するだけで済む。Protocol 型の注入も EnvironmentKey で対応可能。 |
+| **DI 注入方法** | `@Environment` + カスタム EnvironmentKey | 憲法の「環境に注入」に準拠。Repository ごとに Key を切ることで、V2 で TrackMetadataService 等を追加する際に Key を追加するだけで済む。Protocol 型の注入も EnvironmentKey で対応可能。 |
 | **TabView + NavigationStack** | 各タブごとに独立した NavigationStack | iOS 17+ のベストプラクティス。TabView 内側に NavigationStack を配置することで、タブ切り替え時もタブバーが表示され続ける。各タブのナビ履歴が独立し、V2 で検索タブ等を追加しても影響が局所化される。 |
 | **選曲結果の受け渡し** | `navigationDestination(for: SelectedTrack.self)` で value を渡す | 型安全で、V2 の検索・Spotify 履歴からの選曲も同じ型で扱える。Hashable にすれば NavigationPath と相性が良い。 |
 | **エラー表示** | 共通コンポーネント（メッセージ + 再試行ボタン） | I-009（保存失敗）と I-030（API エラー）で同じ UI を再利用。文言・挙動の統一と V2 での拡張を容易にする。 |
@@ -57,20 +57,18 @@ Phase 2: I-017 → I-018
 
 ---
 
-### [I-006] ネットワーク監視ユーティリティ ✅
+### [I-006] ネットワーク監視ユーティリティ
 - **依存**: I-001
 - **Labels**: `priority:must`, `type:feat`, `phase:0-基盤`
 - **Tasks**:
   - [x] NWPathMonitor を用いた NetworkMonitor クラス/構造体を作成する
-  - [x] 接続状態（online/offline）を @Published、AsyncStream、または @Observable で公開する
+  - [x] 接続状態（online/offline）を @Observable で公開する
   - [x] アプリ起動時に監視を開始し、状態変化を検知できるようにする
   - [x] @Environment(\.networkMonitor) で参照できるよう EnvironmentKey を定義し、App 起点で注入する（I-012 等でオフライン判定に使用）
-  - [x] NetworkMonitor に @MainActor を付与し、pathUpdateHandler 内で Task { @MainActor in } により isOnline をメインスレッドで更新する（Swift 6 厳格並行性対応）
-  - [x] EnvironmentKey を App 層（NetworkMonitorEnvironment.swift）に配置し、Data 層は SwiftUI に依存しない（レイヤー設計準拠）
 
 ---
 
-### [I-003] SessionRepository 実装 ✅ 
+### [I-003] SessionRepository 実装
 - **依存**: I-002
 - **Labels**: `priority:must`, `type:feat`, `phase:0-基盤`
 - **Tasks**:
@@ -83,7 +81,7 @@ Phase 2: I-017 → I-018
 
 ---
 
-### [I-004] TrackRepository 実装 ✅
+### [I-004] TrackRepository 実装
 - **依存**: I-002
 - **Labels**: `priority:must`, `type:feat`, `phase:0-基盤`
 - **Tasks**:
@@ -96,14 +94,14 @@ Phase 2: I-017 → I-018
 
 ---
 
-### [I-005] InsightRepository 実装　✅
+### [I-005] InsightRepository 実装
 - **依存**: I-002
 - **Labels**: `priority:must`, `type:feat`, `phase:0-基盤`
 - **Tasks**:
   - [x] InsightRepository プロトコルを Domain/Repositories に定義する
   - [x] SwiftDataInsightRepository を Data/SwiftData に実装する
   - [x] fetchTimeMachineRanking() を実装する（過去1ヶ月、歌唱回数降順）
-  - [x] fetchMyAnthemRankings(period:) を実装する（Intent別の回数・点数ランキング。デフォルト: 過去3ヶ月、切替: 過去1ヶ月）
+  - [x] fetchMyAnthemRankings(period:) を実装する（Intent別の回数・点数ランキング）
   - [x] SwiftData の @Query または FetchDescriptor で集計クエリを実装する
 
 ---
@@ -127,8 +125,8 @@ Phase 2: I-017 → I-018
 - **Tasks**:
   - [x] App エントリで ModelContainer を参照（I-002 で登録済みの場合は確認のみ）
   - [x] SessionRepository / TrackRepository / InsightRepository の具体実装を生成する
-  - [x] @Environment に統一。EnvironmentKey は App 層に定義し（例: `\.sessionRepository`, `\.trackRepository`, `\.insightRepository`。※ Swift の KeyPath 記法はバックスラッシュ 1 つ）、ルート View に `.environment(\.sessionRepository, impl)` で渡す
-  - [ ] 各 ViewModel が View 経由で @Environment から Repository を取得し、初期化引数で受け取る形で接続する
+  - [x] @Environment に統一。EnvironmentKey を定義し（例: `\.sessionRepository`, `\.trackRepository`, `\.insightRepository`。※ Swift の KeyPath 記法はバックスラッシュ 1 つ）、ルート View に `.environment(\.sessionRepository, impl)` で渡す
+  - [x] 各 ViewModel が View 経由で @Environment から Repository を取得し、初期化引数で受け取る形で接続する
 - **DoD**: 歌唱記録フロー（I-013）で RecordingViewModel が @Environment から SessionRepository / TrackRepository を取得し、保存処理が動作すること
 
 ---
@@ -136,35 +134,39 @@ Phase 2: I-017 → I-018
 ### [I-012] 手動曲名入力画面
 - **依存**: I-006, I-007
 - **Labels**: `priority:must`, `type:feat`, `phase:1-MVP`
+- **補足**: 実装方針を変更し、I-008/I-009 と統合した 1 枚の Recording Sheet 内で提供する
 - **Tasks**:
-  - [ ] 曲名入力用の TextField を実装する
-  - [ ] 曲名が空文字の場合は Intent 選択へ遷移しない。バリデーションで「曲名を入力してください」等を表示する（getOrCreate に両方 nil を渡さないため）
-  - [ ] オフライン時に「ネットワークに接続してください」メッセージを表示する（ブロックはしない）。@Environment(\.networkMonitor) で接続状態を参照する
-  - [ ] 接続への導線（設定画面へのリンク、リトライボタン）を配置する
-  - [ ] 入力した曲名を `SelectedTrack(spotifyTrackId: nil, userEnteredName: 入力値)` として、`navigationDestination(for: SelectedTrack.self)` で Intent 選択画面へ渡す
+  - [x] 曲名入力用の TextField を実装する
+  - [x] 曲名が空文字の場合は保存処理に進まない。バリデーションで「曲名を入力してください」を表示する（getOrCreate に両方 nil を渡さないため）
+  - [x] オフライン時に「ネットワークに接続してください」メッセージを表示する（ブロックはしない）。@Environment(\.networkMonitor) で接続状態を参照する
+  - [x] 接続への導線（設定画面へのリンク、リトライボタン）を配置する
+  - [x] 入力した曲名を `SelectedTrack(spotifyTrackId: nil, userEnteredName: 入力値)` に変換して保存フローで利用する
 
 ---
 
 ### [I-008] Intent選択画面
 - **依存**: I-007
 - **Labels**: `priority:must`, `type:feat`, `phase:1-MVP`
+- **補足**: 実装方針を変更し、独立画面ではなく Recording Sheet 内の Intent セクションとして実装
 - **Tasks**:
-  - [ ] Shout / Emo / Practice の3択UIを実装する（ボタン or セグメント）
-  - [ ] 選択状態を ViewModel で保持し、歌唱記録フローに渡す
-  - [ ] 選曲結果（SelectedTrack）を受け取り、歌唱記録入力画面へ渡す
-  - [ ] 選択後に歌唱記録入力画面へ遷移するナビゲーションを実装する
+  - [x] Shout / Emo / Practice の3択UIを実装する（ボタン）
+  - [x] 選択状態を ViewModel で保持し、歌唱記録フローに渡す
+  - [x] 選曲結果（SelectedTrack）と Intent を同一シート内の保存処理に渡す
+  - [x] Intent 選択後、そのまま歌唱記録入力（スコア/メモ）と保存が可能な統合UIを実装する
 
 ---
 
 ### [I-009] 歌唱記録入力画面
 - **依存**: I-003, I-004, I-007, I-007A
 - **Labels**: `priority:must`, `type:feat`, `phase:1-MVP`
+- **補足**: 実装方針を変更し、I-012/I-008 と統合した 1 枚の Recording Sheet 内で提供する
 - **Tasks**:
-  - [ ] スコア入力UI（0〜100）を実装する（Slider または Stepper）
-  - [ ] メモ入力UI（任意、TextField）を実装する
-  - [ ] 保存ボタンを配置し、RecordingViewModel 経由で TrackRepository.getOrCreate → SessionRepository.save を実行する
-  - [ ] 保存成功時は `selectedTab = .history` で履歴タブへ切り替える
-  - [ ] 保存失敗時は共通エラー表示コンポーネント（メッセージ「保存に失敗しました。もう一度お試しください」+ 再試行ボタン）を使用する。Alert またはインライン表示。V2 の I-030（API エラー）でも再利用する
+  - [x] スコア入力UI（0〜100）を実装する（Slider）
+  - [x] メモ入力UI（任意、TextField）を実装する
+  - [x] 保存ボタンを配置し、RecordingSheetViewModel 経由で TrackRepository.getOrCreate で Track を取得/作成し、SessionRepository.saveNewRecordingSession で歌唱記録を保存する
+  - [x] 保存成功時は `selectedTab = .history` で履歴タブへ切り替える
+  - [x] 保存失敗時は共通エラー表示コンポーネント（メッセージ「保存に失敗しました。もう一度お試しください」+ 再試行ボタン）を使用する（インライン表示）
+- **手動QA**: 記録保存フローの確認手順は [`manual_qa_I008_I009_record_save.md`](./manual_qa_I008_I009_record_save.md) を参照
 
 ---
 
@@ -172,10 +174,10 @@ Phase 2: I-017 → I-018
 - **依存**: I-009
 - **Labels**: `priority:must`, `type:feat`, `phase:1-MVP`
 - **Tasks**:
-  - [ ] 保存ボタンタップ後に即座にボタンを非活性化する
-  - [ ] 保存処理中に ProgressView を表示する
-  - [ ] 処理完了まで画面のインタラクションをブロックする（オーバーレイ等）
-  - [ ] 完了後にボタンを復帰させる
+  - [x] 保存ボタンタップ後に即座にボタンを非活性化する
+  - [x] 保存処理中に ProgressView を表示する
+  - [x] 処理完了まで画面のインタラクションをブロックする（オーバーレイ等）
+  - [x] 完了後にボタンを復帰させる
 
 ---
 
@@ -196,7 +198,7 @@ Phase 2: I-017 → I-018
 - **Tasks**:
   - [ ] 選曲結果の受け渡し型 `SelectedTrack` を定義する。`spotifyTrackId: String?` と `userEnteredName: String?` を持ち、少なくとも片方が非空であること。Hashable にして navigationDestination で渡す。V2 で検索・Spotify 履歴からの選曲も同じ型で扱う
   - [ ] 曲選択（手動入力 or ランキングタップ）→ Intent選択 → 歌唱記録入力 → 保存の一連フローを接続する
-  - [ ] RecordingViewModel で TrackRepository.getOrCreate で Track を取得/作成し、SessionRepository.save で SingingSession を保存する
+  - [ ] RecordingViewModel で TrackRepository.getOrCreate で Track を取得/作成し、SessionRepository.saveNewRecordingSession で SingingSession を保存する
   - [ ] ナビゲーション方針: 選曲タブ内は NavigationStack + NavigationPath。保存成功時は selectedTab = .history でタブ切り替え。docs/ またはコード内コメントに遷移図を残す
   - [ ] フロー全体のナビゲーションと状態遷移を確認する
 

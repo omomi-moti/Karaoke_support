@@ -13,6 +13,10 @@ protocol SessionRepositoryProtocol {
 	/// セッションを保存する（insert）。
 	func save(session: SingingSession) async throws
 
+	/// 歌唱記録を新規保存し、紐づく ``Track`` の歌唱回数を **同一トランザクション** で 1 増やす。
+	/// セッション保存のみ成功し歌唱回数だけ失敗する部分成功を避けるため、記録フローではこちらを使う。
+	func saveNewRecordingSession(_ session: SingingSession) async throws
+
 	/// 日時降順でセッションを取得する。offset はスキップ件数（0-based）。
 	/// - Parameters:
 	///   - limit: 取得件数。例: 20
