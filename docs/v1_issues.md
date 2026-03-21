@@ -213,11 +213,16 @@ Phase 2: I-017 → I-018
 ### [I-014] History画面
 - **依存**: I-003, I-007
 - **Labels**: `priority:must`, `type:feat`, `phase:1-MVP`
+- **UI 参考（カード一覧）**:
+  - **背景**: ダークグラデーション（黒〜深灰）
+  - **行**: 角丸カード（半透明フィル）。**左**: 1行目＝曲名、2行目＝歌唱日時（`performedAt`、日本語ロケール）。**Intent** はピルバッジ（例: 🔥 Shout / 🌙 Emo / 🎤 Practice）。**右**: 大きなスコア数値（小数1桁）+ ラベル「SCORE」
+  - **フィルター**: 画面上部に横スクロールチップ（すべて / Shout / Emo / Practice）
+  - **V1 の曲名**: `TrackDisplayTitle.primary(for:)`（`userEnteredName` → Spotify ID 短縮 →「不明」）。アーティスト名は **V2**（Spotify メタデータ）で追加
 - **Tasks**:
-  - [ ] 歌唱セッションを日時降順で一覧表示する List を実装する
-  - [ ] Intent フィルター（Shout/Emo/Practice）を画面上部に配置する
-  - [ ] V1 では `track.userEnteredName ?? "不明"` で曲名を表示する。V2 で TrackMetadataCache 経由に切り替える際は、曲名取得ロジックをヘルパー化しておくと変更が局所化される
-  - [ ] セッション行をタップした場合のアクション（V1では未実装で可）
+  - [x] 歌唱セッションを日時降順で一覧表示する List を実装する（`SessionRepository.fetchAll` / `fetchByIntent`。初回は最大200件、I-015 でページネーション）
+  - [x] Intent フィルター（Shout/Emo/Practice）を画面上部に配置する（`HistoryFilterBarView`）
+  - [x] V1 では `TrackDisplayTitle` で曲名を表示する。V2 で TrackMetadataCache 経由に切り替える際は同ヘルパーを拡張または差し替えで局所化する
+  - [x] セッション行をタップした場合のアクション（V1では未実装で可）— 行の `onTapGesture` は未接続
 
 ---
 
