@@ -20,7 +20,8 @@ final class PreviewSessionRepository: SessionRepositoryProtocol {
 	}
 
 	func fetchByIntent(_ intent: Intent) async throws -> [SingingSession] {
-		Self.sampleSessions.filter { $0.intent == intent }
+		let rows = try await fetchAll(limit: SessionRecentWindow.maxSessionCount, offset: 0)
+		return rows.filter { $0.intent == intent }
 	}
 
 	func exists(uuid: UUID) async throws -> Bool {
