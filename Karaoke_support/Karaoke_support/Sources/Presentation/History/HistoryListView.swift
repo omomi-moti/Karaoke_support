@@ -59,13 +59,25 @@ struct HistoryListView: View {
 			Image(systemName: "clock.arrow.circlepath")
 				.font(.system(size: 44))
 				.foregroundStyle(.secondary)
-			Text("まだ記録がありません")
-				.font(.title3.weight(.semibold))
-				.foregroundStyle(.primary)
-			Text("選曲タブから歌った記録がここに並びます。")
-				.font(.subheadline)
-				.foregroundStyle(.secondary)
-				.multilineTextAlignment(.center)
+			switch viewModel.filter {
+			case .all:
+				Text("まだ記録がありません")
+					.font(.title3.weight(.semibold))
+					.foregroundStyle(.primary)
+				Text("選曲タブから歌った記録がここに並びます。")
+					.font(.subheadline)
+					.foregroundStyle(.secondary)
+					.multilineTextAlignment(.center)
+			case .intent:
+				Text("直近の記録に該当がありません")
+					.font(.title3.weight(.semibold))
+					.foregroundStyle(.primary)
+					.multilineTextAlignment(.center)
+				Text("フィルターを変えるか、該当するインテントで記録を追加してください。")
+					.font(.subheadline)
+					.foregroundStyle(.secondary)
+					.multilineTextAlignment(.center)
+			}
 		}
 		.padding(32)
 	}
