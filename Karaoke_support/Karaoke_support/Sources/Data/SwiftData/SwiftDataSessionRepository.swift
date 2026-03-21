@@ -21,6 +21,13 @@ final class SwiftDataSessionRepository: SessionRepositoryProtocol {
 		try modelContext.save()
 	}
 
+	func saveNewRecordingSession(_ session: SingingSession) async throws {
+		modelContext.insert(session)
+		session.track.singCount += 1
+		session.track.updatedAt = .now
+		try modelContext.save()
+	}
+
 	func fetchAll(limit: Int, offset: Int) async throws -> [SingingSession] {
 		guard limit >= 0, offset >= 0 else {
 			throw SessionRepositoryError.invalidParameter("limit and offset must be non-negative")
