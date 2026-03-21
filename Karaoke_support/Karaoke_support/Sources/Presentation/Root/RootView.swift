@@ -11,13 +11,12 @@ struct RootView: View {
 
 	var body: some View {
 		TabView(selection: $selectedTab) {
-			NavigationStack {
-				SongsRootView(
-					onSavedMoveToHistory: {
-						selectedTab = .history
-					}
-				)
-			}
+			/// 選曲タブの `NavigationStack` は `SongsRootView` 内のみ（二重スタック回避・I-013）。
+			SongsRootView(
+				onSavedMoveToHistory: {
+					selectedTab = .history
+				}
+			)
 			.tabItem {
 				Label("選曲", systemImage: "music.note.list")
 			}
