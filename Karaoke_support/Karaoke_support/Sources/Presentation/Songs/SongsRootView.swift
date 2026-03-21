@@ -13,6 +13,12 @@ struct SongsRootView: View {
 	@State private var segment: Segment = .intent
 	@State private var path = NavigationPath()
 
+	/// ランキングタップのスタブ用（I-013）。固定リテラルは trim 後も非空のため ``SelectedTrack`` は必ず成功。
+	private static let stubRankingSample = SelectedTrack(
+		spotifyTrackId: nil,
+		userEnteredName: "サンプル曲（ランキングスタブ）"
+	)!
+
 	var body: some View {
 		NavigationStack(path: $path) {
 			VStack(spacing: 16) {
@@ -34,11 +40,7 @@ struct SongsRootView: View {
 							)
 							/// ランキングタップのスタブ（I-013）。I-018 で本番リストに差し替え。
 							Button {
-								guard let stub = SelectedTrack(
-									spotifyTrackId: nil,
-									userEnteredName: "サンプル曲（ランキングスタブ）"
-								) else { return }
-								path.append(SongsRecordingRoute.recording(stub))
+								path.append(SongsRecordingRoute.recording(Self.stubRankingSample))
 							} label: {
 								Label("選曲済みとして記録へ（スタブ）", systemImage: "music.note.list")
 							}
