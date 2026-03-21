@@ -34,25 +34,35 @@ final class RecordingSheetViewModel {
 	) {
 		self.sessionRepository = sessionRepository
 		self.trackRepository = trackRepository
-		self.trackState = Self.trackInputState(from: selectedTrack)
+		let built = Self.trackInputState(from: selectedTrack)
+		self.trackState = built.state
+		self.inlineErrorMessage = built.initialInlineError
 	}
 
-	private static func trackInputState(from selected: SelectedTrack) -> TrackInputState {
+	/// ``SelectedTrack`` の failable `init?` 経由では `(nil, nil)` は起こらないが、将来の生成経路で不変条件が崩れた場合に備え本番では落とさない。
+	private static func trackInputState(from selected: SelectedTrack) -> (state: TrackInputState, initialInlineError: String?) {
 		switch (selected.spotifyTrackId, selected.userEnteredName) {
 		case let (spotify?, nil):
-			return TrackInputState(
-				mode: .spotifyHistory(spotifyTrackId: spotify, displayName: Self.fallbackDisplayName(forSpotifyId: spotify))
+			return (
+				TrackInputState(
+					mode: .spotifyHistory(spotifyTrackId: spotify, displayName: Self.fallbackDisplayName(forSpotifyId: spotify))
+				),
+				nil
 			)
 		case let (nil, name?):
 			var state = TrackInputState(mode: .manual)
 			state.manualName = name
-			return state
+			return (state, nil)
 		case let (spotify?, name?):
-			return TrackInputState(
-				mode: .spotifyHistory(spotifyTrackId: spotify, displayName: name)
+			return (
+				TrackInputState(
+					mode: .spotifyHistory(spotifyTrackId: spotify, displayName: name)
+				),
+				nil
 			)
 		case (nil, nil):
-			fatalError("SelectedTrack must have at least one non-empty field")
+			assertionFailure("SelectedTrack invariant violated: both spotifyTrackId and userEnteredName are nil")
+			return (TrackInputState(mode: .manual), "曲の情報が無効です。選び直してください")
 		}
 	}
 
