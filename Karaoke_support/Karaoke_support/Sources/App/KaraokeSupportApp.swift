@@ -11,6 +11,21 @@ struct KaraokeSupportApp: App {
 
 	@MainActor
 	init() {
+		// UI テストは `Karaoke_supportUITestsLaunchTests` 等から `launchEnvironment` で有効化。永続ストア起因の起動クラッシュを避ける。
+		if ProcessInfo.processInfo.environment["KARAOKE_UITEST_IN_MEMORY"] == "1" {
+			do {
+				let container = try Self.makeModelContainer(isInMemory: true)
+				self.modelContainer = container
+			} catch {
+				fatalError("Failed to create in-memory ModelContainer for UI tests: \(error)")
+			}
+			let context = modelContainer.mainContext
+			self.sessionRepository = SwiftDataSessionRepository(modelContext: context)
+			self.trackRepository = SwiftDataTrackRepository(modelContext: context)
+			self.insightRepository = SwiftDataInsightRepository(modelContext: context)
+			return
+		}
+
 		do {
 			let container = try Self.makeModelContainer(isInMemory: false)
 			self.modelContainer = container

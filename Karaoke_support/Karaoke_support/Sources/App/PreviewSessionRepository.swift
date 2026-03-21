@@ -2,12 +2,14 @@ import Foundation
 
 @MainActor
 final class PreviewSessionRepository: SessionRepositoryProtocol {
-	func save(session: SingingSession) async throws {
-		// no-op
-	}
+	/// プレビュー用。`saveNewRecordingSession` で「保存した」ID を保持し I-011 の `exists` と整合させる。
+	private var recordedSessionIdsForPreview: Set<UUID> = []
 
 	func saveNewRecordingSession(_ session: SingingSession) async throws {
-		// no-op（プレビューでは永続化しない）
+		if try await exists(uuid: session.id) {
+			return
+		}
+		recordedSessionIdsForPreview.insert(session.id)
 	}
 
 	func fetchAll(limit: Int, offset: Int) async throws -> [SingingSession] {
@@ -22,7 +24,7 @@ final class PreviewSessionRepository: SessionRepositoryProtocol {
 	}
 
 	func exists(uuid: UUID) async throws -> Bool {
-		false
+		recordedSessionIdsForPreview.contains(uuid)
 	}
 
 	private static let sampleSessions: [SingingSession] = {

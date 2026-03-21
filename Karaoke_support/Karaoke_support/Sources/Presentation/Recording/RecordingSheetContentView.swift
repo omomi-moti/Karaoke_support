@@ -1,3 +1,4 @@
+import Observation
 import SwiftUI
 import UIKit
 
@@ -6,7 +7,7 @@ struct RecordingSheetContentView: View {
 	@Environment(\.openURL) private var openURL
 	@Environment(\.networkMonitor) private var networkMonitor
 
-	@State var viewModel: RecordingSheetViewModel
+	@Bindable var viewModel: RecordingSheetViewModel
 	let onSavedMoveToHistory: () -> Void
 
 	var body: some View {

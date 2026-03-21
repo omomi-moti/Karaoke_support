@@ -13,6 +13,9 @@ final class RecordingSheetViewModel {
 	private let sessionRepository: any SessionRepositoryProtocol
 	private let trackRepository: any TrackRepositoryProtocol
 
+	/// 保存失敗後の再試行で同一 ``SingingSession.id`` を使う（I-011 Idempotency Key）。成功時は `nil` に戻す。
+	private var pendingSessionIdForSave: UUID?
+
 	init(
 		trackMode: TrackInputMode,
 		sessionRepository: any SessionRepositoryProtocol,
@@ -58,13 +61,23 @@ final class RecordingSheetViewModel {
 				userEnteredName: selectedTrack.userEnteredName
 			)
 			let score = Self.normalizedScoreForPersistence(draft.score)
+			let sessionId: UUID
+			if let pending = pendingSessionIdForSave {
+				sessionId = pending
+			} else {
+				let newId = UUID()
+				pendingSessionIdForSave = newId
+				sessionId = newId
+			}
 			let session = SingingSession(
+				id: sessionId,
 				track: track,
 				intent: draft.intent,
 				score: score,
 				memo: draft.normalizedMemo
 			)
 			try await sessionRepository.saveNewRecordingSession(session)
+			pendingSessionIdForSave = nil
 			return true
 		} catch {
 			inlineErrorMessage = "保存に失敗しました。もう一度お試しください"
