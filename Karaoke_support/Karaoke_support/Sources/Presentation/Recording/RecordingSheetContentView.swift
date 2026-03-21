@@ -8,6 +8,7 @@ struct RecordingSheetContentView: View {
 	@Environment(\.networkMonitor) private var networkMonitor
 
 	@Bindable var viewModel: RecordingSheetViewModel
+	let presentation: RecordingContentPresentation
 	let onSavedMoveToHistory: () -> Void
 
 	var body: some View {
@@ -16,7 +17,9 @@ struct RecordingSheetContentView: View {
 
 			ScrollView {
 				VStack(spacing: 16) {
-					header
+					if presentation == .sheet {
+						sheetHeader
+					}
 
 					if !networkMonitor.isOnline {
 						OfflineBannerView(
@@ -67,9 +70,10 @@ struct RecordingSheetContentView: View {
 		}
 		.safeAreaInset(edge: .bottom) { bottomCTA }
 		.interactiveDismissDisabled(viewModel.isSaving)
+		.modifier(RecordingNavigationChromeModifier(presentation: presentation))
 	}
 
-	private var header: some View {
+	private var sheetHeader: some View {
 		HStack {
 			Text("記録を追加")
 				.font(.title3.bold())
@@ -113,7 +117,9 @@ struct RecordingSheetContentView: View {
 		let ok = await viewModel.save()
 		guard ok else { return }
 		onSavedMoveToHistory()
-		dismiss()
+		if presentation == .sheet {
+			dismiss()
+		}
 	}
 
 	private func openAppSettings() {
@@ -129,8 +135,25 @@ struct RecordingSheetContentView: View {
 			sessionRepository: PreviewSessionRepository(),
 			trackRepository: PreviewTrackRepository()
 		),
+		presentation: .sheet,
 		onSavedMoveToHistory: {}
 	)
 	.environment(\.networkMonitor, NetworkMonitor(startsMonitoring: false))
+}
+
+// MARK: - Navigation chrome
+
+private struct RecordingNavigationChromeModifier: ViewModifier {
+	let presentation: RecordingContentPresentation
+
+	func body(content: Content) -> some View {
+		if presentation == .navigationStack {
+			content
+				.navigationTitle("記録を追加")
+				.navigationBarTitleDisplayMode(.inline)
+		} else {
+			content
+		}
+	}
 }
 

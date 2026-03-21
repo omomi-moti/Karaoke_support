@@ -26,6 +26,54 @@ final class RecordingSheetViewModel {
 		self.trackRepository = trackRepository
 	}
 
+	/// 確定済み ``SelectedTrack`` から開始（ランキング・検索など I-013）。
+	init(
+		selectedTrack: SelectedTrack,
+		sessionRepository: any SessionRepositoryProtocol,
+		trackRepository: any TrackRepositoryProtocol
+	) {
+		self.sessionRepository = sessionRepository
+		self.trackRepository = trackRepository
+		let built = Self.trackInputState(from: selectedTrack)
+		self.trackState = built.state
+		self.inlineErrorMessage = built.initialInlineError
+	}
+
+	/// ``SelectedTrack`` の failable `init?` 経由では `(nil, nil)` は起こらないが、将来の生成経路で不変条件が崩れた場合に備え本番では落とさない。
+	private static func trackInputState(from selected: SelectedTrack) -> (state: TrackInputState, initialInlineError: String?) {
+		switch (selected.spotifyTrackId, selected.userEnteredName) {
+		case let (spotify?, nil):
+			return (
+				TrackInputState(
+					mode: .spotifyHistory(spotifyTrackId: spotify, displayName: Self.fallbackDisplayName(forSpotifyId: spotify))
+				),
+				nil
+			)
+		case let (nil, name?):
+			var state = TrackInputState(mode: .manual)
+			state.manualName = name
+			return (state, nil)
+		case let (spotify?, name?):
+			return (
+				TrackInputState(
+					mode: .spotifyHistory(spotifyTrackId: spotify, displayName: name)
+				),
+				nil
+			)
+		case (nil, nil):
+			assertionFailure("SelectedTrack invariant violated: both spotifyTrackId and userEnteredName are nil")
+			return (TrackInputState(mode: .manual), "曲の情報が無効です。選び直してください")
+		}
+	}
+
+	/// V2 の TrackMetadata まで表示名は置き換え。
+	private static func fallbackDisplayName(forSpotifyId id: String) -> String {
+		if id.count > 12 {
+			return String(id.prefix(12)) + "…"
+		}
+		return id
+	}
+
 	func validate() -> Bool {
 		inlineErrorMessage = nil
 		do {
