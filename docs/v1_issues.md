@@ -199,11 +199,12 @@ Phase 2: I-017 → I-018
 - **依存**: I-004, I-008, I-009, I-010, I-011, I-012
 - **Labels**: `priority:must`, `type:feat`, `phase:1-MVP`
 - **Tasks**:
-  - [ ] 選曲結果の受け渡し型 `SelectedTrack` を定義する。`spotifyTrackId: String?` と `userEnteredName: String?` を持ち、少なくとも片方が非空であること。Hashable にして navigationDestination で渡す。V2 で検索・Spotify 履歴からの選曲も同じ型で扱う
-  - [ ] 曲選択（手動入力 or ランキングタップ）→ Intent選択 → 歌唱記録入力 → 保存の一連フローを接続する
-  - [ ] RecordingViewModel で TrackRepository.getOrCreate で Track を取得/作成し、SessionRepository.saveNewRecordingSession で SingingSession を保存する
-  - [ ] ナビゲーション方針: 選曲タブ内は NavigationStack + NavigationPath。保存成功時は selectedTab = .history でタブ切り替え。docs/ またはコード内コメントに遷移図を残す
-  - [ ] フロー全体のナビゲーションと状態遷移を確認する
+  - [x] 選曲結果の受け渡し型 `SelectedTrack` を定義する。`spotifyTrackId: String?` と `userEnteredName: String?` を持ち、少なくとも片方が非空であること。Hashable にして navigationDestination で渡す。V2 で検索・Spotify 履歴からの選曲も同じ型で扱う
+  - [x] 曲選択（手動入力 or ランキングタップ）→ Intent選択 → 歌唱記録入力 → 保存の一連フローを接続する
+  - [x] RecordingViewModel で TrackRepository.getOrCreate で Track を取得/作成し、SessionRepository.saveNewRecordingSession で SingingSession を保存する
+  - [x] ナビゲーション方針: 選曲タブ内は NavigationStack + NavigationPath。保存成功時は selectedTab = .history でタブ切り替え。docs/ またはコード内コメントに遷移図を残す
+  - [x] フロー全体のナビゲーションと状態遷移を確認する
+- **参照**: 遷移図・関連ファイル一覧は [`v1_navigation_songs_recording.md`](./v1_navigation_songs_recording.md)
 
 ---
 
