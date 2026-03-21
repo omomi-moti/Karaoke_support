@@ -219,7 +219,7 @@ Phase 2: I-017 → I-018
   - **フィルター**: 画面上部に横スクロールチップ（すべて / Shout / Emo / Practice）
   - **V1 の曲名**: `TrackDisplayTitle.primary(for:)`（`userEnteredName` → Spotify ID 短縮 →「不明」）。アーティスト名は **V2**（Spotify メタデータ）で追加
 - **Tasks**:
-  - [x] 歌唱セッションを日時降順で一覧表示する List を実装する（`SessionRepository.fetchAll` / `fetchByIntent`。初回は最大200件、I-015 でページネーション）
+  - [x] 歌唱セッションを日時降順で一覧表示する List を実装する（**「すべて」も Intent も同一上限**で `fetchAll(limit:offset:)` の直近ウィンドウに揃え、Intent はその結果をメモリ上で `filter`。直近 N 件に該当が無いと空表示。初回は最大200件、I-015 でページネーション）
   - [x] Intent フィルター（Shout/Emo/Practice）を画面上部に配置する（`HistoryFilterBarView`）
   - [x] V1 では `TrackDisplayTitle` で曲名を表示する。V2 で TrackMetadataCache 経由に切り替える際は同ヘルパーを拡張または差し替えで局所化する
   - [x] セッション行をタップした場合のアクション（V1では未実装で可）— 行の `onTapGesture` は未接続
