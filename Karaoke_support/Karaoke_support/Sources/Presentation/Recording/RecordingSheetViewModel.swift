@@ -28,10 +28,17 @@ final class RecordingSheetViewModel {
 		do {
 			_ = try TrackResolver.resolveSelectedTrack(from: trackState)
 			return true
-		} catch {
-			if case .manual = trackState.mode {
-				trackState.validationMessage = "曲名を入力してください"
+		} catch let error as TrackResolveError {
+			switch error {
+			case .emptyManualName:
+				if case .manual = trackState.mode {
+					trackState.validationMessage = "曲名を入力してください"
+				}
+			case .invalidSelectedTrack:
+				inlineErrorMessage = "曲の情報が無効です。選び直してください"
 			}
+			return false
+		} catch {
 			return false
 		}
 	}
