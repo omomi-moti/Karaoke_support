@@ -21,7 +21,9 @@ protocol SessionRepositoryProtocol {
 	///   - offset: スキップ件数。例: limit=20, offset=0 で 1〜20 件目、offset=20 で 21〜40 件目
 	func fetchAll(limit: Int, offset: Int) async throws -> [SingingSession]
 
-	/// Intent で絞り込んだセッションを取得する。
+	/// 直近ウィンドウ内で Intent が一致するセッションを日時降順で取得する。
+	///
+	/// **全期間の Intent 一覧ではない。** ``SessionRecentWindow/maxSessionCount`` 件の直近セッションに対してメモリ上で絞り込む（``fetchAll(limit:offset:)`` と同一ウィンドウ）。
 	func fetchByIntent(_ intent: Intent) async throws -> [SingingSession]
 
 	/// 指定 UUID のセッションが存在するか（冪等性チェック用）。
