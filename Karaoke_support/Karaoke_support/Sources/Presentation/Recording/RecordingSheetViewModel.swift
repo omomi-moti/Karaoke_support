@@ -45,20 +45,18 @@ final class RecordingSheetViewModel {
 
 		do {
 			let selectedTrack = try TrackResolver.resolveSelectedTrack(from: trackState)
-
 			let track = try await trackRepository.getOrCreate(
 				spotifyTrackId: selectedTrack.spotifyTrackId,
 				userEnteredName: selectedTrack.userEnteredName
 			)
-
 			let session = SingingSession(
 				track: track,
 				intent: draft.intent,
 				score: draft.score,
 				memo: draft.normalizedMemo
 			)
-
 			try await sessionRepository.save(session: session)
+			try await trackRepository.incrementSingCount(trackId: track.id)
 			return true
 		} catch {
 			inlineErrorMessage = "保存に失敗しました。もう一度お試しください"
@@ -66,4 +64,3 @@ final class RecordingSheetViewModel {
 		}
 	}
 }
-
