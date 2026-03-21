@@ -55,8 +55,7 @@ final class RecordingSheetViewModel {
 				score: draft.score,
 				memo: draft.normalizedMemo
 			)
-			try await sessionRepository.save(session: session)
-			try await trackRepository.incrementSingCount(trackId: track.id)
+			try await sessionRepository.saveNewRecordingSession(session)
 			return true
 		} catch {
 			inlineErrorMessage = "保存に失敗しました。もう一度お試しください"
