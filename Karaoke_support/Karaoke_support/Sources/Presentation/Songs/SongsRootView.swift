@@ -11,56 +11,85 @@ struct SongsRootView: View {
 	}
 
 	@State private var segment: Segment = .intent
-	@State private var isPresentingRecordingSheet: Bool = false
+	@State private var path = NavigationPath()
 
 	var body: some View {
-		VStack(spacing: 16) {
-			Picker("選曲タブ", selection: $segment) {
-				ForEach(Segment.allCases) { segment in
-					Text(segment.rawValue).tag(segment)
+		NavigationStack(path: $path) {
+			VStack(spacing: 16) {
+				Picker("選曲タブ", selection: $segment) {
+					ForEach(Segment.allCases) { segment in
+						Text(segment.rawValue).tag(segment)
+					}
 				}
-			}
-			.pickerStyle(.segmented)
-			.padding(.horizontal)
+				.pickerStyle(.segmented)
+				.padding(.horizontal)
 
-			Group {
-				switch segment {
-				case .intent:
-					EmptyPlaceholderView(
-						title: "インテント（準備中）",
-						message: "V1では表示の土台のみ用意します。まずは1曲歌ってデータを作りましょう。"
+				Group {
+					switch segment {
+					case .intent:
+						VStack(spacing: 20) {
+							EmptyPlaceholderView(
+								title: "インテント（準備中）",
+								message: "タイムマシン・マイアンセムは I-017 以降で表示します。下から選曲済みの曲で記録フローを試せます。"
+							)
+							/// ランキングタップのスタブ（I-013）。I-018 で本番リストに差し替え。
+							Button {
+								guard let stub = SelectedTrack(
+									spotifyTrackId: nil,
+									userEnteredName: "サンプル曲（ランキングスタブ）"
+								) else { return }
+								path.append(SongsRecordingRoute.recording(stub))
+							} label: {
+								Label("選曲済みとして記録へ（スタブ）", systemImage: "music.note.list")
+							}
+							.buttonStyle(.borderedProminent)
+							.tint(.pink.opacity(0.85))
+						}
+					case .spotify:
+						EmptyPlaceholderView(
+							title: "Spotify視聴履歴（準備中）",
+							message: "V1ではプレースホルダー表示です。"
+						)
+					}
+				}
+				.frame(maxWidth: .infinity, maxHeight: .infinity)
+			}
+			.navigationTitle("選曲")
+			.navigationBarTitleDisplayMode(.inline)
+			.toolbar {
+				ToolbarItem(placement: .topBarTrailing) {
+					Button {
+						path.append(SongsRecordingRoute.manualRecording)
+					} label: {
+						Label("記録を追加", systemImage: "plus")
+					}
+				}
+			}
+			.navigationDestination(for: SongsRecordingRoute.self) { route in
+				switch route {
+				case .manualRecording:
+					RecordingSheetContainerView(
+						seed: .mode(.manual),
+						presentation: .navigationStack,
+						onSavedMoveToHistory: { handleRecordingSaved() }
 					)
-				case .spotify:
-					EmptyPlaceholderView(
-						title: "Spotify視聴履歴（準備中）",
-						message: "V1ではプレースホルダー表示です。"
+				case .recording(let selectedTrack):
+					RecordingSheetContainerView(
+						seed: .selectedTrack(selectedTrack),
+						presentation: .navigationStack,
+						onSavedMoveToHistory: { handleRecordingSaved() }
 					)
 				}
 			}
-			.frame(maxWidth: .infinity, maxHeight: .infinity)
 		}
-		.navigationTitle("選曲")
-		.navigationBarTitleDisplayMode(.inline)
-		.toolbar {
-			ToolbarItem(placement: .topBarTrailing) {
-				Button {
-					isPresentingRecordingSheet = true
-				} label: {
-					Label("記録を追加", systemImage: "plus")
-				}
-			}
-		}
-		.sheet(isPresented: $isPresentingRecordingSheet) {
-			RecordingSheetContainerView(trackMode: .manual) {
-				onSavedMoveToHistory()
-			}
-		}
+	}
+
+	private func handleRecordingSaved() {
+		path = NavigationPath()
+		onSavedMoveToHistory()
 	}
 }
 
 #Preview {
-	NavigationStack {
-		SongsRootView(onSavedMoveToHistory: {})
-	}
+	SongsRootView(onSavedMoveToHistory: {})
 }
-
