@@ -16,12 +16,11 @@ final class SwiftDataSessionRepository: SessionRepositoryProtocol {
 		self.modelContext = modelContext
 	}
 
-	func save(session: SingingSession) async throws {
-		modelContext.insert(session)
-		try modelContext.save()
-	}
-
+	/// I-011: 同一 ``SingingSession.id`` の再試行は insert / singCount 更新をスキップして冪等にする。
 	func saveNewRecordingSession(_ session: SingingSession) async throws {
+		if try await exists(uuid: session.id) {
+			return
+		}
 		modelContext.insert(session)
 		session.track.singCount += 1
 		session.track.updatedAt = .now
