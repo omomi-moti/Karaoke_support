@@ -17,7 +17,7 @@
 
 - **Sources/Domain/Repositories/SessionRepositoryProtocol.swift**
   - **SessionRepositoryProtocol**（プロトコル）
-    - `save(session:)` - セッションを insert して永続化
+    - `saveNewRecordingSession(_:)` - 歌唱記録を insert + `singCount` 更新（記録の単一入口。I-011 冪等）
     - `fetchAll(limit:offset:)` - 日時降順、offset はスキップ件数（0-based）
     - `fetchByIntent(_:)` - Intent で絞り込み
     - `exists(uuid:)` - 冪等性チェック用の存在判定
