@@ -40,12 +40,8 @@ final class SwiftDataSessionRepository: SessionRepositoryProtocol {
 	}
 
 	func fetchByIntent(_ intent: Intent) async throws -> [SingingSession] {
-		/// SwiftData の `#Predicate` は `Intent` の `rawValue` 比較も `Intent.shout` 等の列挙比較もサポートしない（スキーマ／マクロ制約）。
-		/// 日時降順で取得し、メモリ上で `intent` を絞り込む（I-014）。大量データ時は I-015 や `intent` の String 永続化＋Predicate を検討。
-		var descriptor = FetchDescriptor<SingingSession>(
-			sortBy: [SortDescriptor(\.performedAt, order: .reverse)]
-		)
-		let rows = try modelContext.fetch(descriptor)
+		// `fetchAll` と同一の直近ウィンドウに揃え、無制限フェッチを避ける（履歴 VM と同じ戦略）。
+		let rows = try await fetchAll(limit: SessionRecentWindow.maxSessionCount, offset: 0)
 		return rows.filter { $0.intent == intent }
 	}
 
