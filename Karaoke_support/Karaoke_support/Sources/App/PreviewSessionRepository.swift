@@ -28,13 +28,14 @@ final class PreviewSessionRepository: SessionRepositoryProtocol {
 	}
 
 	private static let sampleSessions: [SingingSession] = {
-		let trackA = Track(userEnteredName: "残酷な天使のテーゼ")
-		let trackB = Track(spotifyTrackId: "spotify:track:preview")
+		let t1 = Track(userEnteredName: "アイドル")
+		let t2 = Track(userEnteredName: "怪獣の花唄")
+		let t3 = Track(userEnteredName: "Subtitle")
 
 		return [
-			SingingSession(track: trackA, intent: .shout, performedAt: .now.addingTimeInterval(-3600), score: 88),
-			SingingSession(track: trackA, intent: .emo, performedAt: .now.addingTimeInterval(-7200), score: 92),
-			SingingSession(track: trackB, intent: .practice, performedAt: .now.addingTimeInterval(-10800), score: 75),
+			SingingSession(track: t1, intent: .shout, performedAt: .now.addingTimeInterval(-3600), score: 92.5),
+			SingingSession(track: t2, intent: .practice, performedAt: .now.addingTimeInterval(-7200), score: 88.0),
+			SingingSession(track: t3, intent: .emo, performedAt: .now.addingTimeInterval(-10800), score: 94.2),
 		]
 	}()
 }
