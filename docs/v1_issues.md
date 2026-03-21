@@ -163,7 +163,7 @@ Phase 2: I-017 → I-018
 - **Tasks**:
   - [x] スコア入力UI（0〜100）を実装する（Slider）
   - [x] メモ入力UI（任意、TextField）を実装する
-  - [x] 保存ボタンを配置し、RecordingSheetViewModel 経由で TrackRepository.getOrCreate → SessionRepository.save を実行する
+  - [x] 保存ボタンを配置し、RecordingSheetViewModel 経由で TrackRepository.getOrCreate で Track を取得/作成し、SessionRepository.saveNewRecordingSession で歌唱記録を保存する
   - [x] 保存成功時は `selectedTab = .history` で履歴タブへ切り替える
   - [x] 保存失敗時は共通エラー表示コンポーネント（メッセージ「保存に失敗しました。もう一度お試しください」+ 再試行ボタン）を使用する（インライン表示）
 - **手動QA**: 記録保存フローの確認手順は [`manual_qa_I008_I009_record_save.md`](./manual_qa_I008_I009_record_save.md) を参照
@@ -198,7 +198,7 @@ Phase 2: I-017 → I-018
 - **Tasks**:
   - [ ] 選曲結果の受け渡し型 `SelectedTrack` を定義する。`spotifyTrackId: String?` と `userEnteredName: String?` を持ち、少なくとも片方が非空であること。Hashable にして navigationDestination で渡す。V2 で検索・Spotify 履歴からの選曲も同じ型で扱う
   - [ ] 曲選択（手動入力 or ランキングタップ）→ Intent選択 → 歌唱記録入力 → 保存の一連フローを接続する
-  - [ ] RecordingViewModel で TrackRepository.getOrCreate で Track を取得/作成し、SessionRepository.save で SingingSession を保存する
+  - [ ] RecordingViewModel で TrackRepository.getOrCreate で Track を取得/作成し、SessionRepository.saveNewRecordingSession で SingingSession を保存する
   - [ ] ナビゲーション方針: 選曲タブ内は NavigationStack + NavigationPath。保存成功時は selectedTab = .history でタブ切り替え。docs/ またはコード内コメントに遷移図を残す
   - [ ] フロー全体のナビゲーションと状態遷移を確認する
 
@@ -255,7 +255,7 @@ Phase 2: I-017 → I-018
 - **依存**: I-005, I-017
 - **Labels**: `priority:must`, `type:feat`, `phase:2-インサイト`
 - **Tasks**:
-  - [ ] getTimeMachineRanking() で過去1ヶ月のランキングを取得する
+  - [ ] fetchTimeMachineRanking() で過去1ヶ月のランキングを取得する
   - [ ] 歌った回数降順でリスト表示する
   - [ ] V1 では `track.userEnteredName ?? "不明"` で曲名を表示する
   - [ ] ランキング内の曲をタップすると `SelectedTrack(spotifyTrackId: track.spotifyTrackId, userEnteredName: track.userEnteredName)` を navigationDestination で渡し、歌唱記録フローへ遷移する

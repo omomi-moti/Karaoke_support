@@ -33,7 +33,7 @@
 ローカル SwiftData のみの保存では、通常は失敗しにくい。**意図的に失敗を再現する**場合の例:
 
 - **プレビュー / テスト用**: `PreviewSessionRepository` などで `save` が `throw` するように一時変更してビルドする。
-- **デバッガ**: `SwiftDataSessionRepository.save` の `try modelContext.save()` の直前にブレークし、例外を投げる／`save` をスキップするなど（上級者向け）。
+- **デバッガ**: `SwiftDataSessionRepository.saveNewRecordingSession` の `try modelContext.save()` の直前にブレークし、例外を投げる／`save` をスキップするなど（上級者向け）。
 
 **再試行時に見たいこと（I-011 は別タスクだが挙動の目安）**
 
