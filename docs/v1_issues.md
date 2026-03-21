@@ -74,7 +74,7 @@ Phase 2: I-017 → I-018
 - **Tasks**:
   - [x] SessionRepository プロトコル（インターフェース）を Domain/Repositories に定義する
   - [x] SwiftDataSessionRepository を Data/SwiftData に実装する
-  - [x] save(session) メソッドを実装する（SwiftData insert）
+  - [x] `saveNewRecordingSession` で歌唱記録を永続化する（SwiftData insert + `Track.singCount` 更新。記録の単一入口）
   - [x] fetchAll(limit, offset) を実装する（日時降順）。offset はスキップ件数（0-based）。例: limit=20, offset=0 で 1〜20 件目、offset=20 で 21〜40 件目
   - [x] fetchByIntent(intent) を実装する
   - [x] exists(uuid) を実装する（冪等性チェック用）
@@ -185,10 +185,10 @@ Phase 2: I-017 → I-018
 - **依存**: I-003, I-009
 - **Labels**: `priority:must`, `type:feat`, `phase:1-MVP`
 - **Tasks**:
-  - [ ] 保存前に SessionRepository.exists(uuid) で重複チェックを行う
-  - [ ] 既存の場合はスキップし、二重登録を防止する
-  - [ ] クライアント生成の UUID を Idempotency Key として使用する
-  - [ ] 冪等性が保証されることを確認する
+  - [x] 保存前に SessionRepository.exists(uuid) で重複チェックを行う
+  - [x] 既存の場合はスキップし、二重登録を防止する
+  - [x] クライアント生成の UUID を Idempotency Key として使用する
+  - [x] 冪等性が保証されることを確認する（`Karaoke_supportTests/I011SessionIdempotencyTests.swift`）
 
 ---
 
