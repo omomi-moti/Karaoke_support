@@ -10,11 +10,9 @@ import Foundation
 /// 歌唱セッションの永続化・取得を担当する Repository のプロトコル。
 @MainActor
 protocol SessionRepositoryProtocol {
-	/// セッションを保存する（insert）。
-	func save(session: SingingSession) async throws
-
 	/// 歌唱記録を新規保存し、紐づく ``Track`` の歌唱回数を **同一トランザクション** で 1 増やす。
-	/// セッション保存のみ成功し歌唱回数だけ失敗する部分成功を避けるため、記録フローではこちらを使う。
+	/// セッションの永続化は記録フローでは **このメソッドのみ** を用いる（`singCount`・I-011 冪等と整合）。
+	/// I-011: ``SingingSession.id`` が既に存在する場合は insert・加算を行わずに成功扱い（冪等）。
 	func saveNewRecordingSession(_ session: SingingSession) async throws
 
 	/// 日時降順でセッションを取得する。offset はスキップ件数（0-based）。
