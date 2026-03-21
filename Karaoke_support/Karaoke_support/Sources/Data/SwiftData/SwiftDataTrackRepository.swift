@@ -21,6 +21,7 @@ final class SwiftDataTrackRepository: TrackRepositoryProtocol {
 			return []
 		}
 		let searchQuery = query
+
 		let descriptor = FetchDescriptor<Track>(
 			predicate: #Predicate<Track> { track in
 				if let name = track.userEnteredName {
@@ -77,12 +78,19 @@ final class SwiftDataTrackRepository: TrackRepositoryProtocol {
 	}
 
 	func incrementSingCount(trackId: UUID) async throws {
-		guard let track = try fetchById(trackId) else {
-			throw TrackRepositoryError.trackNotFound(trackId)
+		do {
+			guard let track = try fetchById(trackId) else {
+				throw TrackRepositoryError.trackNotFound(trackId)
+			}
+
+			let before = track.singCount
+			track.singCount += 1
+			track.updatedAt = .now
+
+			try modelContext.save()
+		} catch {
+			throw error
 		}
-		track.singCount += 1
-		track.updatedAt = .now
-		try modelContext.save()
 	}
 
 	// MARK: - Private
