@@ -65,6 +65,7 @@ struct RecordingSheetContentView: View {
 			}
 		}
 		.safeAreaInset(edge: .bottom) { bottomCTA }
+		.interactiveDismissDisabled(viewModel.isSaving)
 	}
 
 	private var header: some View {
@@ -80,6 +81,7 @@ struct RecordingSheetContentView: View {
 					.padding(10)
 					.background(.thinMaterial, in: Circle())
 			}
+			.disabled(viewModel.isSaving)
 			.accessibilityLabel("閉じる")
 		}
 		.padding(.vertical, 6)
