@@ -9,10 +9,13 @@ final class HistoryViewModel {
 
 	/// 「すべて」も Intent フィルターも **同一の直近ウィンドウ**（件数上限）で揃える。
 	/// Intent 絞り込みは `fetchAll` の結果をメモリ上で `filter`（直近 N 件に該当 Intent が無いと空になる仕様）。
+	/// **適用順: `filter` → `sortOrder` による並べ替え**（I-014-B）。
 	/// 件数は ``SessionRecentWindow/maxSessionCount`` と ``SessionRepositoryProtocol/fetchByIntent`` に合わせる。
 	/// 一覧は SwiftData インスタンスではなく ``HistorySessionRowDisplayItem``（値）のみ保持する。
 	var sessions: [HistorySessionRowDisplayItem] = []
 	var filter: HistoryIntentFilter = .all
+	/// 既定は歌唱日時の新しい順（`performedAt` 降順）。Repository の取得順に依存せず、表示直前に整列する。
+	var sortOrder: HistorySortOrder = .performedAtDescending
 	var isLoading: Bool = false
 	var loadErrorMessage: String?
 	/// 削除失敗時のみ表示。`load()` 成功時にクリアする。
@@ -60,7 +63,14 @@ final class HistoryViewModel {
 		case .intent(let intent):
 			filtered = rows.filter { $0.intent == intent }
 		}
-		sessions = filtered.map { HistorySessionRowDisplayItem(mapping: $0) }
+		let items = filtered.map { HistorySessionRowDisplayItem(mapping: $0) }
+		sessions = sortOrder.sorted(items)
+	}
+
+	/// `load()` 済みの一覧に対し、並び替えのみをやり直す（再フェッチなし）。
+	func applySortToLoadedSessions() {
+		guard !sessions.isEmpty else { return }
+		sessions = sortOrder.sorted(sessions)
 	}
 
 	/// 履歴から1件削除。Repository 経由（View から直接 Data を触らない）。

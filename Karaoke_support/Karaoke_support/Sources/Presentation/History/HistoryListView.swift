@@ -20,6 +20,11 @@ struct HistoryListView: View {
 				HistoryFilterBarView(selection: $viewModel.filter)
 					.padding(.top, 4)
 
+				HistorySortControlView(sortOrder: $viewModel.sortOrder)
+					.onChange(of: viewModel.sortOrder) { _, _ in
+						viewModel.applySortToLoadedSessions()
+					}
+
 				if let message = viewModel.loadErrorMessage {
 					Text(message)
 						.font(.footnote)
