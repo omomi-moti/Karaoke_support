@@ -11,8 +11,14 @@ import XCTest
 
 final class HistorySortOrderTests: XCTestCase {
 
-	private let idLow = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
-	private let idHigh = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
+	private var idLow: UUID!
+	private var idHigh: UUID!
+
+	override func setUpWithError() throws {
+		try super.setUpWithError()
+		idLow = try XCTUnwrap(UUID(uuidString: "00000000-0000-0000-0000-000000000001"))
+		idHigh = try XCTUnwrap(UUID(uuidString: "00000000-0000-0000-0000-000000000002"))
+	}
 
 	func testPerformedAtDescending_PutsNewerFirst() {
 		let older = HistorySessionRowDisplayItem(
