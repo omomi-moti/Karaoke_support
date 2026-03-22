@@ -12,6 +12,13 @@ final class PreviewSessionRepository: SessionRepositoryProtocol {
 		recordedSessionIdsForPreview.insert(session.id)
 	}
 
+	func updateRecordingSession(_ session: SingingSession) async throws {
+		guard try await exists(uuid: session.id) else {
+			throw SessionRepositoryError.sessionNotFound(session.id)
+		}
+		// プレビューには永続ストアがないため更新内容は反映しない（存在時は成功のみ）。
+	}
+
 	func fetchAll(limit: Int, offset: Int) async throws -> [SingingSession] {
 		let sessions = Self.sampleSessions
 		let start = min(offset, sessions.count)
