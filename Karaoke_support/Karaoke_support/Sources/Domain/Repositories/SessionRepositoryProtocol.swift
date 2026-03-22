@@ -35,4 +35,7 @@ protocol SessionRepositoryProtocol {
 
 	/// 指定 UUID のセッションが存在するか（冪等性チェック用）。
 	func exists(uuid: UUID) async throws -> Bool
+
+	/// 編集用に id で **1件** 取得する。存在しない場合は ``SessionRepositoryError/sessionNotFound``。
+	func fetchRecordingSession(uuid: UUID) async throws -> SingingSession
 }
