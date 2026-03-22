@@ -10,10 +10,14 @@ import Foundation
 /// 歌唱セッションの永続化・取得を担当する Repository のプロトコル。
 @MainActor
 protocol SessionRepositoryProtocol {
-	/// 歌唱記録を新規保存し、紐づく ``Track`` の歌唱回数を **同一トランザクション** で 1 増やす。
-	/// セッションの永続化は記録フローでは **このメソッドのみ** を用いる（`singCount`・I-011 冪等と整合）。
+	/// 「新規」歌唱記録を保存し、紐づく ``Track`` の歌唱回数を **同一トランザクション** で 1 増やす。
+	/// **新規** 記録フローでは insert はこのメソッドのみ（`singCount`・I-011 冪等と整合）。既存行の上書きは ``updateRecordingSession`` を用いる。
 	/// I-011: ``SingingSession.id`` が既に存在する場合は insert・加算を行わずに成功扱い（冪等）。
 	func saveNewRecordingSession(_ session: SingingSession) async throws
+
+	/// 既存の歌唱セッションを上書きする（編集用）。``SingingSession.id`` が存在しない場合は ``SessionRepositoryError/sessionNotFound``。
+	/// ``singCount`` は変更しない（新規のみ加算）。別 ``Track`` への差し替えは ``SessionRepositoryError/sessionUpdateTrackChangeNotSupported``。
+	func updateRecordingSession(_ session: SingingSession) async throws
 
 	/// 日時降順でセッションを取得する。offset はスキップ件数（0-based）。
 	/// - Parameters:
