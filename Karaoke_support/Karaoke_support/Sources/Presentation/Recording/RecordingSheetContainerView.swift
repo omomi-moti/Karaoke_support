@@ -12,6 +12,8 @@ struct RecordingSheetContainerView: View {
 	/// 親の `body` が再評価されるたびに `RecordingSheetViewModel` を作り直さない（I-011 `pendingSessionIdForSave` の整合）。
 	@State private var viewModel: RecordingSheetViewModel?
 	@State private var loadErrorMessage: String?
+	/// ``RecordingSessionSeed/editSession(sessionId:)`` のフェッチ試行ごとに増加。完了時は `await` 後もこの値と一致するときだけ状態を書く（再試行連打のレース回避）。
+	@State private var editSessionFetchGeneration: UInt = 0
 
 	init(
 		seed: RecordingSessionSeed,
@@ -89,14 +91,18 @@ struct RecordingSheetContainerView: View {
 				trackRepository: trackRepository
 			)
 		case .editSession(let sessionId):
+			editSessionFetchGeneration += 1
+			let attempt = editSessionFetchGeneration
 			do {
 				let session = try await sessionRepository.fetchRecordingSession(uuid: sessionId)
+				guard attempt == editSessionFetchGeneration else { return }
 				viewModel = RecordingSheetViewModel(
 					editingSession: session,
 					sessionRepository: sessionRepository,
 					trackRepository: trackRepository
 				)
 			} catch {
+				guard attempt == editSessionFetchGeneration else { return }
 				loadErrorMessage = "記録を読み込めませんでした。もう一度お試しください"
 			}
 		}
