@@ -90,4 +90,16 @@ final class SwiftDataSessionRepository: SessionRepositoryProtocol {
 		let results = try modelContext.fetch(descriptor)
 		return !results.isEmpty
 	}
+
+	func fetchRecordingSession(uuid: UUID) async throws -> SingingSession {
+		let idToMatch = uuid
+		var descriptor = FetchDescriptor<SingingSession>(
+			predicate: #Predicate<SingingSession> { $0.id == idToMatch }
+		)
+		descriptor.fetchLimit = 1
+		guard let session = try modelContext.fetch(descriptor).first else {
+			throw SessionRepositoryError.sessionNotFound(uuid)
+		}
+		return session
+	}
 }
