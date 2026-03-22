@@ -2,7 +2,7 @@ import SwiftUI
 
 /// 履歴1件のカード行（I-014）。ダークカード・右寄せスコア。
 struct HistorySessionRowView: View {
-	let session: SingingSession
+	let item: HistorySessionRowDisplayItem
 
 	private static let performedAtFormatter: DateFormatter = {
 		let f = DateFormatter()
@@ -15,21 +15,21 @@ struct HistorySessionRowView: View {
 	var body: some View {
 		HStack(alignment: .top, spacing: 12) {
 			VStack(alignment: .leading, spacing: 6) {
-				Text(TrackDisplayTitle.primary(for: session.track))
+				Text(item.trackPrimaryTitle)
 					.font(.headline.weight(.semibold))
 					.foregroundStyle(Color.white)
 					.multilineTextAlignment(.leading)
 
-				Text(Self.performedAtFormatter.string(from: session.performedAt))
+				Text(Self.performedAtFormatter.string(from: item.performedAt))
 					.font(.subheadline)
 					.foregroundStyle(Color.white.opacity(0.55))
 
-				HistoryIntentBadgeView(intent: session.intent)
+				HistoryIntentBadgeView(intent: item.intent)
 			}
 			.frame(maxWidth: .infinity, alignment: .leading)
 
 			VStack(alignment: .trailing, spacing: 2) {
-				Text(formatScore(session.score))
+				Text(formatScore(item.score))
 					.font(.system(size: 30, weight: .bold, design: .rounded))
 					.foregroundStyle(Color(red: 1.0, green: 0.35, blue: 0.58))
 					.minimumScaleFactor(0.7)
@@ -41,7 +41,7 @@ struct HistorySessionRowView: View {
 					.textCase(.uppercase)
 			}
 			.accessibilityElement(children: .combine)
-			.accessibilityLabel("スコア \(formatScore(session.score))")
+			.accessibilityLabel("スコア \(formatScore(item.score))")
 		}
 		.padding(16)
 		.background(
@@ -61,9 +61,10 @@ struct HistorySessionRowView: View {
 
 #Preview("Row") {
 	HistorySessionRowView(
-		session: SingingSession(
-			track: Track(userEnteredName: "アイドル"),
+		item: HistorySessionRowDisplayItem(
+			id: UUID(),
 			intent: .shout,
+			trackPrimaryTitle: "アイドル",
 			performedAt: .now,
 			score: 92.5
 		)
