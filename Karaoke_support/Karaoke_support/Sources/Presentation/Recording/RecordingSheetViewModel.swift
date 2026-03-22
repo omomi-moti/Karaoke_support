@@ -95,6 +95,7 @@ final class RecordingSheetViewModel {
 		}
 	}
 
+	/// 新規記録の保存のみ。既存セッションの編集は ``SessionRepositoryProtocol/updateRecordingSession``（編集 UI 導入時に本 VM または別経路で分岐すること）。
 	func save() async -> Bool {
 		guard !isSaving else { return false }
 		guard validate() else { return false }

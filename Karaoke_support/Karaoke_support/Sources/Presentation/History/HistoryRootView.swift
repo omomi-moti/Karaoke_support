@@ -1,19 +1,16 @@
 import SwiftUI
 
 struct HistoryRootView: View {
+	@Environment(\.sessionRepository) private var sessionRepository
+
 	var body: some View {
-		EmptyPlaceholderView(
-			title: "履歴（準備中）",
-			message: "V1ではナビゲーション基盤のみ用意します。"
-		)
-		.navigationTitle("履歴")
-		.navigationBarTitleDisplayMode(.inline)
+		HistoryListContainerView(sessionRepository: sessionRepository)
 	}
 }
 
 #Preview {
 	NavigationStack {
 		HistoryRootView()
+			.environment(\.sessionRepository, PreviewSessionRepository())
 	}
 }
-

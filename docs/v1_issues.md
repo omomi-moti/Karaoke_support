@@ -2,7 +2,7 @@
 
 **Version**: 1.1  
 **Created**: 2026-03-14  
-**Updated**: 2026-03-14（V2移行レビュー反映、技術選定の明文化）  
+**Updated**: 2026-03-22（I-014 拡張タスク・差分レビュー・履歴削除競合対応の追記）  
 **前提フロー**: 曲入力 → Intent → スコア → 履歴 → ランキング
 
 > **ドキュメントの位置づけ**: 本ファイルは V1 向け Issue/タスク体系の**単一の信頼できるソース（Source of Truth）**です。  
@@ -74,10 +74,15 @@ Phase 2: I-017 → I-018
 - **Tasks**:
   - [x] SessionRepository プロトコル（インターフェース）を Domain/Repositories に定義する
   - [x] SwiftDataSessionRepository を Data/SwiftData に実装する
-  - [x] `saveNewRecordingSession` で歌唱記録を永続化する（SwiftData insert + `Track.singCount` 更新。記録の単一入口）
+  - [x] `saveNewRecordingSession` で歌唱記録を永続化する（SwiftData insert + `Track.singCount` 更新。**新規**の単一入口。I-011 冪等）
+  - [x] `updateRecordingSession` で既存セッションを上書きする（編集用。`singCount` は増やさない。別 Track への差し替えは未対応でエラー）
+  - [x] `deleteRecordingSession(uuid:)` でセッションを削除し、紐づく `Track.singCount` を 1 減らす（0 未満にしない）
   - [x] fetchAll(limit, offset) を実装する（日時降順）。offset はスキップ件数（0-based）。例: limit=20, offset=0 で 1〜20 件目、offset=20 で 21〜40 件目
   - [x] fetchByIntent(intent) を実装する
   - [x] exists(uuid) を実装する（冪等性チェック用）
+- **編集フロー実装時の注意（履歴からの編集など）**:
+  - 既存 `SingingSession` の変更は **`SessionRepository.updateRecordingSession`** のみ。`saveNewRecordingSession` は **新規 insert** と **同一 id の再送冪等**のみ（同 id では insert も `singCount` 加算も行わず、**プロパティの上書きはしない**）。
+  - `RecordingSheetViewModel.save()` は現状 **新規のみ** `saveNewRecordingSession`。編集モードを追加する Issue では **`updateRecordingSession` を呼ぶ分岐**を必ず入れること（`saveNew` のまま同じ id を流すと冪等で黙って反映されない）。
 
 ---
 
@@ -213,11 +218,61 @@ Phase 2: I-017 → I-018
 ### [I-014] History画面
 - **依存**: I-003, I-007
 - **Labels**: `priority:must`, `type:feat`, `phase:1-MVP`
+- **UI 参考（カード一覧）**:
+  - **背景**: ダークグラデーション（黒〜深灰）
+  - **行**: 角丸カード（半透明フィル）。**左**: 1行目＝曲名、2行目＝歌唱日時（`performedAt`、日本語ロケール）。**Intent** はピルバッジ（例: 🔥 Shout / 🌙 Emo / 🎤 Practice）。**右**: 大きなスコア数値（小数1桁）+ ラベル「SCORE」
+  - **フィルター**: 画面上部に横スクロールチップ（すべて / Shout / Emo / Practice）
+  - **V1 の曲名**: `TrackDisplayTitle.primary(for:)`（`userEnteredName` → Spotify ID 短縮 →「不明」）。アーティスト名は **V2**（Spotify メタデータ）で追加
 - **Tasks**:
-  - [ ] 歌唱セッションを日時降順で一覧表示する List を実装する
-  - [ ] Intent フィルター（Shout/Emo/Practice）を画面上部に配置する
-  - [ ] V1 では `track.userEnteredName ?? "不明"` で曲名を表示する。V2 で TrackMetadataCache 経由に切り替える際は、曲名取得ロジックをヘルパー化しておくと変更が局所化される
-  - [ ] セッション行をタップした場合のアクション（V1では未実装で可）
+  - [x] 歌唱セッションを日時降順で一覧表示する List を実装する（**「すべて」も Intent も同一上限**で `fetchAll(limit:offset:)` の直近ウィンドウに揃え、Intent はその結果をメモリ上で `filter`。直近 N 件に該当が無いと空表示。初回は最大200件、I-015 でページネーション）
+  - [x] Intent フィルター（Shout/Emo/Practice）を画面上部に配置する（`HistoryFilterBarView`）
+  - [x] V1 では `TrackDisplayTitle` で曲名を表示する。V2 で TrackMetadataCache 経由に切り替える際は同ヘルパーを拡張または差し替えで局所化する
+  - [x] セッション行をタップした場合のアクション（V1では未実装で可）— 行の `onTapGesture` は未接続
+  - [x] スワイプで削除（`SessionRepository.deleteRecordingSession` + `HistoryViewModel.deleteSession`）
+
+#### 本ブランチ（`main` 差分）レビュー: リスク・技術負債
+
+> 以下は **致命的バグの可能性** と **今後の負債** の指摘。優先度はチームで再評価すること。
+
+| 種別 | 内容 |
+|------|------|
+| **競合リスク** | ~~削除と `load` の世代未整合~~ **対応済**（`deleteSession` 開始時に `loadGeneration` を進め、`applySessions` 前に `myGeneration` / `requestedFilter` でガード。ずれたら `load()` で再同期）。 |
+| **UX / 初期表示** | ~~`HistoryRootView` が `onAppear` まで遅延~~ **対応済**（`HistoryListContainerView` で `State(initialValue:)` により初回描画から VM を生成。真っ黒 1 フレームを解消）。 |
+| **プレビュー制限** | `PreviewSessionRepository` は `updateRecordingSession` 成功後も `fetchAll` が静的サンプルのため **編集内容が一覧に出ない**（コメント済み）。編集 UI をプレビューするなら **簡易インメモリストア**が別途必要。 |
+| **Repository 挙動** | `fetchByIntent` を「直近ウィンドウ `fetchAll` + メモリ filter」に統一。**直近 N 件に該当 Intent が少ないと一覧が空**になるのは仕様だが、N や文言のユーザー説明が必要。I-015 ページネーション時は **DB 側 sort/filter 戦略の再検討**が負債になりうる。 |
+| **色・トークン** | スコア色・背景グラデが **リテラル `Color`**。ダークモード固定・アクセシビリティ（コントラスト）・テーマ一元化が未着手 → **I-014-A**。 |
+| **ソート** | 現状は **日時降順のみ**（`fetchAll` の SortDescriptor に依存）。スコア順 UI なし → **I-014-B**。 |
+| **履歴からの編集** | `SessionRepository.updateRecordingSession` は実装済みだが、`RecordingSheetViewModel.save()` は **新規のみ**（コメント済み）。履歴行タップ未接続 → **I-014-C**。 |
+
+---
+
+#### I-014 分岐タスク（色・ソート・履歴からの更新）
+
+以下は **I-014 の拡張**として追記する。親 Issue は I-014 のまま、分岐を **I-014-A / B / C** で管理する。
+
+##### [I-014-A] 色・テーマ（履歴画面）
+
+- [ ] 履歴の背景グラデーション・カード背景・枠線・スコア色・バッジ色を **`Asset`（Color Set）または `AppTheme` / `Environment` 値**に集約し、View からリテラルを排除する
+- [ ] ダークモードを正式サポートする場合は **ライト/ダーク** 用の色定義を分ける（現状はダーク寄せ固定のため、仕様をドキュメント化してもよい）
+- [ ] テキスト／背景の **コントラスト** を確認し、必要なら WCAG 目安を `docs/` にメモする
+- [ ] `AccentColor` や Tab との **視覚的一貫性** を確認する
+
+##### [I-014-B] ソート（日付順・点数順）
+
+- [ ] 仕様を固定する: **既定＝歌唱日時（`performedAt`）降順**（現状）、ユーザー切替で **スコア降順 / スコア昇順**（必要なら日付昇順）を追加するか決める
+- [ ] UI: ツールバーメニュー・セグメント・またはフィルター行直下の **ソートコントロール**を配置する（履歴画面内の導線をワイヤーまたは本文で決める）
+- [ ] `HistoryViewModel`: 表示配列は値型のまま **`sessions` の並べ替え**で実装するか、`Repository` に sort パラメータを足すか方針を決める（**I-015 ページネーション**と整合するなら fetch 側 sort が有利な場合あり）
+- [ ] **Intent フィルター適用後**にソートする（`filter → sort` の順をコード・ドキュメントの両方で明文化）
+- [ ] ソート変更時に **空状態メッセージ**が誤解を招かないか確認する
+
+##### [I-014-C] 履歴からの記録の更新（編集）
+
+- [ ] 行タップ（またはスワイプ補助アクション）で **編集フロー**へ遷移するナビゲーションを定義する（`NavigationPath` / sheet / フルスクリーンのいずれか）
+- [ ] 既存 `SingingSession` を編集対象として **`RecordingSheetViewModel` に編集モード**を追加する（初期値に intent / score / memo / performedAt を注入）
+- [ ] `save()` 内で **新規 → `saveNewRecordingSession`**、**既存更新 → `updateRecordingSession`** を分岐する（**I-003** の注意: 同 id を `saveNew` に流さない）
+- [ ] 保存成功後に **履歴一覧を `load()` または同等の再取得**で同期する
+- [ ] 失敗時は **エラー表示・再試行**（憲法 FR-011）を既存パターンに合わせる
+- [ ] `PreviewSessionRepository` を使うプレビューでは、**編集結果が一覧に反映されない**制約を引き続き明示するか、プレビュー用ストアを拡張する
 
 ---
 
