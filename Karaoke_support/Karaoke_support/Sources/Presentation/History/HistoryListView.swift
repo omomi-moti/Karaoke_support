@@ -124,5 +124,8 @@ struct HistoryListView: View {
 	@Previewable @State var path = NavigationPath()
 	return NavigationStack(path: $path) {
 		HistoryListView(viewModel: HistoryViewModel(sessionRepository: PreviewSessionRepository()), editNavigationPath: $path)
+			.navigationDestination(for: UUID.self) { _ in
+				EmptyView()
+			}
 	}
 }
