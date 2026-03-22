@@ -26,9 +26,9 @@ struct HistoryFilterBarView: View {
 				.padding(.vertical, 8)
 				.background(
 					Capsule()
-						.fill(selection == tag ? Color.pink.opacity(0.38) : Color.white.opacity(0.1))
+						.fill(selection == tag ? AppColor.filterChipSelectedBackground : AppColor.filterChipUnselectedBackground)
 				)
-				.foregroundStyle(selection == tag ? Color.white : Color.white.opacity(0.85))
+				.foregroundStyle(selection == tag ? AppColor.textPrimary : AppColor.foregroundSubtle)
 		}
 		.buttonStyle(.plain)
 		.accessibilityLabel("フィルター \(title)")
@@ -46,5 +46,5 @@ struct HistoryFilterBarView: View {
 #Preview {
 	HistoryFilterBarView(selection: .constant(.all))
 		.padding()
-		.background(Color.black)
+		.background(AppColor.backgroundGradientEnd)
 }
