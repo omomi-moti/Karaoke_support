@@ -24,17 +24,17 @@ struct HistoryIntentBadgeView: View {
 
 	private var background: Color {
 		switch intent {
-		case .shout: return Color(red: 0.45, green: 0.22, blue: 0.12).opacity(0.85)
-		case .emo: return Color(red: 0.12, green: 0.35, blue: 0.38).opacity(0.9)
-		case .practice: return Color(red: 0.14, green: 0.22, blue: 0.45).opacity(0.9)
+		case .shout: return AppColor.badgeShoutBackground
+		case .emo: return AppColor.badgeEmoBackground
+		case .practice: return AppColor.badgePracticeBackground
 		}
 	}
 
 	private var foreground: Color {
 		switch intent {
-		case .shout: return Color(red: 1.0, green: 0.62, blue: 0.35)
-		case .emo: return Color(red: 0.55, green: 0.92, blue: 0.88)
-		case .practice: return Color(red: 0.55, green: 0.72, blue: 1.0)
+		case .shout: return AppColor.badgeShoutForeground
+		case .emo: return AppColor.badgeEmoForeground
+		case .practice: return AppColor.badgePracticeForeground
 		}
 	}
 }
@@ -46,5 +46,5 @@ struct HistoryIntentBadgeView: View {
 		HistoryIntentBadgeView(intent: .practice)
 	}
 	.padding()
-	.background(Color.black)
+	.background(AppColor.backgroundGradientEnd)
 }
