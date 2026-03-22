@@ -8,8 +8,8 @@ struct HistoryListView: View {
 		ZStack {
 			LinearGradient(
 				colors: [
-					Color(red: 0.06, green: 0.06, blue: 0.09),
-					Color.black,
+					AppColor.backgroundGradientStart,
+					AppColor.backgroundGradientEnd,
 				],
 				startPoint: .top,
 				endPoint: .bottom
@@ -23,14 +23,14 @@ struct HistoryListView: View {
 				if let message = viewModel.loadErrorMessage {
 					Text(message)
 						.font(.footnote)
-						.foregroundStyle(.red)
+						.foregroundStyle(AppColor.semanticError)
 						.padding(.horizontal, 4)
 				}
 
 				if let deleteMsg = viewModel.deleteErrorMessage {
 					Text(deleteMsg)
 						.font(.footnote)
-						.foregroundStyle(.red)
+						.foregroundStyle(AppColor.semanticError)
 						.padding(.horizontal, 4)
 				}
 
@@ -78,24 +78,24 @@ struct HistoryListView: View {
 		VStack(spacing: 12) {
 			Image(systemName: "clock.arrow.circlepath")
 				.font(.system(size: 44))
-				.foregroundStyle(.secondary)
+				.foregroundStyle(AppColor.textSecondary)
 			switch viewModel.filter {
 			case .all:
 				Text("まだ記録がありません")
 					.font(.title3.weight(.semibold))
-					.foregroundStyle(.primary)
+					.foregroundStyle(AppColor.textPrimary)
 				Text("選曲タブから歌った記録がここに並びます。")
 					.font(.subheadline)
-					.foregroundStyle(.secondary)
+					.foregroundStyle(AppColor.textSecondary)
 					.multilineTextAlignment(.center)
 			case .intent:
 				Text("直近の記録に該当がありません")
 					.font(.title3.weight(.semibold))
-					.foregroundStyle(.primary)
+					.foregroundStyle(AppColor.textPrimary)
 					.multilineTextAlignment(.center)
 				Text("フィルターを変えるか、該当するインテントで記録を追加してください。")
 					.font(.subheadline)
-					.foregroundStyle(.secondary)
+					.foregroundStyle(AppColor.textSecondary)
 					.multilineTextAlignment(.center)
 			}
 		}

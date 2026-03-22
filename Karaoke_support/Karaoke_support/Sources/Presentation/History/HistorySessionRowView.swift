@@ -17,45 +17,42 @@ struct HistorySessionRowView: View {
 			VStack(alignment: .leading, spacing: 6) {
 				Text(item.trackPrimaryTitle)
 					.font(.headline.weight(.semibold))
-					.foregroundStyle(Color.white)
+					.foregroundStyle(AppColor.textPrimary)
 					.multilineTextAlignment(.leading)
 
 				Text(Self.performedAtFormatter.string(from: item.performedAt))
 					.font(.subheadline)
-					.foregroundStyle(Color.white.opacity(0.55))
+					.foregroundStyle(AppColor.textSecondary)
 
 				HistoryIntentBadgeView(intent: item.intent)
 			}
 			.frame(maxWidth: .infinity, alignment: .leading)
 
 			VStack(alignment: .trailing, spacing: 2) {
-				Text(formatScore(item.score))
+				Text(item.score, format: .number.precision(.fractionLength(1)))
 					.font(.system(size: 30, weight: .bold, design: .rounded))
-					.foregroundStyle(Color(red: 1.0, green: 0.35, blue: 0.58))
+					.monospacedDigit()
+					.foregroundStyle(AppColor.accentScore)
 					.minimumScaleFactor(0.7)
 					.lineLimit(1)
 
 				Text("SCORE")
 					.font(.caption2.weight(.semibold))
-					.foregroundStyle(Color.white.opacity(0.45))
+					.foregroundStyle(AppColor.textTertiary)
 					.textCase(.uppercase)
 			}
 			.accessibilityElement(children: .combine)
-			.accessibilityLabel("スコア \(formatScore(item.score))")
+			.accessibilityLabel("スコア \(item.score.formatted(.number.precision(.fractionLength(1))))")
 		}
 		.padding(16)
 		.background(
 			RoundedRectangle(cornerRadius: 16, style: .continuous)
-				.fill(Color.white.opacity(0.08))
+				.fill(AppColor.surfaceCard)
 		)
 		.overlay(
 			RoundedRectangle(cornerRadius: 16, style: .continuous)
-				.stroke(Color.white.opacity(0.1), lineWidth: 1)
+				.stroke(AppColor.borderSubtle, lineWidth: 1)
 		)
-	}
-
-	private func formatScore(_ value: Double) -> String {
-		String(format: "%.1f", value)
 	}
 }
 
@@ -70,5 +67,5 @@ struct HistorySessionRowView: View {
 		)
 	)
 	.padding()
-	.background(Color.black)
+	.background(AppColor.backgroundGradientEnd)
 }

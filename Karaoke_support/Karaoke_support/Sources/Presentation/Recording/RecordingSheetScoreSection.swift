@@ -13,6 +13,7 @@ struct RecordingSheetScoreSection: View {
 			Text(score, format: .number.precision(.fractionLength(1)))
 				.font(.system(size: 56, weight: .bold, design: .rounded))
 				.monospacedDigit()
+				.foregroundStyle(AppColor.accentScore)
 
 			Slider(value: $score, in: 0...100, step: 0.1)
 				.disabled(isDisabled)
