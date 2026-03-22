@@ -8,10 +8,20 @@ import Foundation
 final class PreviewSessionRepository: SessionRepositoryProtocol {
 	private var recordedSessionIdsForPreview: Set<UUID> = []
 
-	/// サンプル行と `fetchRecordingSession` 用（固定リテラル UUID のため非 nil が自明）。
-	private static let sampleId1 = UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE0001")!
-	private static let sampleId2 = UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE0002")!
-	private static let sampleId3 = UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE0003")!
+	/// プレビュー用固定 UUID 文字列から UUID を生成する。
+	/// 変換に失敗した場合は `assertionFailure` を発火し、フォールバックとしてランダム UUID を返す。
+	private static func makeUUID(_ literal: String) -> UUID {
+		guard let uuid = UUID(uuidString: literal) else {
+			assertionFailure("Invalid UUID literal for PreviewSessionRepository: \(literal)")
+			return UUID()
+		}
+		return uuid
+	}
+
+	/// サンプル行と `fetchRecordingSession` 用（固定リテラル）。
+	private static let sampleId1 = makeUUID("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE0001")
+	private static let sampleId2 = makeUUID("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE0002")
+	private static let sampleId3 = makeUUID("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE0003")
 
 	func saveNewRecordingSession(_ session: SingingSession) async throws {
 		if try await exists(uuid: session.id) {
