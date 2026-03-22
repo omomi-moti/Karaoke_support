@@ -22,9 +22,8 @@ struct RootView: View {
 			}
 			.tag(RootTab.songs)
 
-			NavigationStack {
-				HistoryRootView()
-			}
+			/// ナビゲーションは ``HistoryListContainerView`` 内の `NavigationStack` に集約（履歴→編集の push を含む・I-014-C）。
+			HistoryRootView()
 			.tabItem {
 				Label("履歴", systemImage: "clock")
 			}

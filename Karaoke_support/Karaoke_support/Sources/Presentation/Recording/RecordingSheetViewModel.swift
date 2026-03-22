@@ -10,17 +10,25 @@ final class RecordingSheetViewModel {
 	var isSaving: Bool = false
 	var inlineErrorMessage: String? = nil
 
+	/// `nil` のとき新規記録、非 `nil` のときその id のセッションを更新（I-014-C）。
+	private(set) var editingSessionId: UUID?
+
 	private let sessionRepository: any SessionRepositoryProtocol
 	private let trackRepository: any TrackRepositoryProtocol
 
-	/// 保存失敗後の再試行で同一 ``SingingSession.id`` を使う（I-011 Idempotency Key）。成功時は `nil` に戻す。
+	/// 保存失敗後の再試行で同一 ``SingingSession.id`` を使う（I-011 Idempotency Key）。成功時は `nil` に戻す。**新規のみ**使用。
 	private var pendingSessionIdForSave: UUID?
+
+	var isEditingExistingSession: Bool { editingSessionId != nil }
+
+	var isTrackInputLockedForEdit: Bool { editingSessionId != nil }
 
 	init(
 		trackMode: TrackInputMode,
 		sessionRepository: any SessionRepositoryProtocol,
 		trackRepository: any TrackRepositoryProtocol
 	) {
+		self.editingSessionId = nil
 		self.trackState = TrackInputState(mode: trackMode)
 		self.sessionRepository = sessionRepository
 		self.trackRepository = trackRepository
@@ -32,11 +40,31 @@ final class RecordingSheetViewModel {
 		sessionRepository: any SessionRepositoryProtocol,
 		trackRepository: any TrackRepositoryProtocol
 	) {
+		self.editingSessionId = nil
 		self.sessionRepository = sessionRepository
 		self.trackRepository = trackRepository
 		let built = Self.trackInputState(from: selectedTrack)
 		self.trackState = built.state
 		self.inlineErrorMessage = built.initialInlineError
+	}
+
+	/// 履歴から開いた既存セッションの編集（I-014-C）。曲の差し替えは不可。
+	init(
+		editingSession: SingingSession,
+		sessionRepository: any SessionRepositoryProtocol,
+		trackRepository: any TrackRepositoryProtocol
+	) {
+		self.editingSessionId = editingSession.id
+		self.sessionRepository = sessionRepository
+		self.trackRepository = trackRepository
+		self.trackState = TrackInputState(trackForEditingSession: editingSession.track)
+		self.draft = RecordingDraft(
+			score: editingSession.score,
+			intent: editingSession.intent,
+			memo: editingSession.memo ?? "",
+			performedAt: editingSession.performedAt
+		)
+		self.pendingSessionIdForSave = nil
 	}
 
 	/// ``SelectedTrack`` の failable `init?` 経由では `(nil, nil)` は起こらないが、将来の生成経路で不変条件が崩れた場合に備え本番では落とさない。
@@ -95,7 +123,7 @@ final class RecordingSheetViewModel {
 		}
 	}
 
-	/// 新規記録の保存のみ。既存セッションの編集は ``SessionRepositoryProtocol/updateRecordingSession``（編集 UI 導入時に本 VM または別経路で分岐すること）。
+	/// 新規は ``saveNewRecordingSession``、編集は ``updateRecordingSession``（I-014-C / I-003）。
 	func save() async -> Bool {
 		guard !isSaving else { return false }
 		guard validate() else { return false }
@@ -110,6 +138,20 @@ final class RecordingSheetViewModel {
 				userEnteredName: selectedTrack.userEnteredName
 			)
 			let score = Self.normalizedScoreForPersistence(draft.score)
+
+			if let editId = editingSessionId {
+				let session = SingingSession(
+					id: editId,
+					track: track,
+					intent: draft.intent,
+					performedAt: draft.performedAt,
+					score: score,
+					memo: draft.normalizedMemo
+				)
+				try await sessionRepository.updateRecordingSession(session)
+				return true
+			}
+
 			let sessionId: UUID
 			if let pending = pendingSessionIdForSave {
 				sessionId = pending
@@ -122,6 +164,7 @@ final class RecordingSheetViewModel {
 				id: sessionId,
 				track: track,
 				intent: draft.intent,
+				performedAt: draft.performedAt,
 				score: score,
 				memo: draft.normalizedMemo
 			)

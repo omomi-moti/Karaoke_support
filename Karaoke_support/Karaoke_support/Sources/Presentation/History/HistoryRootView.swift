@@ -9,8 +9,6 @@ struct HistoryRootView: View {
 }
 
 #Preview {
-	NavigationStack {
-		HistoryRootView()
-			.environment(\.sessionRepository, PreviewSessionRepository())
-	}
+	HistoryRootView()
+		.environment(\.sessionRepository, PreviewSessionRepository())
 }

@@ -267,12 +267,12 @@ Phase 2: I-017 → I-018
 
 ##### [I-014-C] 履歴からの記録の更新（編集）
 
-- [ ] 行タップ（またはスワイプ補助アクション）で **編集フロー**へ遷移するナビゲーションを定義する（`NavigationPath` / sheet / フルスクリーンのいずれか）
-- [ ] 既存 `SingingSession` を編集対象として **`RecordingSheetViewModel` に編集モード**を追加する（初期値に intent / score / memo / performedAt を注入）
-- [ ] `save()` 内で **新規 → `saveNewRecordingSession`**、**既存更新 → `updateRecordingSession`** を分岐する（**I-003** の注意: 同 id を `saveNew` に流さない）
-- [ ] 保存成功後に **履歴一覧を `load()` または同等の再取得**で同期する
-- [ ] 失敗時は **エラー表示・再試行**（憲法 FR-011）を既存パターンに合わせる
-- [ ] `PreviewSessionRepository` を使うプレビューでは、**編集結果が一覧に反映されない**制約を引き続き明示するか、プレビュー用ストアを拡張する
+- [x] 行タップ（またはスワイプ補助アクション）で **編集フロー**へ遷移するナビゲーションを定義する（`NavigationPath` / sheet / フルスクリーンのいずれか） → **`NavigationStack` + 行タップ `NavigationLink` + リードスワイプ「編集」**
+- [x] 既存 `SingingSession` を編集対象として **`RecordingSheetViewModel` に編集モード**を追加する（初期値に intent / score / memo / performedAt を注入）
+- [x] `save()` 内で **新規 → `saveNewRecordingSession`**、**既存更新 → `updateRecordingSession`** を分岐する（**I-003** の注意: 同 id を `saveNew` に流さない）
+- [x] 保存成功後に **履歴一覧を `load()` または同等の再取得**で同期する
+- [x] 失敗時は **エラー表示・再試行**（憲法 FR-011）を既存パターンに合わせる
+- [x] `PreviewSessionRepository` を使うプレビューでは、**編集結果が一覧に反映されない**制約を引き続き明示するか、プレビュー用ストアを拡張する → **ドキュメントコメントで明示（静的 `fetchAll` のため）**
 
 ---
 

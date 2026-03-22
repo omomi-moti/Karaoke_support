@@ -3,6 +3,7 @@ import SwiftUI
 /// 履歴タブの本体（一覧 + フィルター）。`HistoryViewModel` を `@Bindable` で受け取る。
 struct HistoryListView: View {
 	@Bindable var viewModel: HistoryViewModel
+	@Binding var editNavigationPath: NavigationPath
 
 	var body: some View {
 		ZStack {
@@ -48,18 +49,29 @@ struct HistoryListView: View {
 				} else {
 					List {
 						ForEach(viewModel.sessions, id: \.id) { session in
-							HistorySessionRowView(item: session)
-								.listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
-								.listRowSeparator(.hidden)
-								.listRowBackground(Color.clear)
-								.swipeActions(edge: .trailing, allowsFullSwipe: true) {
-									Button(role: .destructive) {
-										let idToDelete = session.id
-										Task { await viewModel.deleteSession(id: idToDelete) }
-									} label: {
-										Label("削除", systemImage: "trash")
-									}
+							NavigationLink(value: session.id) {
+								HistorySessionRowView(item: session)
+							}
+							.buttonStyle(.plain)
+							.listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
+							.listRowSeparator(.hidden)
+							.listRowBackground(Color.clear)
+							.swipeActions(edge: .leading, allowsFullSwipe: true) {
+								Button {
+									editNavigationPath.append(session.id)
+								} label: {
+									Label("編集", systemImage: "pencil")
 								}
+								.tint(.blue)
+							}
+							.swipeActions(edge: .trailing, allowsFullSwipe: true) {
+								Button(role: .destructive) {
+									let idToDelete = session.id
+									Task { await viewModel.deleteSession(id: idToDelete) }
+								} label: {
+									Label("削除", systemImage: "trash")
+								}
+							}
 						}
 					}
 					// 削除で SwiftData インスタンスが無効化される前に、List のデフォルト削除アニメが古い行を触るのを抑える
@@ -109,7 +121,11 @@ struct HistoryListView: View {
 }
 
 #Preview {
-	NavigationStack {
-		HistoryListView(viewModel: HistoryViewModel(sessionRepository: PreviewSessionRepository()))
+	@Previewable @State var path = NavigationPath()
+	return NavigationStack(path: $path) {
+		HistoryListView(viewModel: HistoryViewModel(sessionRepository: PreviewSessionRepository()), editNavigationPath: $path)
+			.navigationDestination(for: UUID.self) { _ in
+				EmptyView()
+			}
 	}
 }
