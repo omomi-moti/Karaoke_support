@@ -40,10 +40,19 @@ struct RecordingSheetContainerView: View {
 						.font(.body)
 						.multilineTextAlignment(.center)
 						.foregroundStyle(.secondary)
+					Button("再試行") {
+						loadErrorMessage = nil
+						Task {
+							await buildViewModelIfNeeded()
+						}
+					}
+					.buttonStyle(.borderedProminent)
+					.accessibilityHint("記録を読み込み直します")
 					Button("閉じる") {
 						dismiss()
 					}
-					.buttonStyle(.borderedProminent)
+					.buttonStyle(.bordered)
+					.accessibilityLabel("閉じる")
 				}
 				.padding(24)
 			} else if let vm = viewModel {
