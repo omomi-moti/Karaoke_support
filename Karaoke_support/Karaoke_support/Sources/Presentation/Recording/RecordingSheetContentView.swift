@@ -11,9 +11,14 @@ struct RecordingSheetContentView: View {
 	let presentation: RecordingContentPresentation
 	let onSavedMoveToHistory: () -> Void
 
+	private var recordingTitle: String {
+		viewModel.isEditingExistingSession ? "記録を編集" : "記録を追加"
+	}
+
 	var body: some View {
 		ZStack {
 			let isRetrying = viewModel.inlineErrorMessage != nil
+			let trackSectionDisabled = isRetrying || viewModel.isTrackInputLockedForEdit
 
 			ScrollView {
 				VStack(spacing: 16) {
@@ -30,7 +35,7 @@ struct RecordingSheetContentView: View {
 
 					TrackInputSectionView(
 						state: $viewModel.trackState,
-						isDisabled: isRetrying
+						isDisabled: trackSectionDisabled
 					)
 					RecordingSheetScoreSection(
 						score: $viewModel.draft.score,
@@ -38,6 +43,10 @@ struct RecordingSheetContentView: View {
 					)
 					RecordingSheetIntentSection(
 						intent: $viewModel.draft.intent,
+						isDisabled: isRetrying
+					)
+					RecordingSheetPerformedAtSection(
+						performedAt: $viewModel.draft.performedAt,
 						isDisabled: isRetrying
 					)
 					RecordingSheetMemoSection(
@@ -70,12 +79,12 @@ struct RecordingSheetContentView: View {
 		}
 		.safeAreaInset(edge: .bottom) { bottomCTA }
 		.interactiveDismissDisabled(viewModel.isSaving)
-		.modifier(RecordingNavigationChromeModifier(presentation: presentation))
+		.modifier(RecordingNavigationChromeModifier(presentation: presentation, navigationTitle: recordingTitle))
 	}
 
 	private var sheetHeader: some View {
 		HStack {
-			Text("記録を追加")
+			Text(recordingTitle)
 				.font(.title3.bold())
 			Spacer()
 			Button {
@@ -145,15 +154,15 @@ struct RecordingSheetContentView: View {
 
 private struct RecordingNavigationChromeModifier: ViewModifier {
 	let presentation: RecordingContentPresentation
+	let navigationTitle: String
 
 	func body(content: Content) -> some View {
 		if presentation == .navigationStack {
 			content
-				.navigationTitle("記録を追加")
+				.navigationTitle(navigationTitle)
 				.navigationBarTitleDisplayMode(.inline)
 		} else {
 			content
 		}
 	}
 }
-
