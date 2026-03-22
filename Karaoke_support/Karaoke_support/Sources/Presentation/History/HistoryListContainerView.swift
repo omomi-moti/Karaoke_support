@@ -20,7 +20,9 @@ struct HistoryListContainerView: View {
 						seed: .editSession(sessionId: sessionId),
 						presentation: .navigationStack,
 						onSavedMoveToHistory: {
-							editPath.removeLast()
+							if !editPath.isEmpty {
+								editPath.removeLast()
+							}
 							Task { await viewModel.load() }
 						}
 					)
