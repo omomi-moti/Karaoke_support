@@ -39,7 +39,7 @@ final class HistorySortOrderTests: XCTestCase {
 		XCTAssertEqual(out.map(\.id), [newer.id, older.id])
 	}
 
-	func testScoreDescending_PutsHigherScoreFirst_TieBreaksByPerformedAt() {
+	func testScoreDescending_PutsHigherScoreFirst() {
 		let newerLowScore = HistorySessionRowDisplayItem(
 			id: idLow,
 			intent: .shout,
