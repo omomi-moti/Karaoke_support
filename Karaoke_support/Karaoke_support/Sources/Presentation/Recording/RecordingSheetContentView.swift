@@ -122,6 +122,7 @@ struct RecordingSheetContentView: View {
 		.background(.ultraThinMaterial)
 	}
 
+	@MainActor
 	private func attemptSave() async {
 		let ok = await viewModel.save()
 		guard ok else { return }
