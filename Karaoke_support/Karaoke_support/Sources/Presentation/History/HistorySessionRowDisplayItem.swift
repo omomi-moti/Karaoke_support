@@ -1,5 +1,4 @@
 import Foundation
-import SwiftData
 
 /// 履歴一覧の **表示専用** スナップショット。
 ///
