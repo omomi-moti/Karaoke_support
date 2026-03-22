@@ -27,6 +27,13 @@ struct HistoryListView: View {
 						.padding(.horizontal, 4)
 				}
 
+				if let deleteMsg = viewModel.deleteErrorMessage {
+					Text(deleteMsg)
+						.font(.footnote)
+						.foregroundStyle(.red)
+						.padding(.horizontal, 4)
+				}
+
 				if viewModel.isLoading && viewModel.sessions.isEmpty {
 					ProgressView()
 						.frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -34,14 +41,27 @@ struct HistoryListView: View {
 					emptyState
 						.frame(maxWidth: .infinity, maxHeight: .infinity)
 				} else {
-					ScrollView {
-						LazyVStack(spacing: 12) {
-							ForEach(viewModel.sessions, id: \.id) { session in
-								HistorySessionRowView(session: session)
-							}
+					List {
+						ForEach(viewModel.sessions, id: \.id) { session in
+							HistorySessionRowView(item: session)
+								.listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
+								.listRowSeparator(.hidden)
+								.listRowBackground(Color.clear)
+								.swipeActions(edge: .trailing, allowsFullSwipe: true) {
+									Button(role: .destructive) {
+										let idToDelete = session.id
+										Task { await viewModel.deleteSession(id: idToDelete) }
+									} label: {
+										Label("削除", systemImage: "trash")
+									}
+								}
 						}
-						.padding(.vertical, 8)
 					}
+					// 削除で SwiftData インスタンスが無効化される前に、List のデフォルト削除アニメが古い行を触るのを抑える
+					.animation(nil, value: viewModel.sessions.map(\.id))
+					.listStyle(.plain)
+					.scrollContentBackground(.hidden)
+					.frame(maxWidth: .infinity, maxHeight: .infinity)
 				}
 			}
 			.padding(.horizontal, 16)
