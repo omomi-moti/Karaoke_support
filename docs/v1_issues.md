@@ -76,9 +76,13 @@ Phase 2: I-017 → I-018
   - [x] SwiftDataSessionRepository を Data/SwiftData に実装する
   - [x] `saveNewRecordingSession` で歌唱記録を永続化する（SwiftData insert + `Track.singCount` 更新。**新規**の単一入口。I-011 冪等）
   - [x] `updateRecordingSession` で既存セッションを上書きする（編集用。`singCount` は増やさない。別 Track への差し替えは未対応でエラー）
+  - [x] `deleteRecordingSession(uuid:)` でセッションを削除し、紐づく `Track.singCount` を 1 減らす（0 未満にしない）
   - [x] fetchAll(limit, offset) を実装する（日時降順）。offset はスキップ件数（0-based）。例: limit=20, offset=0 で 1〜20 件目、offset=20 で 21〜40 件目
   - [x] fetchByIntent(intent) を実装する
   - [x] exists(uuid) を実装する（冪等性チェック用）
+- **編集フロー実装時の注意（履歴からの編集など）**:
+  - 既存 `SingingSession` の変更は **`SessionRepository.updateRecordingSession`** のみ。`saveNewRecordingSession` は **新規 insert** と **同一 id の再送冪等**のみ（同 id では insert も `singCount` 加算も行わず、**プロパティの上書きはしない**）。
+  - `RecordingSheetViewModel.save()` は現状 **新規のみ** `saveNewRecordingSession`。編集モードを追加する Issue では **`updateRecordingSession` を呼ぶ分岐**を必ず入れること（`saveNew` のまま同じ id を流すと冪等で黙って反映されない）。
 
 ---
 
@@ -224,6 +228,7 @@ Phase 2: I-017 → I-018
   - [x] Intent フィルター（Shout/Emo/Practice）を画面上部に配置する（`HistoryFilterBarView`）
   - [x] V1 では `TrackDisplayTitle` で曲名を表示する。V2 で TrackMetadataCache 経由に切り替える際は同ヘルパーを拡張または差し替えで局所化する
   - [x] セッション行をタップした場合のアクション（V1では未実装で可）— 行の `onTapGesture` は未接続
+  - [x] スワイプで削除（`SessionRepository.deleteRecordingSession` + `HistoryViewModel.deleteSession`）
 
 ---
 
