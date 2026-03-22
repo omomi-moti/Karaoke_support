@@ -14,24 +14,39 @@ final class HistoryViewModel {
 	var isLoading: Bool = false
 	var loadErrorMessage: String?
 
+	/// `.task(id:)` で前回の `load()` がキャンセルされても、古い完了が `sessions` / `loadErrorMessage` を上書きしないようにする。
+	private var loadGeneration = 0
+
 	init(sessionRepository: any SessionRepositoryProtocol) {
 		self.sessionRepository = sessionRepository
 	}
 
 	func load() async {
+		loadGeneration += 1
+		let myGeneration = loadGeneration
+		let requestedFilter = filter
 		isLoading = true
 		loadErrorMessage = nil
-		defer { isLoading = false }
+		defer {
+			if myGeneration == loadGeneration {
+				isLoading = false
+			}
+		}
 
 		do {
 			let rows = try await sessionRepository.fetchAll(limit: SessionRecentWindow.maxSessionCount, offset: 0)
-			switch filter {
+			try Task.checkCancellation()
+			guard myGeneration == loadGeneration, requestedFilter == filter else { return }
+			switch requestedFilter {
 			case .all:
 				sessions = rows
 			case .intent(let intent):
 				sessions = rows.filter { $0.intent == intent }
 			}
+		} catch is CancellationError {
+			// キャンセル済み／古い要求: 状態は新しい `load` に任せる
 		} catch {
+			guard myGeneration == loadGeneration, requestedFilter == filter else { return }
 			sessions = []
 			loadErrorMessage = "読み込みに失敗しました。もう一度お試しください"
 		}
