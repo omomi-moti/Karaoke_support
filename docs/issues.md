@@ -38,7 +38,7 @@
 |----|----------|--------|------|
 | I-001 | プロジェクト初期化 | Must | Xcodeプロジェクト作成、iOS 17+、Swift 5.9、SwiftUI |
 | I-002 | SwiftDataモデル定義 | Must | Track, SingingSession の @Model 定義。Track は spotifyTrackId, userEnteredName のみ。曲名・アートワーク等は永続化しない（Spotify API規約） |
-| I-003 | SessionRepository 実装 | Must | saveNewRecordingSession, fetchAll, fetchByIntent, exists（UUID） |
+| I-003 | SessionRepository 実装 | Must | saveNewRecordingSession, updateRecordingSession, deleteRecordingSession, fetchAll, fetchByIntent, exists（UUID） |
 | I-004 | TrackRepository 実装 | Must | searchLocal(query), getOrCreate(spotifyTrackId?, userEnteredName?), incrementSingCount |
 | I-005 | InsightRepository 実装 | Must | fetchTimeMachineRanking, fetchMyAnthemRankings |
 | I-006 | ネットワーク監視ユーティリティ | Must | NWPathMonitor による接続状態の検知。EnvironmentKey は App 層に配置（Data 層は SwiftUI 非依存） |
