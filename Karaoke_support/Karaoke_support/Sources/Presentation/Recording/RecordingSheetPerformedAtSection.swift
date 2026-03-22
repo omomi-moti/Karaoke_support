@@ -17,9 +17,12 @@ struct RecordingSheetPerformedAtSection: View {
 			)
 			.labelsHidden()
 			.disabled(isDisabled)
+			/// コンパクト `DatePicker` は内在幅に縮むため、他セクションと同じカード幅になるよう伸ばす。
+			.frame(maxWidth: .infinity, alignment: .leading)
 		}
+		.frame(maxWidth: .infinity, alignment: .leading)
 		.padding()
-		.background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+		.background(.thinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
 	}
 }
 
