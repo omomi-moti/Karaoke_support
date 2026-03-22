@@ -1,5 +1,4 @@
 import Foundation
-import SwiftData
 
 /// V1 の曲名表示。V2 で ``TrackMetadataCache`` 等に差し替える際は呼び出しをこの型に集約すると変更が局所化される（I-014）。
 enum TrackDisplayTitle {
