@@ -47,6 +47,22 @@ final class SwiftDataSessionRepository: SessionRepositoryProtocol {
 		try modelContext.save()
 	}
 
+	func deleteRecordingSession(uuid: UUID) async throws {
+		let idToMatch = uuid
+		var descriptor = FetchDescriptor<SingingSession>(
+			predicate: #Predicate<SingingSession> { $0.id == idToMatch }
+		)
+		descriptor.fetchLimit = 1
+		guard let existing = try modelContext.fetch(descriptor).first else {
+			throw SessionRepositoryError.sessionNotFound(idToMatch)
+		}
+		let track = existing.track
+		track.singCount = max(0, track.singCount - 1)
+		track.updatedAt = .now
+		modelContext.delete(existing)
+		try modelContext.save()
+	}
+
 	func fetchAll(limit: Int, offset: Int) async throws -> [SingingSession] {
 		guard limit >= 0, offset >= 0 else {
 			throw SessionRepositoryError.invalidParameter("limit and offset must be non-negative")
