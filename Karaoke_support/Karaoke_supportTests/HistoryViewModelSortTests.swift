@@ -31,6 +31,10 @@ private final class StubSessionRepository: SessionRepositoryProtocol {
 	}
 
 	func exists(uuid: UUID) async throws -> Bool { false }
+
+	func fetchRecordingSession(uuid: UUID) async throws -> SingingSession {
+		throw SessionRepositoryError.sessionNotFound(uuid)
+	}
 }
 
 @MainActor
