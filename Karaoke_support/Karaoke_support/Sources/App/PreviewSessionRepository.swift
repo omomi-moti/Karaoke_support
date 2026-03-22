@@ -4,9 +4,12 @@ import Foundation
 ///
 /// - `saveNewRecordingSession` で保存した ID を `exists` と整合させる（I-011）。
 /// - `updateRecordingSession` は ID が存在すれば成功するが、**`fetchAll` は静的サンプル配列のみ**のため、**更新したフィールドは一覧に反映されない**（本番 SwiftData とは別。I-014-C: 編集保存後もプレビュー一覧は静的サンプルのまま）。
+/// - サンプル行を `deleteRecordingSession` した ID は `deletedSampleSessionIds` で除外し、`exists` / `fetchAll` / `fetchRecordingSession` と契約を揃える。
 @MainActor
 final class PreviewSessionRepository: SessionRepositoryProtocol {
 	private var recordedSessionIdsForPreview: Set<UUID> = []
+	/// プレビュー上で削除した固定サンプル行の ID（`sampleSessions` から論理削除）。
+	private var deletedSampleSessionIds: Set<UUID> = []
 
 	/// プレビュー用固定 UUID 文字列から UUID を生成する。
 	/// 変換に失敗した場合は `assertionFailure` を発火し、フォールバックとしてランダム UUID を返す。
@@ -42,13 +45,14 @@ final class PreviewSessionRepository: SessionRepositoryProtocol {
 			return
 		}
 		if Self.sampleSessions.contains(where: { $0.id == uuid }) {
+			deletedSampleSessionIds.insert(uuid)
 			return
 		}
 		throw SessionRepositoryError.sessionNotFound(uuid)
 	}
 
 	func fetchAll(limit: Int, offset: Int) async throws -> [SingingSession] {
-		let sessions = Self.sampleSessions
+		let sessions = Self.sampleSessions.filter { !deletedSampleSessionIds.contains($0.id) }
 		let start = min(offset, sessions.count)
 		let end = min(offset + max(limit, 0), sessions.count)
 		return Array(sessions[start..<end])
@@ -63,10 +67,16 @@ final class PreviewSessionRepository: SessionRepositoryProtocol {
 		if recordedSessionIdsForPreview.contains(uuid) {
 			return true
 		}
+		if deletedSampleSessionIds.contains(uuid) {
+			return false
+		}
 		return Self.sampleSessions.contains { $0.id == uuid }
 	}
 
 	func fetchRecordingSession(uuid: UUID) async throws -> SingingSession {
+		if deletedSampleSessionIds.contains(uuid) {
+			throw SessionRepositoryError.sessionNotFound(uuid)
+		}
 		guard let session = Self.sampleSessions.first(where: { $0.id == uuid }) else {
 			throw SessionRepositoryError.sessionNotFound(uuid)
 		}
