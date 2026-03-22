@@ -2,7 +2,7 @@
 
 **前提:** ダーク寄せの画面を主とする。**ライトモード用の Appearance は未追加**（I-014-A）。各 Color Set は **Any Appearance に 1 色**。
 
-**参照実装:** `AppColor`（`Sources/Presentation/Theme/AppColor.swift`）が `Assets.xcassets` の名前と 1:1 対応。
+**参照実装:** `AppColor`（`Sources/Presentation/Theme/AppColor.swift`）が **生成シンボル** `Color(.appTextPrimary)` 等で `Assets.xcassets` と 1:1 対応（文字列 `Color("…")` は使わない）。
 
 | Color Set | 用途（主） |
 |-----------|------------|
