@@ -3,6 +3,7 @@ import SwiftUI
 struct RecordingSheetContainerView: View {
 	@Environment(\.sessionRepository) private var sessionRepository
 	@Environment(\.trackRepository) private var trackRepository
+	@Environment(\.dismiss) private var dismiss
 
 	let seed: RecordingSessionSeed
 	let presentation: RecordingContentPresentation
@@ -10,6 +11,7 @@ struct RecordingSheetContainerView: View {
 
 	/// 親の `body` が再評価されるたびに `RecordingSheetViewModel` を作り直さない（I-011 `pendingSessionIdForSave` の整合）。
 	@State private var viewModel: RecordingSheetViewModel?
+	@State private var loadErrorMessage: String?
 
 	init(
 		seed: RecordingSessionSeed,
@@ -32,7 +34,19 @@ struct RecordingSheetContainerView: View {
 
 	var body: some View {
 		Group {
-			if let vm = viewModel {
+			if let msg = loadErrorMessage {
+				VStack(spacing: 16) {
+					Text(msg)
+						.font(.body)
+						.multilineTextAlignment(.center)
+						.foregroundStyle(.secondary)
+					Button("閉じる") {
+						dismiss()
+					}
+					.buttonStyle(.borderedProminent)
+				}
+				.padding(24)
+			} else if let vm = viewModel {
 				RecordingSheetContentView(
 					viewModel: vm,
 					presentation: presentation,
@@ -42,23 +56,39 @@ struct RecordingSheetContainerView: View {
 				Color.clear
 					.frame(width: 0, height: 0)
 					.accessibilityHidden(true)
-					.onAppear {
-						guard viewModel == nil else { return }
-						switch seed {
-						case .mode(let mode):
-							viewModel = RecordingSheetViewModel(
-								trackMode: mode,
-								sessionRepository: sessionRepository,
-								trackRepository: trackRepository
-							)
-						case .selectedTrack(let track):
-							viewModel = RecordingSheetViewModel(
-								selectedTrack: track,
-								sessionRepository: sessionRepository,
-								trackRepository: trackRepository
-							)
-						}
-					}
+			}
+		}
+		.task(id: seed) {
+			await buildViewModelIfNeeded()
+		}
+	}
+
+	@MainActor
+	private func buildViewModelIfNeeded() async {
+		guard viewModel == nil, loadErrorMessage == nil else { return }
+		switch seed {
+		case .mode(let mode):
+			viewModel = RecordingSheetViewModel(
+				trackMode: mode,
+				sessionRepository: sessionRepository,
+				trackRepository: trackRepository
+			)
+		case .selectedTrack(let track):
+			viewModel = RecordingSheetViewModel(
+				selectedTrack: track,
+				sessionRepository: sessionRepository,
+				trackRepository: trackRepository
+			)
+		case .editSession(let sessionId):
+			do {
+				let session = try await sessionRepository.fetchRecordingSession(uuid: sessionId)
+				viewModel = RecordingSheetViewModel(
+					editingSession: session,
+					sessionRepository: sessionRepository,
+					trackRepository: trackRepository
+				)
+			} catch {
+				loadErrorMessage = "記録を読み込めませんでした。もう一度お試しください"
 			}
 		}
 	}
@@ -67,5 +97,5 @@ struct RecordingSheetContainerView: View {
 #Preview {
 	RecordingSheetContainerView(trackMode: .manual, onSavedMoveToHistory: {})
 		.environment(\.networkMonitor, NetworkMonitor(startsMonitoring: false))
+		.environment(\.trackRepository, PreviewTrackRepository())
 }
-
