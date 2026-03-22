@@ -5,6 +5,8 @@ struct RecordingDraft: Equatable, Sendable {
 	var score: Double = 92.5
 	var intent: Intent = .shout
 	var memo: String = ""
+	/// 歌唱日時（新規・編集とも保存時に ``SingingSession/performedAt`` に反映）。
+	var performedAt: Date = Date()
 
 	var normalizedMemo: String? {
 		let trimmed = memo.trimmingCharacters(in: .whitespacesAndNewlines)
