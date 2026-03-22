@@ -18,7 +18,7 @@ final class HistoryViewModel {
 	/// 削除失敗時のみ表示。`load()` 成功時にクリアする。
 	var deleteErrorMessage: String?
 
-	/// `.task(id:)` で前回の `load()` がキャンセルされても、古い完了が `sessions` / `loadErrorMessage` を上書きしないようにする。
+	/// `load()` / `deleteSession()` の非同期完了が交差しても、古い方が `sessions` を上書きしないようにする（V1 は単一カウンタで十分）。
 	private var loadGeneration = 0
 
 	init(sessionRepository: any SessionRepositoryProtocol) {
@@ -67,8 +67,12 @@ final class HistoryViewModel {
 	///
 	/// 一覧は ``HistorySessionRowDisplayItem`` のみのため、削除後も行が SwiftData fault を踏まない。
 	/// それでも DB と不整合を避けるため、削除前に一覧から除外し、失敗時は `snapshot` に戻す。
+	/// ``load()`` と同じ `loadGeneration` で、フィルター変更や新しい `load` と競合した完了を捨てる。
 	func deleteSession(id: UUID) async {
 		deleteErrorMessage = nil
+		loadGeneration += 1
+		let myGeneration = loadGeneration
+		let requestedFilter = filter
 		let snapshot = sessions
 		// 先に表示用スナップショット（値型）から除外。DB 削除の成否と独立して一覧を更新できる。
 		withAnimation(nil) {
@@ -77,15 +81,28 @@ final class HistoryViewModel {
 		do {
 			try await sessionRepository.deleteRecordingSession(uuid: id)
 		} catch {
-			sessions = snapshot
-			deleteErrorMessage = "削除に失敗しました。もう一度お試しください"
+			if myGeneration == loadGeneration, requestedFilter == filter {
+				sessions = snapshot
+				deleteErrorMessage = "削除に失敗しました。もう一度お試しください"
+			} else {
+				await load()
+			}
+			return
+		}
+		guard myGeneration == loadGeneration, requestedFilter == filter else {
+			await load()
 			return
 		}
 		do {
 			let rows = try await sessionRepository.fetchAll(limit: SessionRecentWindow.maxSessionCount, offset: 0)
-			applySessions(from: rows, for: filter)
+			try Task.checkCancellation()
+			guard myGeneration == loadGeneration, requestedFilter == filter else {
+				await load()
+				return
+			}
+			applySessions(from: rows, for: requestedFilter)
+		} catch is CancellationError {
 		} catch {
-			// 削除は完了済みのため一覧だけ再同期
 			await load()
 		}
 	}

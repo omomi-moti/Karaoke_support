@@ -2,7 +2,7 @@
 
 **Version**: 1.1  
 **Created**: 2026-03-14  
-**Updated**: 2026-03-22（I-014 拡張タスク・差分レビュー追記）  
+**Updated**: 2026-03-22（I-014 拡張タスク・差分レビュー・履歴削除競合対応の追記）  
 **前提フロー**: 曲入力 → Intent → スコア → 履歴 → ランキング
 
 > **ドキュメントの位置づけ**: 本ファイルは V1 向け Issue/タスク体系の**単一の信頼できるソース（Source of Truth）**です。  
@@ -236,7 +236,7 @@ Phase 2: I-017 → I-018
 
 | 種別 | 内容 |
 |------|------|
-| **競合リスク（要検証）** | `HistoryViewModel.load()` は `loadGeneration` で古い完了を捨てるが、`deleteSession` 内の `applySessions` / 末尾の `await load()` は **世代ガードなし**。フィルター切替やタブ復帰と削除が重なると、一覧が一瞬ずれる・上書きされる可能性がある。→ **削除・再取得も `loadGeneration` と整合**するか、単一の「一覧リロード」経路に寄せると安全。 |
+| **競合リスク** | ~~削除と `load` の世代未整合~~ **対応済**（`deleteSession` 開始時に `loadGeneration` を進め、`applySessions` 前に `myGeneration` / `requestedFilter` でガード。ずれたら `load()` で再同期）。 |
 | **UX / 初期表示** | ~~`HistoryRootView` が `onAppear` まで遅延~~ **対応済**（`HistoryListContainerView` で `State(initialValue:)` により初回描画から VM を生成。真っ黒 1 フレームを解消）。 |
 | **プレビュー制限** | `PreviewSessionRepository` は `updateRecordingSession` 成功後も `fetchAll` が静的サンプルのため **編集内容が一覧に出ない**（コメント済み）。編集 UI をプレビューするなら **簡易インメモリストア**が別途必要。 |
 | **Repository 挙動** | `fetchByIntent` を「直近ウィンドウ `fetchAll` + メモリ filter」に統一。**直近 N 件に該当 Intent が少ないと一覧が空**になるのは仕様だが、N や文言のユーザー説明が必要。I-015 ページネーション時は **DB 側 sort/filter 戦略の再検討**が負債になりうる。 |
