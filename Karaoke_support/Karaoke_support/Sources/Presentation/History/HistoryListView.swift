@@ -52,6 +52,9 @@ struct HistoryListView: View {
 							NavigationLink(value: session.id) {
 								HistorySessionRowView(item: session)
 							}
+							.task(id: session.id) {
+								await viewModel.loadNextPageIfNeeded(currentItemID: session.id)
+							}
 							.buttonStyle(.plain)
 							.listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
 							.listRowSeparator(.hidden)
@@ -72,6 +75,15 @@ struct HistoryListView: View {
 									Label("削除", systemImage: "trash")
 								}
 							}
+						}
+						if viewModel.isLoadingNextPage {
+							HStack {
+								Spacer()
+								ProgressView()
+								Spacer()
+							}
+							.listRowSeparator(.hidden)
+							.listRowBackground(Color.clear)
 						}
 					}
 					// 削除で SwiftData インスタンスが無効化される前に、List のデフォルト削除アニメが古い行を触るのを抑える
