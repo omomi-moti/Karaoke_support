@@ -25,8 +25,8 @@ private final class StubSessionRepository: SessionRepositoryProtocol {
 		return Array(fetchAllResult[start..<end])
 	}
 
-	func fetchByIntent(_ intent: Intent) async throws -> [SingingSession] {
-		let rows = try await fetchAll(limit: SessionRecentWindow.maxSessionCount, offset: 0)
+	func fetchByIntent(_ intent: Intent, limit: Int, offset: Int) async throws -> [SingingSession] {
+		let rows = try await fetchAll(limit: limit, offset: offset)
 		return rows.filter { $0.intent == intent }
 	}
 
