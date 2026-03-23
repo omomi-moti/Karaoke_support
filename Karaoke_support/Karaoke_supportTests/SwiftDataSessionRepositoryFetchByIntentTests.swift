@@ -2,7 +2,7 @@
 //  SwiftDataSessionRepositoryFetchByIntentTests.swift
 //  Karaoke_supportTests
 //
-//  ``SwiftDataSessionRepository/fetchByIntent`` が直近ウィンドウ・Intent 絞り込み・日時降順を満たすことの検証。
+//  ``SwiftDataSessionRepository/fetchByIntent(_:limit:offset:)`` がページング・Intent 絞り込み・日時降順を満たすことの検証。
 //
 
 import SwiftData
@@ -35,21 +35,21 @@ final class SwiftDataSessionRepositoryFetchByIntentTests: XCTestCase {
 		context.insert(shoutOld)
 		try context.save()
 
-		let shouts = try await repo.fetchByIntent(.shout)
+		let shouts = try await repo.fetchByIntent(.shout, limit: 20, offset: 0)
 		XCTAssertEqual(shouts.count, 2)
 		XCTAssertTrue(shouts.allSatisfy { $0.intent == .shout })
 		XCTAssertEqual(shouts[0].performedAt, newest)
 		XCTAssertEqual(shouts[1].performedAt, oldest)
 
-		let emos = try await repo.fetchByIntent(.emo)
+		let emos = try await repo.fetchByIntent(.emo, limit: 20, offset: 0)
 		XCTAssertEqual(emos.count, 1)
 		XCTAssertEqual(emos[0].intent, .emo)
 		XCTAssertEqual(emos[0].performedAt, middle)
 	}
 
-	/// 直近 ``SessionRecentWindow/maxSessionCount`` 件より古いセッションはウィンドウ外となり、Intent が一致しても返さない。
+	/// limit / offset のページングが Intent 絞り込み後の配列に対して適用されることを検証する。
 	@MainActor
-	func testFetchByIntentExcludesSessionsOutsideRecentWindow() async throws {
+	func testFetchByIntentSupportsPaging() async throws {
 		let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
 		let container = try ModelContainer(for: Track.self, SingingSession.self, configurations: configuration)
 		let context = container.mainContext
@@ -59,33 +59,34 @@ final class SwiftDataSessionRepositoryFetchByIntentTests: XCTestCase {
 		context.insert(track)
 		try context.save()
 
-		let base = Date(timeIntervalSince1970: 1_700_000_000)
+		let base = Date(timeIntervalSince1970: 1_710_000_000)
 		let step: TimeInterval = 60
 
-		// 201 件: 最古のみ Emo、それ以外は Shout。降順で先頭 200 件に Emo は含まれない。
-		for i in 0..<(SessionRecentWindow.maxSessionCount + 1) {
+		// 60 件: 偶数 index を Emo、奇数 index を Shout とする。
+		for i in 0..<60 {
 			let performedAt = base.addingTimeInterval(step * Double(i))
-			let intent: Intent = (i == 0) ? .emo : .shout
+			let intent: Intent = (i % 2 == 0) ? .emo : .shout
 			let session = SingingSession(track: track, intent: intent, performedAt: performedAt, score: 70)
 			context.insert(session)
 		}
 		try context.save()
 
-		let emos = try await repo.fetchByIntent(.emo)
-		XCTAssertTrue(
-			emos.isEmpty,
-			"最古の Emo は直近 \(SessionRecentWindow.maxSessionCount) 件の外に落ちるため空になる"
-		)
+		let firstPage = try await repo.fetchByIntent(.emo, limit: 10, offset: 0)
+		let secondPage = try await repo.fetchByIntent(.emo, limit: 10, offset: 10)
+		let thirdPage = try await repo.fetchByIntent(.emo, limit: 10, offset: 20)
+		let outOfRange = try await repo.fetchByIntent(.emo, limit: 10, offset: 30)
 
-		let shouts = try await repo.fetchByIntent(.shout)
-		XCTAssertEqual(shouts.count, SessionRecentWindow.maxSessionCount)
-		XCTAssertTrue(shouts.allSatisfy { $0.intent == .shout })
+		XCTAssertEqual(firstPage.count, 10)
+		XCTAssertEqual(secondPage.count, 10)
+		XCTAssertEqual(thirdPage.count, 10)
+		XCTAssertTrue(outOfRange.isEmpty)
+		XCTAssertTrue((firstPage + secondPage + thirdPage).allSatisfy { $0.intent == .emo })
 
-		for pair in zip(shouts, shouts.dropFirst()) {
+		for pair in zip(firstPage, firstPage.dropFirst()) {
 			XCTAssertGreaterThanOrEqual(pair.0.performedAt, pair.1.performedAt, "performedAt 降順")
 		}
 
-		let newestShoutTime = base.addingTimeInterval(step * Double(SessionRecentWindow.maxSessionCount))
-		XCTAssertEqual(shouts[0].performedAt, newestShoutTime)
+		XCTAssertGreaterThan(firstPage[0].performedAt, secondPage[0].performedAt)
+		XCTAssertGreaterThan(secondPage[0].performedAt, thirdPage[0].performedAt)
 	}
 }
