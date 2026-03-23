@@ -58,9 +58,12 @@ final class PreviewSessionRepository: SessionRepositoryProtocol {
 		return Array(sessions[start..<end])
 	}
 
-	func fetchByIntent(_ intent: Intent) async throws -> [SingingSession] {
-		let rows = try await fetchAll(limit: SessionRecentWindow.maxSessionCount, offset: 0)
-		return rows.filter { $0.intent == intent }
+	func fetchByIntent(_ intent: Intent, limit: Int, offset: Int) async throws -> [SingingSession] {
+		let sessions = Self.sampleSessions
+			.filter { !deletedSampleSessionIds.contains($0.id) && $0.intent == intent }
+		let start = min(offset, sessions.count)
+		let end = min(offset + max(limit, 0), sessions.count)
+		return Array(sessions[start..<end])
 	}
 
 	func exists(uuid: UUID) async throws -> Bool {
