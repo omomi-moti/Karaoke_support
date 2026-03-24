@@ -12,8 +12,22 @@ import SwiftData
 final class SwiftDataSessionRepository: SessionRepositoryProtocol {
 	private let modelContext: ModelContext
 
+	/// ``fetchByIntent(_:limit:offset:)`` 用: 直近ウィンドウを `fetchAll` したあと Intent で絞った列（offset>0 のスライスで再利用し、毎回のフルスキャンを避ける）。
+	private var intentFilterCache: (intent: Intent, rows: [SingingSession])?
+
 	init(modelContext: ModelContext) {
 		self.modelContext = modelContext
+	}
+
+	private func invalidateIntentFilterCache() {
+		intentFilterCache = nil
+	}
+
+	/// `offset + limit` が `Int` でオーバーフローしてもスライス終端を安全に得る。
+	private func sliceEnd(offset: Int, limit: Int, count: Int) -> Int {
+		let (sum, overflow) = offset.addingReportingOverflow(limit)
+		let raw = overflow ? count : sum
+		return min(raw, count)
 	}
 
 	/// I-011: 同一 ``SingingSession.id`` の再試行は insert / singCount 更新をスキップして冪等にする。
@@ -25,6 +39,7 @@ final class SwiftDataSessionRepository: SessionRepositoryProtocol {
 		session.track.singCount += 1
 		session.track.updatedAt = .now
 		try modelContext.save()
+		invalidateIntentFilterCache()
 	}
 
 	func updateRecordingSession(_ session: SingingSession) async throws {
@@ -45,6 +60,7 @@ final class SwiftDataSessionRepository: SessionRepositoryProtocol {
 		existing.memo = session.memo
 		existing.track.updatedAt = .now
 		try modelContext.save()
+		invalidateIntentFilterCache()
 	}
 
 	func deleteRecordingSession(uuid: UUID) async throws {
@@ -61,6 +77,7 @@ final class SwiftDataSessionRepository: SessionRepositoryProtocol {
 		track.updatedAt = .now
 		modelContext.delete(existing)
 		try modelContext.save()
+		invalidateIntentFilterCache()
 	}
 
 	func fetchAll(limit: Int, offset: Int) async throws -> [SingingSession] {
@@ -75,10 +92,30 @@ final class SwiftDataSessionRepository: SessionRepositoryProtocol {
 		return try modelContext.fetch(descriptor)
 	}
 
-	func fetchByIntent(_ intent: Intent) async throws -> [SingingSession] {
-		// `fetchAll` と同一の直近ウィンドウに揃え、無制限フェッチを避ける（履歴 VM と同じ戦略）。
-		let rows = try await fetchAll(limit: SessionRecentWindow.maxSessionCount, offset: 0)
-		return rows.filter { $0.intent == intent }
+	func fetchByIntent(_ intent: Intent, limit: Int, offset: Int) async throws -> [SingingSession] {
+		guard limit >= 0, offset >= 0 else {
+			throw SessionRepositoryError.invalidParameter("limit and offset must be non-negative")
+		}
+		// SwiftData の `#Predicate` で Intent を安定して絞れないため、直近 ``SessionRecentWindow`` 件を取得してメモリ上で絞る。
+		// offset==0 でウィンドウを取り直しキャッシュ更新。offset>0 は同一 intent のキャッシュをスライスして追加フェッチを避ける。
+		let filtered: [SingingSession]
+		if offset == 0 {
+			let window = try await fetchAll(limit: SessionRecentWindow.maxSessionCount, offset: 0)
+			let f = window.filter { $0.intent == intent }
+			intentFilterCache = (intent, f)
+			filtered = f
+		} else if let cache = intentFilterCache, cache.intent == intent {
+			filtered = cache.rows
+		} else {
+			let window = try await fetchAll(limit: SessionRecentWindow.maxSessionCount, offset: 0)
+			let f = window.filter { $0.intent == intent }
+			intentFilterCache = (intent, f)
+			filtered = f
+		}
+		let start = min(offset, filtered.count)
+		let end = sliceEnd(offset: offset, limit: limit, count: filtered.count)
+		guard start < end else { return [] }
+		return Array(filtered[start..<end])
 	}
 
 	func exists(uuid: UUID) async throws -> Bool {

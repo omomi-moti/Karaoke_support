@@ -280,10 +280,10 @@ Phase 2: I-017 → I-018
 - **依存**: I-014
 - **Labels**: `priority:must`, `type:feat`, `phase:1-MVP`
 - **Tasks**:
-  - [ ] fetchAll(limit: 20, offset) を用いたページネーションを実装する。offset = pageIndex * 20（0-based）。I-003 の offset 仕様に準拠
-  - [ ] スクロール末尾で追加読み込みをトリガーする
-  - [ ] 大量データ（1000件以上）でもメモリ消費を抑制する
-  - [ ] ローディングインジケータを表示する
+  - [x] `fetchAll(limit: 20, offset)` を用いたページネーションを実装する。offset = pageIndex * 20（0-based）。I-003 の offset 仕様に準拠 → **`HistoryViewModel` の `pageSize = 20`・`fetchPage`。**「すべて」は `fetchAll(20, offset)`。Intent は直近ウィンドウ内でメモリ絞り込み＋同一ウィンドウのキャッシュスライス（`SwiftDataSessionRepository`）
+  - [x] スクロール末尾で追加読み込みをトリガーする → **リスト行の出現＋末尾付近（下から5行以内）で `loadNextPageIfNeeded`**
+  - [x] 大量データ（1000件以上）でもメモリ消費を抑制する → **表示スナップショットは最大 500 行で打ち切り**（`HistoryViewModel.maxDisplayedSessionRows`）。Intent 用は DB 再読込の重複をキャッシュで抑制
+  - [x] ローディングインジケータを表示する → **初回 `isLoading`、追加 `isLoadingNextPage` + `ProgressView`**
 
 ---
 

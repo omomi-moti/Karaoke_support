@@ -7,32 +7,46 @@ import SwiftUI
 final class HistoryViewModel {
 	private let sessionRepository: any SessionRepositoryProtocol
 
-	/// 「すべて」も Intent フィルターも **同一の直近ウィンドウ**（件数上限）で揃える。
-	/// Intent 絞り込みは `fetchAll` の結果をメモリ上で `filter`（直近 N 件に該当 Intent が無いと空になる仕様）。
-	/// **適用順: `filter` → `sortOrder` による並べ替え**（I-014-B）。
-	/// 件数は ``SessionRecentWindow/maxSessionCount`` と ``SessionRepositoryProtocol/fetchByIntent`` に合わせる。
+	/// 一覧は 20 件単位でページングする（I-015）。
+	/// `filter` は Repository の取得条件として先に適用し、その結果を `sortOrder` で並べ替える。
+	/// 並び替えは取得済みページの範囲に対して適用する。
 	/// 一覧は SwiftData インスタンスではなく ``HistorySessionRowDisplayItem``（値）のみ保持する。
 	var sessions: [HistorySessionRowDisplayItem] = []
 	var filter: HistoryIntentFilter = .all
 	/// 既定は歌唱日時の新しい順（`performedAt` 降順）。Repository の取得順に依存せず、表示直前に整列する。
 	var sortOrder: HistorySortOrder = .performedAtDescending
 	var isLoading: Bool = false
+	var isLoadingNextPage: Bool = false
 	var loadErrorMessage: String?
 	/// 削除失敗時のみ表示。`load()` 成功時にクリアする。
 	var deleteErrorMessage: String?
+	var hasMorePages: Bool = true
 
 	/// `load()` / `deleteSession()` の非同期完了が交差しても、古い方が `sessions` を上書きしないようにする（V1 は単一カウンタで十分）。
 	private var loadGeneration = 0
+	private var currentPage = 0
+	private let pageSize = 20
+	private let prefetchThreshold = 5
+	/// 一覧に保持する行の上限（値型スナップショットのみだが、極端なスクロールでメモリが線形増加しないよう抑える）。I-015。
+	private let maxDisplayedSessionRows = 500
 
 	init(sessionRepository: any SessionRepositoryProtocol) {
 		self.sessionRepository = sessionRepository
 	}
 
 	func load() async {
+		await loadInitial()
+	}
+
+	func loadInitial() async {
 		loadGeneration += 1
 		let myGeneration = loadGeneration
 		let requestedFilter = filter
 		isLoading = true
+		isLoadingNextPage = false
+		currentPage = 0
+		hasMorePages = true
+		sessions = []
 		loadErrorMessage = nil
 		deleteErrorMessage = nil
 		defer {
@@ -42,10 +56,10 @@ final class HistoryViewModel {
 		}
 
 		do {
-			let rows = try await sessionRepository.fetchAll(limit: SessionRecentWindow.maxSessionCount, offset: 0)
+			let rows = try await fetchPage(for: requestedFilter, page: 0)
 			try Task.checkCancellation()
 			guard myGeneration == loadGeneration, requestedFilter == filter else { return }
-			applySessions(from: rows, for: requestedFilter)
+			applyInitialPage(rows)
 		} catch is CancellationError {
 			// キャンセル済み／古い要求: 状態は新しい `load` に任せる
 		} catch {
@@ -55,22 +69,81 @@ final class HistoryViewModel {
 		}
 	}
 
-	private func applySessions(from rows: [SingingSession], for filter: HistoryIntentFilter) {
-		let filtered: [SingingSession]
+	private func applyInitialPage(_ rows: [SingingSession]) {
+		let items = rows.map { HistorySessionRowDisplayItem(mapping: $0) }
+		sessions = sortOrder.sorted(items)
+		currentPage = rows.isEmpty ? 0 : 1
+		hasMorePages = rows.count == pageSize
+		enforceDisplayedSessionCap()
+	}
+
+	private func appendPage(_ rows: [SingingSession]) {
+		guard !rows.isEmpty else {
+			hasMorePages = false
+			return
+		}
+		let items = rows.map { HistorySessionRowDisplayItem(mapping: $0) }
+		let existingIDs = Set(sessions.map(\.id))
+		let merged = sessions + items.filter { !existingIDs.contains($0.id) }
+		sessions = sortOrder.sorted(merged)
+		currentPage += 1
+		hasMorePages = rows.count == pageSize
+		enforceDisplayedSessionCap()
+	}
+
+	/// 表示用配列が上限を超えたら末尾を捨て、それ以上の追加読み込みを止める（現在のソート順で「下側」を落とす）。
+	private func enforceDisplayedSessionCap() {
+		guard sessions.count > maxDisplayedSessionRows else { return }
+		sessions = Array(sessions.prefix(maxDisplayedSessionRows))
+		hasMorePages = false
+	}
+
+	private func fetchPage(for filter: HistoryIntentFilter, page: Int) async throws -> [SingingSession] {
+		let offset = page * pageSize
 		switch filter {
 		case .all:
-			filtered = rows
+			return try await sessionRepository.fetchAll(limit: pageSize, offset: offset)
 		case .intent(let intent):
-			filtered = rows.filter { $0.intent == intent }
+			return try await sessionRepository.fetchByIntent(intent, limit: pageSize, offset: offset)
 		}
-		let items = filtered.map { HistorySessionRowDisplayItem(mapping: $0) }
-		sessions = sortOrder.sorted(items)
 	}
 
 	/// `load()` 済みの一覧に対し、並び替えのみをやり直す（再フェッチなし）。
 	func applySortToLoadedSessions() {
 		guard !sessions.isEmpty else { return }
 		sessions = sortOrder.sorted(sessions)
+	}
+
+	func loadNextPageIfNeeded(currentItemID: UUID) async {
+		guard shouldPrefetch(for: currentItemID) else { return }
+		guard !isLoading, !isLoadingNextPage, hasMorePages else { return }
+		let myGeneration = loadGeneration
+		let requestedFilter = filter
+		let nextPage = currentPage
+		isLoadingNextPage = true
+		defer {
+			if myGeneration == loadGeneration {
+				isLoadingNextPage = false
+			}
+		}
+		do {
+			let rows = try await fetchPage(for: requestedFilter, page: nextPage)
+			try Task.checkCancellation()
+			guard myGeneration == loadGeneration, requestedFilter == filter else { return }
+			loadErrorMessage = nil
+			appendPage(rows)
+		} catch is CancellationError {
+		} catch {
+			guard myGeneration == loadGeneration, requestedFilter == filter else { return }
+			loadErrorMessage = "追加の読み込みに失敗しました。もう一度お試しください"
+		}
+	}
+
+	/// 末尾 `prefetchThreshold` 行に該当セルが含まれるときだけ次ページを取りにいく（全件 `firstIndex` より O(1) に近い）。
+	private func shouldPrefetch(for itemID: UUID) -> Bool {
+		guard !sessions.isEmpty else { return false }
+		let startIndex = max(0, sessions.count - prefetchThreshold)
+		return sessions[startIndex...].contains(where: { $0.id == itemID })
 	}
 
 	/// 履歴から1件削除。Repository 経由（View から直接 Data を触らない）。
@@ -103,17 +176,6 @@ final class HistoryViewModel {
 			await load()
 			return
 		}
-		do {
-			let rows = try await sessionRepository.fetchAll(limit: SessionRecentWindow.maxSessionCount, offset: 0)
-			try Task.checkCancellation()
-			guard myGeneration == loadGeneration, requestedFilter == filter else {
-				await load()
-				return
-			}
-			applySessions(from: rows, for: requestedFilter)
-		} catch is CancellationError {
-		} catch {
-			await load()
-		}
+		await load()
 	}
 }

@@ -48,7 +48,7 @@ private final class SpySessionRepositoryForEdit: SessionRepositoryProtocol {
 
 	func fetchAll(limit: Int, offset: Int) async throws -> [SingingSession] { [] }
 
-	func fetchByIntent(_ intent: Intent) async throws -> [SingingSession] { [] }
+	func fetchByIntent(_ intent: Intent, limit: Int, offset: Int) async throws -> [SingingSession] { [] }
 
 	func exists(uuid: UUID) async throws -> Bool { false }
 

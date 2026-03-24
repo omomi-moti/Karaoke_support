@@ -28,9 +28,18 @@ protocol SessionRepositoryProtocol {
 	///   - offset: スキップ件数。例: limit=20, offset=0 で 1〜20 件目、offset=20 で 21〜40 件目
 	func fetchAll(limit: Int, offset: Int) async throws -> [SingingSession]
 
-	/// 直近ウィンドウ内で Intent が一致するセッションを日時降順で取得する。
+	/// Intent が一致するセッションを日時降順で取得する（ページング対応）。
 	///
-	/// **全期間の Intent 一覧ではない。** ``SessionRecentWindow/maxSessionCount`` 件の直近セッションに対してメモリ上で絞り込む（``fetchAll(limit:offset:)`` と同一ウィンドウ）。
+	/// **データ範囲**: グローバルな「全期間の Intent 一覧」ではなく、実装は直近 ``SessionRecentWindow/maxSessionCount`` 件のウィンドウ上で Intent 一致に絞り、その配列に対して `offset` / `limit` を適用する（SwiftData は Predicate による Intent 絞り込みが安定しないため）。
+	///
+	/// - Parameters:
+	///   - intent: 絞り込む Intent
+	///   - limit: 取得件数。例: 20
+	///   - offset: スキップ件数。例: limit=20, offset=0 で 1〜20 件目、offset=20 で 21〜40 件目
+	func fetchByIntent(_ intent: Intent, limit: Int, offset: Int) async throws -> [SingingSession]
+
+	/// 直近ウィンドウ内で Intent が一致するセッションを日時降順で取得する。
+	/// ``fetchByIntent(_:limit:offset:)`` の互換 API（既定: 直近 ``SessionRecentWindow/maxSessionCount`` 件相当の offset=0）。
 	func fetchByIntent(_ intent: Intent) async throws -> [SingingSession]
 
 	/// 指定 UUID のセッションが存在するか（冪等性チェック用）。
@@ -38,4 +47,10 @@ protocol SessionRepositoryProtocol {
 
 	/// 編集用に id で **1件** 取得する。存在しない場合は ``SessionRepositoryError/sessionNotFound``。
 	func fetchRecordingSession(uuid: UUID) async throws -> SingingSession
+}
+
+extension SessionRepositoryProtocol {
+	func fetchByIntent(_ intent: Intent) async throws -> [SingingSession] {
+		try await fetchByIntent(intent, limit: SessionRecentWindow.maxSessionCount, offset: 0)
+	}
 }
