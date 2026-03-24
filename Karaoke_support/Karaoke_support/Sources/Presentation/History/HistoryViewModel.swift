@@ -130,6 +130,7 @@ final class HistoryViewModel {
 			let rows = try await fetchPage(for: requestedFilter, page: nextPage)
 			try Task.checkCancellation()
 			guard myGeneration == loadGeneration, requestedFilter == filter else { return }
+			loadErrorMessage = nil
 			appendPage(rows)
 		} catch is CancellationError {
 		} catch {
