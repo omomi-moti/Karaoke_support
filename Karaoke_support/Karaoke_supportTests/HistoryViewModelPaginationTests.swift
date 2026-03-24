@@ -115,4 +115,42 @@ final class HistoryViewModelPaginationTests: XCTestCase {
 		XCTAssertEqual(stub.fetchAllCalls.map(\.offset), [0], "末尾付近でない行では追加読み込みしない")
 		XCTAssertEqual(vm.sessions.count, 20)
 	}
+
+	/// `maxDisplayedSessionRows`（500）を超えたら末尾を捨て、`hasMorePages` で追加読み込みを止める（I-015）。
+	func testPagination_StopsAtDisplayedSessionCap() async throws {
+		let stub = PagingStubSessionRepository()
+		// 20 件 × 26 ページ = 520 件 → 1 回目の append で 500 超え → prefix(500) と hasMorePages = false
+		stub.allPages = (0..<26).map { page in
+			makeSessions(count: 20, startingAt: 100_000 - Double(page * 20))
+		}
+		let vm = HistoryViewModel(sessionRepository: stub)
+		vm.filter = .all
+
+		await vm.loadInitial()
+		XCTAssertEqual(vm.sessions.count, 20)
+		XCTAssertTrue(vm.hasMorePages)
+
+		for _ in 0..<25 {
+			let lastID = try XCTUnwrap(vm.sessions.last?.id)
+			await vm.loadNextPageIfNeeded(currentItemID: lastID)
+		}
+
+		XCTAssertEqual(vm.sessions.count, 500, "520 件まで読んだあと先頭 500 件に切り詰め")
+		XCTAssertFalse(vm.hasMorePages, "上限到達後はこれ以上ページングしない")
+
+		let fetchCountAfterCap = stub.fetchAllCalls.count
+		XCTAssertEqual(
+			stub.fetchAllCalls.map(\.offset),
+			(0..<26).map { $0 * 20 },
+			"offset 0 … 500 まで 26 回フェッチ"
+		)
+
+		let lastID = try XCTUnwrap(vm.sessions.last?.id)
+		await vm.loadNextPageIfNeeded(currentItemID: lastID)
+		XCTAssertEqual(
+			stub.fetchAllCalls.count,
+			fetchCountAfterCap,
+			"hasMorePages が false のときは Repository を呼ばない"
+		)
+	}
 }
