@@ -52,6 +52,9 @@ final class PreviewSessionRepository: SessionRepositoryProtocol {
 	}
 
 	func fetchAll(limit: Int, offset: Int) async throws -> [SingingSession] {
+		guard limit >= 0, offset >= 0 else {
+			throw SessionRepositoryError.invalidParameter("limit and offset must be non-negative")
+		}
 		let sessions = Self.sampleSessions.filter { !deletedSampleSessionIds.contains($0.id) }
 		let start = min(offset, sessions.count)
 		let end = min(offset + max(limit, 0), sessions.count)
@@ -59,6 +62,9 @@ final class PreviewSessionRepository: SessionRepositoryProtocol {
 	}
 
 	func fetchByIntent(_ intent: Intent, limit: Int, offset: Int) async throws -> [SingingSession] {
+		guard limit >= 0, offset >= 0 else {
+			throw SessionRepositoryError.invalidParameter("limit and offset must be non-negative")
+		}
 		let sessions = Self.sampleSessions
 			.filter { !deletedSampleSessionIds.contains($0.id) && $0.intent == intent }
 		let start = min(offset, sessions.count)
