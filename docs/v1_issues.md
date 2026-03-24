@@ -285,6 +285,8 @@ Phase 2: I-017 → I-018
   - [x] 大量データ（1000件以上）でもメモリ消費を抑制する → **表示スナップショットは最大 500 行で打ち切り**（`HistoryViewModel.maxDisplayedSessionRows`）。Intent 用は DB 再読込の重複をキャッシュで抑制
   - [x] ローディングインジケータを表示する → **初回 `isLoading`、追加 `isLoadingNextPage` + `ProgressView`**
 
+> **注記（並び替えとページング）**: I-014-B で入れた **点数順・日付の古い順**などの `sortOrder` は、Repository が **日付降順で切っているページ**に対して **表示直前にメモリ上で並べ替え**ている。無限スクロールと組み合わせると **「全体の中で一番点数が高い行が常に先頭」**とは限らない（読み込み済みの範囲での並び）。グローバルな順序を保証するには DB 側ソートや仕様の整理が別途必要。詳細は `log/feature/i-015-infinite-scroll/20260323_i015_infinite_scroll_implementation.md` の「後から整えるとよいこと」を参照。
+
 ---
 
 ### [I-016] Empty State（歌唱0件）
