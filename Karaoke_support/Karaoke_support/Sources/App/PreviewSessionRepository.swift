@@ -11,6 +11,13 @@ final class PreviewSessionRepository: SessionRepositoryProtocol {
 	/// プレビュー上で削除した固定サンプル行の ID（`sampleSessions` から論理削除）。
 	private var deletedSampleSessionIds: Set<UUID> = []
 
+	/// `offset + limit` が `Int` でオーバーフローしてもスライス終端を安全に得る。
+	private func sliceEnd(offset: Int, limit: Int, count: Int) -> Int {
+		let (sum, overflow) = offset.addingReportingOverflow(limit)
+		let raw = overflow ? count : sum
+		return min(raw, count)
+	}
+
 	/// プレビュー用固定 UUID 文字列から UUID を生成する。
 	/// 変換に失敗した場合は `assertionFailure` を発火し、フォールバックとしてランダム UUID を返す。
 	private static func makeUUID(_ literal: String) -> UUID {
@@ -57,7 +64,7 @@ final class PreviewSessionRepository: SessionRepositoryProtocol {
 		}
 		let sessions = Self.sampleSessions.filter { !deletedSampleSessionIds.contains($0.id) }
 		let start = min(offset, sessions.count)
-		let end = min(offset + max(limit, 0), sessions.count)
+		let end = sliceEnd(offset: offset, limit: limit, count: sessions.count)
 		return Array(sessions[start..<end])
 	}
 
@@ -68,7 +75,7 @@ final class PreviewSessionRepository: SessionRepositoryProtocol {
 		let sessions = Self.sampleSessions
 			.filter { !deletedSampleSessionIds.contains($0.id) && $0.intent == intent }
 		let start = min(offset, sessions.count)
-		let end = min(offset + max(limit, 0), sessions.count)
+		let end = sliceEnd(offset: offset, limit: limit, count: sessions.count)
 		return Array(sessions[start..<end])
 	}
 

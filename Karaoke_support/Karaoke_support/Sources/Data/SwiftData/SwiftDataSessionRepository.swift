@@ -23,6 +23,13 @@ final class SwiftDataSessionRepository: SessionRepositoryProtocol {
 		intentFilterCache = nil
 	}
 
+	/// `offset + limit` が `Int` でオーバーフローしてもスライス終端を安全に得る。
+	private func sliceEnd(offset: Int, limit: Int, count: Int) -> Int {
+		let (sum, overflow) = offset.addingReportingOverflow(limit)
+		let raw = overflow ? count : sum
+		return min(raw, count)
+	}
+
 	/// I-011: 同一 ``SingingSession.id`` の再試行は insert / singCount 更新をスキップして冪等にする。
 	func saveNewRecordingSession(_ session: SingingSession) async throws {
 		if try await exists(uuid: session.id) {
@@ -106,7 +113,7 @@ final class SwiftDataSessionRepository: SessionRepositoryProtocol {
 			filtered = f
 		}
 		let start = min(offset, filtered.count)
-		let end = min(offset + limit, filtered.count)
+		let end = sliceEnd(offset: offset, limit: limit, count: filtered.count)
 		guard start < end else { return [] }
 		return Array(filtered[start..<end])
 	}
