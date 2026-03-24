@@ -139,9 +139,11 @@ final class HistoryViewModel {
 		}
 	}
 
+	/// 末尾 `prefetchThreshold` 行に該当セルが含まれるときだけ次ページを取りにいく（全件 `firstIndex` より O(1) に近い）。
 	private func shouldPrefetch(for itemID: UUID) -> Bool {
-		guard let index = sessions.firstIndex(where: { $0.id == itemID }) else { return false }
-		return index >= max(0, sessions.count - prefetchThreshold)
+		guard !sessions.isEmpty else { return false }
+		let startIndex = max(0, sessions.count - prefetchThreshold)
+		return sessions[startIndex...].contains(where: { $0.id == itemID })
 	}
 
 	/// 履歴から1件削除。Repository 経由（View から直接 Data を触らない）。
