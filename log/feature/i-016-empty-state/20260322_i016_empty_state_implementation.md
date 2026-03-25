@@ -9,7 +9,7 @@
 
 歌唱セッションが **まだ 1 件も無い**とき、履歴タブでユーザーに次の行動を促す。**文言は `docs/v1_issues.md` [I-016] の本文どおり** `SingingEmptyStateCopy` に集約し、UI は **`SingingEmptyStateView`** に分離（I-017 のインテントタブ等で再利用可能）。
 
-履歴から **手動で曲名を入力して記録**へ進むには、選曲タブの `NavigationStack` に載せる必要がある（I-013 の方針: 二重スタック回避）。そのため **`EnvironmentValues.navigateToManualRecording`**（App 層の `EnvironmentKey`）で **`RootView` が選曲タブ選択 + `SongsRootView` へ外部トリガー**を渡し、**`SongsRecordingRoute.manualRecording`** を `NavigationPath` に積む。
+履歴から **手動で曲名を入力して記録**へ進むには、選曲タブで **記録シート**を開く必要がある（I-013 の方針: 二重スタック回避）。そのため **`EnvironmentValues.navigateToManualRecording`**（App 層の `EnvironmentKey`）で **`RootView` が選曲タブ選択 + `manualRecordingNavigationTick` を増加**し、`SongsRootView` が **`presentedRecordingRoute = .manualRecording`** でシートを開く（[`docs/v1_navigation_songs_recording.md`](../../docs/v1_navigation_songs_recording.md)）。
 
 ---
 
@@ -51,10 +51,8 @@
 
 ### `SongsRootView`
 
-- `manualRecordingNavigationTick` の **`onChange`**: `newValue > 0` のとき  
-  - `path = NavigationPath()`（履歴から来たときにスタックを汚さない）  
-  - `path.append(SongsRecordingRoute.manualRecording)`  
-- 既存の **「記録を追加」** ツールバーは従来どおり `path.append(.manualRecording)`。
+- `manualRecordingNavigationTick` の **`onChange`**: `newValue > 0` のとき **`presentedRecordingRoute = .manualRecording`**。  
+- 既存の **「記録を追加」** ツールバーは同様に `presentedRecordingRoute = .manualRecording`。
 
 ### `HistoryListView`
 

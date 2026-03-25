@@ -9,7 +9,7 @@
 
 選曲タブの **「インテント」セグメント**に、インサイト用の **ヒーローUI**（ヘッダー・タイムマシン・マイアンセムの2カード・今月統計）を配置した。データは **`InsightRepositoryProtocol`**（`fetchTimeMachineRanking` / `fetchMyAnthemRankings`）から **`IntentTabViewModel`** が取得する。歌唱セッションが **0 件**のときは I-016 の **`SingingEmptyStateView`** を表示し、手動記録への導線は **`navigateToManualRecording`**（`SongsRootView` が `@Environment` で受け取り注入）とする。
 
-ランキングの **一覧と曲タップ**はシート（`TimeMachineRankingSheetView` / `MyAnthemRankingSheetView`）で実装し、確定した **`SelectedTrack`** は親の `NavigationPath` に **`SongsRecordingRoute.recording(SelectedTrack)`** として積む（選曲タブ内の既存 `NavigationStack` 方針と整合）。
+ランキングの **一覧と曲タップ**はシート（`TimeMachineRankingSheetView` / `MyAnthemRankingSheetView`）で実装し、確定した **`SelectedTrack`** は親の **`presentedRecordingRoute = .recording(SelectedTrack)`** で **記録シート**を開く（[`docs/v1_navigation_songs_recording.md`](../../docs/v1_navigation_songs_recording.md)）。
 
 ---
 
@@ -37,7 +37,7 @@
 ### `IntentTabContainerView`
 
 - `InsightRepository` / `SessionRepository` を **init で受け取り** `IntentTabViewModel` を `@State` で保持（Environment では `init` で参照できないため、親が `SongsRootView` から注入）。  
-- **`onSelectTrack`**: シートで選んだ `SelectedTrack` を親へ渡す（`path.append`）。  
+- **`onSelectTrack`**: シートで選んだ `SelectedTrack` を親へ渡す（`presentedRecordingRoute = .recording(selected)`）。  
 - **`onNavigateToManualRecording`**: Empty State のボタン用。
 
 ### `IntentTabInsightView`
@@ -47,7 +47,7 @@
 
 ### シート（`TimeMachineRankingSheetView` / `MyAnthemRankingSheetView`）
 
-- 行タップで `makeSelectedTrack()` → `dismiss` 後に `onSelectTrack`（`DispatchQueue.main.async` で親の `path` 更新と競合しにくくする）。  
+- 行タップで `makeSelectedTrack()` → `dismiss` 後に `onSelectTrack`（`DispatchQueue.main.async` で親の `presentedRecordingRoute` 更新と競合しにくくする）。  
 - マイアンセムは **Intent ごとに Section**（`MyAnthemRanking` を `ForEach`、各 `byCount` の先頭5件）。
 
 ### ドメイン補助
@@ -58,7 +58,7 @@
 ### `SongsRootView`
 
 - `@Environment(\.insightRepository)` / `sessionRepository` / `navigateToManualRecording` を取得。  
-- インテントセグメントで `IntentTabContainerView` を表示し、`onSelectTrack` で `path.append(SongsRecordingRoute.recording(selected))`。  
+- インテントセグメントで `IntentTabContainerView` を表示し、`onSelectTrack` で `presentedRecordingRoute = .recording(selected)`。  
 - **プレビュー**で各 Environment を明示的に注入。
 
 ---
@@ -67,8 +67,8 @@
 
 1. ユーザーがインテントタブを開く → `onAppear` で `load()`。  
 2. **データあり** → ヘッダー・2カード・統計を表示。「振り返る」「聴く」でシート。  
-3. シートで曲を選択 → シートを閉じたあと **記録フロー**へ push。  
-4. **データなし** → `SingingEmptyStateView` → タップで `navigateToManualRecording`（選曲タブへ切替 + 手動記録ルート。I-016 と同じ Environment）。
+3. シートで曲を選択 → シートを閉じたあと **記録シート**（`.sheet(item:)`）で記録フローへ。  
+4. **データなし** → `SingingEmptyStateView` → タップで `navigateToManualRecording`（選曲タブへ切替 + 手動記録シート。I-016 と同じ Environment）。
 
 ---
 
