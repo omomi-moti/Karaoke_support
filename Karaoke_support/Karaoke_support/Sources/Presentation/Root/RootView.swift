@@ -8,6 +8,8 @@ struct RootView: View {
 	}
 
 	@State private var selectedTab: RootTab = .songs
+	/// 履歴から手動記録へ遷移するたびに増やし、``SongsRootView`` が `NavigationPath` を立て直して `manualRecording` を積む（I-016）。
+	@State private var manualRecordingNavigationTick: Int = 0
 
 	var body: some View {
 		TabView(selection: $selectedTab) {
@@ -15,7 +17,8 @@ struct RootView: View {
 			SongsRootView(
 				onSavedMoveToHistory: {
 					selectedTab = .history
-				}
+				},
+				manualRecordingNavigationTick: $manualRecordingNavigationTick
 			)
 			.tabItem {
 				Label("選曲", systemImage: "music.note.list")
@@ -36,6 +39,10 @@ struct RootView: View {
 				Label("設定", systemImage: "gearshape")
 			}
 			.tag(RootTab.settings)
+		}
+		.environment(\.navigateToManualRecording) {
+			selectedTab = .songs
+			manualRecordingNavigationTick += 1
 		}
 	}
 }
