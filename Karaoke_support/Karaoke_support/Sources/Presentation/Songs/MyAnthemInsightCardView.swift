@@ -42,7 +42,7 @@ struct MyAnthemInsightCardView: View {
 					Image(systemName: "sparkles")
 						.font(.caption.weight(.semibold))
 						.foregroundStyle(Color.white.opacity(0.75))
-					Text("AIが選曲しました")
+					Text("モードごとに振り返ろう！")
 						.font(.caption)
 						.foregroundStyle(Color.white.opacity(0.75))
 					Spacer()
