@@ -30,7 +30,7 @@
 
 - `@Observable` / `@MainActor`。  
 - **`load()`**: セッション有無 → 無ければランキング取得をスキップ。あれば `fetchTimeMachineRanking` と `fetchMyAnthemRankings(period: .threeMonths)` を並列取得。  
-- **`computeMonthStats()`**: `fetchAll` をページングし、**暦の「今月」**（`Calendar` の `monthStart` 以降）に `performedAt` が入るセッションのみで **今月の総曲数** と **平均スコア** を集計。  
+- **`computeMonthStats()`**: `fetchAll(limit:offset:)` をページングし、**半開区間** `[monthStart, nextMonthStart)` に入る `performedAt` のセッションだけで **今月の総曲数** と **平均スコア** を集計。  
 - 初回表示フラッシュ防止のため **`init` 完了時点で `isLoading = true`**。  
 - 失敗時は `loadErrorMessage` を表示し、`IntentTabInsightView` から「再試行」で `load()` 再実行。
 
@@ -75,6 +75,22 @@
 ## テスト
 
 - **`IntentTabViewModelTests`**: `PreviewInsightRepository` + `PreviewSessionRepository` で `load()` 後に `hasSingingData`・ランキング件数などを検証するスモークテスト。
+
+---
+
+## 月次統計（`computeMonthStats`）の注意 — パフォーマンスと将来の最適化
+
+### 現状（V1）
+
+- `SessionRepository.fetchAll(limit:offset:)` を **500 件ずつ**繰り返し、**全件走査に近い**形で集計する。セッション総数が増えるほど **`load()` 内の読み取り回数**が増える。
+- 本番の **`SwiftDataSessionRepository`** は `performedAt` **降順**で返す（`SortDescriptor`）。一方 **`SessionRepositoryProtocol`** にはソート順の明記がない。
+
+### 検討されうる最適化（未実装・優先度は低〜中）
+
+- **降順前提**で、先頭から走査し **`performedAt < monthStart` が初めて出た時点**でページングを打ち切る、と **今月より古いセッションが現れた時点で以降のページは不要**になるため、過去データが多い場合に **読み取りを早く終えられる**可能性がある。
+- 入れる場合の前提: **プロトコルまたはドキュメントで `fetchAll` の並びを保証**する／**モック・テスト用スタブも `performedAt` 降順に揃える**（並びがバラバラだと打ち切りは誤集計になる）。
+- **より根本的な対策**: `SessionRepository` に **期間指定の件数・平均**や **`#Predicate` による集計**を追加し、ViewModel ではページングしない。これは **V2 や別 Issue** で検討しうる。
+- **優先度**: 体感・計測で **ボトルネックが出るまで後回し（P2〜P3）** でよいことが多い。先に **半開区間による定義の正しさ**（`[monthStart, nextMonthStart)`）を優先した。
 
 ---
 
