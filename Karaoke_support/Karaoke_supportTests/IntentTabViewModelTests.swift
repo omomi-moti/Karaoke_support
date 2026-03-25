@@ -164,9 +164,14 @@ final class IntentTabViewModelTests: XCTestCase {
 			XCTFail("monthStart")
 			return
 		}
-		let beforeThisMonth = cal.date(byAdding: .day, value: -1, to: monthStart)!
-		let inMonth1 = cal.date(byAdding: .day, value: 1, to: monthStart)!
-		let inMonth2 = cal.date(byAdding: .day, value: 2, to: monthStart)!
+		guard
+			let beforeThisMonth = cal.date(byAdding: .day, value: -1, to: monthStart),
+			let inMonth1 = cal.date(byAdding: .day, value: 1, to: monthStart),
+			let inMonth2 = cal.date(byAdding: .day, value: 2, to: monthStart)
+		else {
+			XCTFail("Failed to calculate relative dates for month statistics")
+			return
+		}
 
 		let track = Track(userEnteredName: "統計テスト")
 		let sessionStub = IntentTabSessionRepositoryStub()
@@ -195,7 +200,10 @@ final class IntentTabViewModelTests: XCTestCase {
 			XCTFail("monthStart")
 			return
 		}
-		let inMonth = cal.date(byAdding: .hour, value: 12, to: monthStart)!
+		guard let inMonth = cal.date(byAdding: .hour, value: 12, to: monthStart) else {
+			XCTFail("Failed to calculate inMonth for pagination test")
+			return
+		}
 
 		let track = Track(userEnteredName: "ページング")
 		var list: [SingingSession] = []
@@ -235,7 +243,10 @@ final class IntentTabViewModelTests: XCTestCase {
 			XCTFail("nextMonthStart")
 			return
 		}
-		let inMonth = cal.date(byAdding: .day, value: 5, to: monthStart)!
+		guard let inMonth = cal.date(byAdding: .day, value: 5, to: monthStart) else {
+			XCTFail("Failed to calculate inMonth for month boundary test")
+			return
+		}
 		let track = Track(userEnteredName: "境界")
 		let sessionStub = IntentTabSessionRepositoryStub()
 		sessionStub.sessions = [
