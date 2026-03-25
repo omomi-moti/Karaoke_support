@@ -4,6 +4,7 @@ import SwiftUI
 struct HistoryListView: View {
 	@Bindable var viewModel: HistoryViewModel
 	@Binding var editNavigationPath: NavigationPath
+	@Environment(\.navigateToManualRecording) private var navigateToManualRecording
 
 	var body: some View {
 		ZStack {
@@ -104,31 +105,27 @@ struct HistoryListView: View {
 	}
 
 	private var emptyState: some View {
-		VStack(spacing: 12) {
-			Image(systemName: "clock.arrow.circlepath")
-				.font(.system(size: 44))
-				.foregroundStyle(AppColor.textSecondary)
+		Group {
 			switch viewModel.filter {
 			case .all:
-				Text("まだ記録がありません")
-					.font(.title3.weight(.semibold))
-					.foregroundStyle(AppColor.textPrimary)
-				Text("選曲タブから歌った記録がここに並びます。")
-					.font(.subheadline)
-					.foregroundStyle(AppColor.textSecondary)
-					.multilineTextAlignment(.center)
+				SingingEmptyStateView(onManualEntryTap: navigateToManualRecording)
 			case .intent:
-				Text("直近の記録に該当がありません")
-					.font(.title3.weight(.semibold))
-					.foregroundStyle(AppColor.textPrimary)
-					.multilineTextAlignment(.center)
-				Text("フィルターを変えるか、該当するインテントで記録を追加してください。")
-					.font(.subheadline)
-					.foregroundStyle(AppColor.textSecondary)
-					.multilineTextAlignment(.center)
+				VStack(spacing: 12) {
+					Image(systemName: "clock.arrow.circlepath")
+						.font(.system(size: 44))
+						.foregroundStyle(AppColor.textSecondary)
+					Text("直近の記録に該当がありません")
+						.font(.title3.weight(.semibold))
+						.foregroundStyle(AppColor.textPrimary)
+						.multilineTextAlignment(.center)
+					Text("フィルターを変えるか、該当するインテントで記録を追加してください。")
+						.font(.subheadline)
+						.foregroundStyle(AppColor.textSecondary)
+						.multilineTextAlignment(.center)
+				}
+				.padding(32)
 			}
 		}
-		.padding(32)
 	}
 }
 
@@ -140,4 +137,5 @@ struct HistoryListView: View {
 				EmptyView()
 			}
 	}
+	.environment(\.navigateToManualRecording) {}
 }

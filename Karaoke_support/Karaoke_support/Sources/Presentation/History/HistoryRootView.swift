@@ -11,4 +11,5 @@ struct HistoryRootView: View {
 #Preview {
 	HistoryRootView()
 		.environment(\.sessionRepository, PreviewSessionRepository())
+		.environment(\.navigateToManualRecording) {}
 }

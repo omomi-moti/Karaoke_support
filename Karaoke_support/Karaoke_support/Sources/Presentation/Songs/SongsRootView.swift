@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SongsRootView: View {
 	let onSavedMoveToHistory: () -> Void
+	@Binding var manualRecordingNavigationTick: Int
 
 	private enum Segment: String, CaseIterable, Identifiable {
 		case intent = "インテント"
@@ -83,6 +84,11 @@ struct SongsRootView: View {
 					)
 				}
 			}
+			.onChange(of: manualRecordingNavigationTick) { _, newValue in
+				guard newValue > 0 else { return }
+				path = NavigationPath()
+				path.append(SongsRecordingRoute.manualRecording)
+			}
 		}
 	}
 
@@ -93,5 +99,5 @@ struct SongsRootView: View {
 }
 
 #Preview {
-	SongsRootView(onSavedMoveToHistory: {})
+	SongsRootView(onSavedMoveToHistory: {}, manualRecordingNavigationTick: .constant(0))
 }
