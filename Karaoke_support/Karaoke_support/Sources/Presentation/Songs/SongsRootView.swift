@@ -16,10 +16,11 @@ struct SongsRootView: View {
 	}
 
 	@State private var segment: Segment = .intent
-	@State private var path = NavigationPath()
+	/// 記録は `NavigationStack` の push ではなくシートで出し、保存後に pop でルートが一瞬見えるのを避ける。
+	@State private var presentedRecordingRoute: SongsRecordingRoute?
 
 	var body: some View {
-		NavigationStack(path: $path) {
+		NavigationStack {
 			VStack(spacing: 16) {
 				Picker("選曲タブ", selection: $segment) {
 					ForEach(Segment.allCases) { segment in
@@ -36,7 +37,7 @@ struct SongsRootView: View {
 							insightRepository: insightRepository,
 							sessionRepository: sessionRepository,
 							onSelectTrack: { selected in
-								path.append(SongsRecordingRoute.recording(selected))
+								presentedRecordingRoute = .recording(selected)
 							},
 							onNavigateToManualRecording: navigateToManualRecording
 						)
@@ -54,39 +55,38 @@ struct SongsRootView: View {
 			.toolbar {
 				ToolbarItem(placement: .topBarTrailing) {
 					Button {
-						path.append(SongsRecordingRoute.manualRecording)
+						presentedRecordingRoute = .manualRecording
 					} label: {
 						Label("記録を追加", systemImage: "plus")
 					}
 				}
 			}
-			.navigationDestination(for: SongsRecordingRoute.self) { route in
-				switch route {
-				case .manualRecording:
-					RecordingSheetContainerView(
-						seed: .mode(.manual),
-						presentation: .navigationStack,
-						onSavedMoveToHistory: { handleRecordingSaved() }
-					)
-				case .recording(let selectedTrack):
-					RecordingSheetContainerView(
-						seed: .selectedTrack(selectedTrack),
-						presentation: .navigationStack,
-						onSavedMoveToHistory: { handleRecordingSaved() }
-					)
-				}
+			.sheet(item: $presentedRecordingRoute) { route in
+				RecordingSheetContainerView(
+					seed: recordingSeed(for: route),
+					presentation: .sheet,
+					onSavedMoveToHistory: { handleRecordingSaved() }
+				)
 			}
 			.onChange(of: manualRecordingNavigationTick) { _, newValue in
 				guard newValue > 0 else { return }
-				path = NavigationPath()
-				path.append(SongsRecordingRoute.manualRecording)
+				presentedRecordingRoute = .manualRecording
 			}
 		}
 	}
 
+	private func recordingSeed(for route: SongsRecordingRoute) -> RecordingSessionSeed {
+		switch route {
+		case .manualRecording:
+			return .mode(.manual)
+		case .recording(let selectedTrack):
+			return .selectedTrack(selectedTrack)
+		}
+	}
+
 	private func handleRecordingSaved() {
-		path = NavigationPath()
 		onSavedMoveToHistory()
+		presentedRecordingRoute = nil
 	}
 }
 
