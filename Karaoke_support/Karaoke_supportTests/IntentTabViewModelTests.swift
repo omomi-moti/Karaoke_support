@@ -157,6 +157,31 @@ final class IntentTabViewModelTests: XCTestCase {
 		XCTAssertEqual(vm.loadErrorMessage, "読み込みに失敗しました。もう一度お試しください")
 	}
 
+	/// `load()` を同時に走らせたとき、古い試行は先頭ページ取得後に打ち切られ、インサイトは最新試行のみが呼ぶ（再試行連打のレース回避）。
+	func testLoad_concurrentInvocations_onlyLatestAttemptFetchesInsight() async {
+		let sessionStub = IntentTabSessionRepositoryStub()
+		let track = Track(userEnteredName: "並行")
+		sessionStub.sessions = [
+			SingingSession(track: track, intent: .shout, performedAt: .now, score: 50),
+		]
+		let insightSpy = InsightRepositorySpy()
+
+		let vm = IntentTabViewModel(
+			insightRepository: insightSpy,
+			sessionRepository: sessionStub
+		)
+
+		async let first: Void = vm.load()
+		async let second: Void = vm.load()
+		await first
+		await second
+
+		XCTAssertNil(vm.loadErrorMessage)
+		XCTAssertTrue(vm.hasSingingData)
+		XCTAssertEqual(insightSpy.fetchTimeMachineCallCount, 1)
+		XCTAssertEqual(insightSpy.fetchMyAnthemCallCount, 1)
+	}
+
 	func testLoad_computeMonthStats_countsOnlyCurrentCalendarMonth() async throws {
 		let cal = Calendar.current
 		let now = Date()
