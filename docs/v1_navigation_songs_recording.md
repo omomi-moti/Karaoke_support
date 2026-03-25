@@ -15,6 +15,10 @@
 | `manualRecording` | ツールバー「記録を追加」→ 手動入力から Intent・スコアへ |
 | `recording(SelectedTrack)` | ランキング等で確定済みの曲から同じ記録 UI へ（V2 の検索・Spotify 履歴も同型） |
 
+### `Identifiable.id` の注意（`.sheet(item:)`）
+
+SwiftUI は **`id` が変わったか**でシートの同一性を判断する。現状は `recording` の `id` を **`recording|\(spotifyTrackId)|\(userEnteredName)` 風に連結**しており、**区切り文字と内容の組み合わせで理論上衝突**し得る（例: `spotifyTrackId` が `a|b` で名前が空 vs `a` と `b`）。**実害は稀**だが、再表示がおかしい報告があれば **`String(reflecting:)`、安定ハッシュ、または表示用とは別の UUID** などに変更する。
+
 ## 保存成功時
 
 1. `RecordingSheetContentView.attemptSave()` 成功時に `onSavedMoveToHistory()`（親で `selectedTab = .history`）。
@@ -54,3 +58,7 @@
 - `Sources/Presentation/Recording/RecordingSheetContainerView.swift` — `presentation: .sheet`（選曲タブから開くとき）。履歴タブの編集は **別経路**で `NavigationStack` + `presentation: .navigationStack` のまま
 - `Sources/Presentation/Recording/RecordingSheetContentView.swift` — 保存成功時の `onSavedMoveToHistory` / `.sheet` 時の `dismiss()`
 - `Sources/Presentation/Root/RootView.swift` — `onSavedMoveToHistory` で `selectedTab = .history`
+
+## インテントタブのランキングシート（I-017）
+
+- **タイムマシン**（`TimeMachineRankingSheetView`）と **マイアンセム**（`MyAnthemRankingSheetView`）は、`IntentTabInsightView` 上で **`.sheet(isPresented:)` を2つ**（`showTimeMachineSheet` / `showMyAnthemSheet`）使っている。通常 UI では同時に開かないが、**両方 `true` になり得ると挙動が曖昧になりうる**。必要なら **`enum ActiveRankingSheet` + `.sheet(item:)` 一本化**を検討する（任意・優先度低）。

@@ -19,7 +19,7 @@
 |------|------------|
 | タイムマシン表示領域 | `TimeMachineInsightCardView`（紫系グラデ・NEW ANALYTICS・「振り返る」）。`IntentTabInsightStyle` で色トークンを集約。 |
 | マイアンセム表示領域 | `MyAnthemInsightCardView`（インディゴ系グラデ・感情アイコン・「AIが選曲しました」・「聴く」）。 |
-| InsightRepository ViewModel | `IntentTabViewModel` が `insightRepository` / `sessionRepository` を DI。`IntentTabContainerView` が `State(initialValue:)` で生成し、`onAppear` で `load()`。 |
+| InsightRepository ViewModel | `IntentTabViewModel` が `insightRepository` / `sessionRepository` を DI。`IntentTabContainerView` が `State(initialValue:)` で生成し、**`.task`** で `load()`。 |
 | 歌唱0件時 Empty State | `load()` 先頭で `fetchAll(limit: 1, offset: 0)` が空なら `hasSingingData = false` → `IntentTabInsightView` が `SingingEmptyStateView` を表示。 |
 
 ---
@@ -65,16 +65,40 @@
 
 ## 表示・ナビゲーションの流れ
 
-1. ユーザーがインテントタブを開く → `onAppear` で `load()`。  
+1. ユーザーがインテントタブを開く → **`.task`** で `load()`。  
 2. **データあり** → ヘッダー・2カード・統計を表示。「振り返る」「聴く」でシート。  
 3. シートで曲を選択 → シートを閉じたあと **記録シート**（`.sheet(item:)`）で記録フローへ。  
 4. **データなし** → `SingingEmptyStateView` → タップで `navigateToManualRecording`（選曲タブへ切替 + 手動記録シート。I-016 と同じ Environment）。
 
 ---
 
-## テスト
+## テスト（ユニット）
 
-- **`IntentTabViewModelTests`**: `PreviewInsightRepository` + `PreviewSessionRepository` で `load()` 後に `hasSingingData`・ランキング件数などを検証するスモークテスト。
+ターゲット: **`Karaoke_supportTests`**（Xcode の `PBXFileSystemSynchronizedRootGroup` で `Karaoke_supportTests` フォルダが同期される）。
+
+### `IntentTabViewModelTests.swift`
+
+| メソッド | 検証内容 |
+|----------|----------|
+| `testLoad_withPreviewRepositories_loadsInsightData` | `PreviewInsightRepository` + `PreviewSessionRepository` で `load()` 成功。`hasSingingData`、タイムマシン非空、マイアンセムが Intent 数（3）、エラーなし。 |
+| `testLoad_emptySessions_doesNotCallInsightAndClearsRankings` | セッション 0 件時は **`fetchTimeMachine` / `fetchMyAnthem` を呼ばない**（Spy）。ランキング空・月次 0・平均 `nil`。 |
+| `testLoad_insightTimeMachineThrows_setsLoadErrorMessage` | タイムマシン取得が throw → 固定エラーメッセージ。 |
+| `testLoad_sessionRepositoryFetchAllThrows_setsLoadErrorMessage` | 先頭 `fetchAll` が throw → 同上。 |
+| `testLoad_concurrentInvocations_onlyLatestAttemptFetchesInsight` | **`async let` で `load()` を2回重ね**、`IntentTabSessionRepositoryStubOverlappingFirstPageFetch` で先頭ページ取得の重なりを制御。**Insight は各 1 回だけ**（古い試行は `loadGeneration` で打ち切り）。 |
+| `testLoad_computeMonthStats_countsOnlyCurrentCalendarMonth` | 今月外・今月内を混在させ、**件数 2・平均 60**（半開区間）。 |
+| `testLoad_computeMonthStats_paginatesFetchAll` | 今月内セッション **600 件**で **`fetchAll` のページング**（500+100）を通す。件数・平均 50。 |
+| `testLoad_computeMonthStats_excludesNextMonthAndLater` | `nextMonthStart` ちょうどのセッションは今月に含めない。 |
+
+スタブ **`IntentTabSessionRepositoryStub`** は `SessionRepositoryProtocol` の **日時降順**に合わせ、`fetchAll` 前に `performedAt` で **降順ソート**してから `offset`/`limit` でスライスする。
+
+### `InsightTrackRowTitleTests.swift`
+
+| 観点 | 内容 |
+|------|------|
+| `InsightTrackRowTitle.text` | 手入力名優先・Spotify のみ・両方 `nil` は「曲名未設定」。 |
+| `InsightTrackCountRanking` / `InsightTrackScoreRanking` の `makeSelectedTrack()` | フィールドが `SelectedTrack` に反映されること、**同一メタデータなら両ランキング型で一致**、**ユーザー名の空白トリム**、トリム後に両方空なら `nil`、空白のみユーザーは Spotify ID にフォールバック等。 |
+
+UI テストやスナップショットは **含めていない**（手動確認は V1 チェックリスト参照）。
 
 ---
 
@@ -97,7 +121,13 @@
 ## I-018 との関係
 
 - **I-017** ではタイムマシンを **カード + シート一覧**として実装済み（`fetchTimeMachineRanking`・降順表示・`SelectedTrack` 遷移）。  
-- **`docs/v1_issues.md` [I-018]** に残っている「専用リスト画面」「`userEnteredName ?? "不明"`」などは、文言・画面分割の追従タスクとして切り出せる（本実装は `InsightTrackRowTitle` でフォールバック文言を統一）。
+- **`docs/v1_issues.md` [I-018]** は I-017 実装で満たす内容を **チェック済み**に整理し、残差は **文言・専用画面の切り出し** 等を別途扱う（本実装は `InsightTrackRowTitle` でフォールバック文言を統一）。
+
+## レビューで挙がった点（ドキュメント化）
+
+- **`SongsRecordingRoute.id`** と `.sheet(item:)` の衝突可能性 → **`docs/v1_navigation_songs_recording.md`** に注意書き。  
+- **タイムマシン／マイアンセムの2× `.sheet(isPresented:)`** → 同一 doc に「任意で enum 一本化」の案を記載。  
+- **`computeMonthStats` の全件ページング** → 本ログ「月次統計」の節に既に記載（早期打ち切りは任意）。
 
 ---
 

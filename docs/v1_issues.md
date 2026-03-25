@@ -2,7 +2,7 @@
 
 **Version**: 1.1  
 **Created**: 2026-03-14  
-**Updated**: 2026-03-25（I-014 追記に加え、I-013 選曲→記録を **シート表示**に統一した実装を反映）  
+**Updated**: 2026-03-25（I-014 追記・I-013 シート表示・I-018 / I-017 整理・I-017 ユニットテストの記述を反映）  
 **前提フロー**: 曲入力 → Intent → スコア → 履歴 → ランキング
 
 > **ドキュメントの位置づけ**: 本ファイルは V1 向け Issue/タスク体系の**単一の信頼できるソース（Source of Truth）**です。  
@@ -307,17 +307,22 @@ Phase 2: I-017 → I-018
   - [x] マイアンセム表示領域をレイアウトする → **インディゴグラデの `MyAnthemInsightCardView`。「聴く」で `MyAnthemRankingSheetView`（`fetchMyAnthemRankings`）**
   - [x] InsightRepository からデータを取得する ViewModel を用意する → **`IntentTabViewModel`（`IntentTabContainerView` が生成）**
   - [x] 歌唱データ0件時は I-016 の Empty State コンポーネントを表示する → **`sessionRepository.fetchAll(limit:1)` で判定し `SingingEmptyStateView`**
+- **ユニットテスト**（`Karaoke_supportTests`）:
+  - **`IntentTabViewModelTests`**: `load()` の成功（`Preview*` Repository）・セッション 0 件で Insight 未呼び出し・タイムマシン／先頭 `fetchAll` 失敗時のエラーメッセージ・**並行 `load()` で最新試行のみ Insight を取得**（`loadGeneration`）・**`computeMonthStats`**（今月のみカウント・600 件でページング・翌月境界除外）。スタブは `SessionRepositoryProtocol` の **日時降順**に合わせて `performedAt` でソート。
+  - **`InsightTrackRowTitleTests`**: `InsightTrackRowTitle.text` の優先順位（手入力名 / Spotify ID / 「曲名未設定」）・`InsightTrackCountRanking` / `InsightTrackScoreRanking` の **`makeSelectedTrack()`**（同一メタデータの一致・空白トリム・両方空で `nil` 等）。
+- **任意フォロー**: タイムマシン／マイアンセムの2シートを **`enum` + `.sheet(item:)` 一本化**し、両 `Bool` が同時に true になり得ることを防ぐ案 → [`v1_navigation_songs_recording.md`](./v1_navigation_songs_recording.md)「インテントタブのランキングシート」
 
 ---
 
 ### [I-018] タイムマシン表示
 - **依存**: I-005, I-017
 - **Labels**: `priority:must`, `type:feat`, `phase:2-インサイト`
+- **補足**: タイムマシン **ランキングの取得・一覧シート・タップで記録シート**は **I-017**（`TimeMachineRankingSheetView`・`IntentTabViewModel`）で実装済み。曲名は **`InsightTrackRowTitle`** で統一（`userEnteredName` 優先・フォールバック）。本 Issue のチェックは **I-017 との重複を解消**し、残差は **文言・専用画面の切り出し** 等を別タスクで扱う。
 - **Tasks**:
-  - [ ] fetchTimeMachineRanking() で過去1ヶ月のランキングを取得する
-  - [ ] 歌った回数降順でリスト表示する
-  - [ ] V1 では `track.userEnteredName ?? "不明"` で曲名を表示する
-  - [ ] ランキング内の曲をタップすると `SelectedTrack(spotifyTrackId: track.spotifyTrackId, userEnteredName: track.userEnteredName)` を組み立て、`SongsRecordingRoute.recording` 経由で **記録シート**（`.sheet(item:)` と同じパターン）を開き、歌唱記録フローへ進む
+  - [x] fetchTimeMachineRanking() で過去1ヶ月のランキングを取得する → **I-017 / `IntentTabViewModel`・`TimeMachineRankingSheetView`**
+  - [x] 歌った回数降順でリスト表示する → **I-017 / `fetchTimeMachineRanking` と `fetchAll` の並び順に準拠したシート一覧**
+  - [x] V1 では曲名を一貫表示する → **`InsightTrackRowTitle`（I-017 のランキング行）**
+  - [x] ランキング内の曲をタップすると `SelectedTrack` を組み立て、`SongsRecordingRoute.recording` 経由で **記録シート**を開く → **I-017 / `SongsRootView` の `onSelectTrack`**
 
 ---
 
