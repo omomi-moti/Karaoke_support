@@ -12,7 +12,7 @@ import XCTest
 
 @MainActor
 private final class IntentTabSessionRepositoryStub: SessionRepositoryProtocol {
-	/// `fetchAll` はこの配列を `offset` / `limit` でスライスする（日時降順などの並びはテストでは不問）。
+	/// テスト用セッション。`fetchAll` は ``SessionRepositoryProtocol`` の「日時降順」契約に合わせ、`performedAt` で降順に整えてから `offset` / `limit` でスライスする（代入順は不問）。
 	var sessions: [SingingSession] = []
 
 	func saveNewRecordingSession(_ session: SingingSession) async throws {}
@@ -27,9 +27,51 @@ private final class IntentTabSessionRepositoryStub: SessionRepositoryProtocol {
 		guard limit >= 0, offset >= 0 else {
 			throw SessionRepositoryError.invalidParameter("limit and offset must be non-negative")
 		}
-		guard offset < sessions.count else { return [] }
-		let end = min(offset + limit, sessions.count)
-		return Array(sessions[offset..<end])
+		let ordered = sessions.sorted { $0.performedAt > $1.performedAt }
+		guard offset < ordered.count else { return [] }
+		let end = min(offset + limit, ordered.count)
+		return Array(ordered[offset..<end])
+	}
+
+	func fetchByIntent(_ intent: Intent, limit: Int, offset: Int) async throws -> [SingingSession] {
+		[]
+	}
+}
+
+/// 先頭ページ取得 ``fetchAll(limit:1, offset:0)`` だけを協調する。1回目は `await` で手を放し、2回目（別 ``load()``）が入ったら1回目を再開する。グローバルな `fetchAll` 回数ベースの sleep では月次ページング後に「2本目の先頭ページ」が再び1回目扱いになり失敗するため、先頭ページ専用の重なりを保証する。
+@MainActor
+private final class IntentTabSessionRepositoryStubOverlappingFirstPageFetch: SessionRepositoryProtocol {
+	var sessions: [SingingSession] = []
+	private var firstPageProbeCount = 0
+	private var resumeFirstProbe: CheckedContinuation<Void, Never>?
+
+	func saveNewRecordingSession(_ session: SingingSession) async throws {}
+	func updateRecordingSession(_ session: SingingSession) async throws {}
+	func deleteRecordingSession(uuid: UUID) async throws {}
+	func exists(uuid: UUID) async throws -> Bool { false }
+	func fetchRecordingSession(uuid: UUID) async throws -> SingingSession {
+		throw SessionRepositoryError.sessionNotFound(uuid)
+	}
+
+	func fetchAll(limit: Int, offset: Int) async throws -> [SingingSession] {
+		guard limit >= 0, offset >= 0 else {
+			throw SessionRepositoryError.invalidParameter("limit and offset must be non-negative")
+		}
+		if limit == 1, offset == 0 {
+			firstPageProbeCount += 1
+			if firstPageProbeCount == 1 {
+				await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in
+					resumeFirstProbe = c
+				}
+			} else if firstPageProbeCount == 2 {
+				resumeFirstProbe?.resume()
+				resumeFirstProbe = nil
+			}
+		}
+		let ordered = sessions.sorted { $0.performedAt > $1.performedAt }
+		guard offset < ordered.count else { return [] }
+		let end = min(offset + limit, ordered.count)
+		return Array(ordered[offset..<end])
 	}
 
 	func fetchByIntent(_ intent: Intent, limit: Int, offset: Int) async throws -> [SingingSession] {
@@ -159,7 +201,7 @@ final class IntentTabViewModelTests: XCTestCase {
 
 	/// `load()` を同時に走らせたとき、古い試行は先頭ページ取得後に打ち切られ、インサイトは最新試行のみが呼ぶ（再試行連打のレース回避）。
 	func testLoad_concurrentInvocations_onlyLatestAttemptFetchesInsight() async {
-		let sessionStub = IntentTabSessionRepositoryStub()
+		let sessionStub = IntentTabSessionRepositoryStubOverlappingFirstPageFetch()
 		let track = Track(userEnteredName: "並行")
 		sessionStub.sessions = [
 			SingingSession(track: track, intent: .shout, performedAt: .now, score: 50),
