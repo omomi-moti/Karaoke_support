@@ -11,7 +11,7 @@ struct IntentTabInsightView: View {
 
 	var body: some View {
 		Group {
-			if viewModel.isLoading {
+			if viewModel.shouldShowBlockingLoad {
 				ProgressView()
 					.frame(maxWidth: .infinity, maxHeight: .infinity)
 			} else if let message = viewModel.loadErrorMessage {
