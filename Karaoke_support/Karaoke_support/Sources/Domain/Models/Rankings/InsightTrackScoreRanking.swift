@@ -13,5 +13,9 @@ struct InsightTrackScoreRanking: Identifiable {
 	let spotifyTrackId: String?
 	let userEnteredName: String?
 	let bestScore: Double
+
+	func makeSelectedTrack() -> SelectedTrack? {
+		SelectedTrack(spotifyTrackId: spotifyTrackId, userEnteredName: userEnteredName)
+	}
 }
 

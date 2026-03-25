@@ -2,7 +2,7 @@
 
 **Version**: 1.1  
 **Created**: 2026-03-14  
-**Updated**: 2026-03-22（I-014 拡張タスク・差分レビュー・履歴削除競合対応の追記）  
+**Updated**: 2026-03-25（I-014 追記・I-013 シート表示・I-018 / I-017 整理・I-017 ユニットテストの記述を反映）  
 **前提フロー**: 曲入力 → Intent → スコア → 履歴 → ランキング
 
 > **ドキュメントの位置づけ**: 本ファイルは V1 向け Issue/タスク体系の**単一の信頼できるソース（Source of Truth）**です。  
@@ -17,7 +17,7 @@
 |------|------|------|
 | **DI 注入方法** | `@Environment` + カスタム EnvironmentKey | 憲法の「環境に注入」に準拠。Repository ごとに Key を切ることで、V2 で TrackMetadataService 等を追加する際に Key を追加するだけで済む。Protocol 型の注入も EnvironmentKey で対応可能。 |
 | **TabView + NavigationStack** | 各タブごとに独立した NavigationStack | iOS 17+ のベストプラクティス。TabView 内側に NavigationStack を配置することで、タブ切り替え時もタブバーが表示され続ける。各タブのナビ履歴が独立し、V2 で検索タブ等を追加しても影響が局所化される。 |
-| **選曲結果の受け渡し** | `navigationDestination(for: SelectedTrack.self)` で value を渡す | 型安全で、V2 の検索・Spotify 履歴からの選曲も同じ型で扱える。Hashable にすれば NavigationPath と相性が良い。 |
+| **選曲結果の受け渡し** | `SelectedTrack` を `SongsRecordingRoute.recording` に包み、`.sheet(item:)` で記録シートを表示 | 型安全で、V2 の検索・Spotify 履歴からの選曲も同じ型で扱える。`SongsRecordingRoute` は `Hashable`（将来の `NavigationPath` 利用にも備える）かつ **`Identifiable`**（`.sheet(item:)` 用）。 |
 | **エラー表示** | 共通コンポーネント（メッセージ + 再試行ボタン） | I-009（保存失敗）と I-030（API エラー）で同じ UI を再利用。文言・挙動の統一と V2 での拡張を容易にする。 |
 
 ---
@@ -204,10 +204,10 @@ Phase 2: I-017 → I-018
 - **依存**: I-004, I-008, I-009, I-010, I-011, I-012
 - **Labels**: `priority:must`, `type:feat`, `phase:1-MVP`
 - **Tasks**:
-  - [x] 選曲結果の受け渡し型 `SelectedTrack` を定義する。`spotifyTrackId: String?` と `userEnteredName: String?` を持ち、少なくとも片方が非空であること。Hashable にして navigationDestination で渡す。V2 で検索・Spotify 履歴からの選曲も同じ型で扱う
+  - [x] 選曲結果の受け渡し型 `SelectedTrack` を定義する。`spotifyTrackId: String?` と `userEnteredName: String?` を持ち、少なくとも片方が非空であること。Hashable。記録画面へは `SongsRecordingRoute.recording(SelectedTrack)` として **`.sheet(item:)`** で渡す。V2 で検索・Spotify 履歴からの選曲も同じ型で扱う
   - [x] 曲選択（手動入力 or ランキングタップ）→ Intent選択 → 歌唱記録入力 → 保存の一連フローを接続する
   - [x] RecordingViewModel で TrackRepository.getOrCreate で Track を取得/作成し、SessionRepository.saveNewRecordingSession で SingingSession を保存する
-  - [x] ナビゲーション方針: 選曲タブ内は NavigationStack + NavigationPath。保存成功時は selectedTab = .history でタブ切り替え。docs/ またはコード内コメントに遷移図を残す
+  - [x] ナビゲーション方針: 選曲タブ内は **NavigationStack（ルートのみ）+ `.sheet(item: SongsRecordingRoute?)`** で記録を表示（push ではない）。保存成功時は `selectedTab = .history` と **`presentedRecordingRoute = nil`**（シート解除）。遷移図は [`v1_navigation_songs_recording.md`](./v1_navigation_songs_recording.md)
   - [x] フロー全体のナビゲーションと状態遷移を確認する
 - **参照**: 遷移図・関連ファイル一覧は [`v1_navigation_songs_recording.md`](./v1_navigation_songs_recording.md)
 
@@ -292,7 +292,7 @@ Phase 2: I-017 → I-018
 - **Labels**: `priority:must`, `type:feat`, `phase:1-MVP`
 - **Tasks**:
   - [x] 歌唱データ0件時に「まず1曲歌ってみよう！」メッセージを表示する → **履歴「すべて」かつ 0 件時に ``SingingEmptyStateView``（文言は ``SingingEmptyStateCopy``）**
-  - [x] 「手動で曲名を入力して歌う」への導線を NavigationLink または Button で配置する。タップで手動曲名入力画面へ遷移 → **同一 View 内の Button。``navigateToManualRecording``（App Environment）で選曲タブへ切替え + ``SongsRecordingRoute.manualRecording``**
+  - [x] 「手動で曲名を入力して歌う」への導線を NavigationLink または Button で配置する。タップで手動曲名入力画面へ遷移 → **同一 View 内の Button。``navigateToManualRecording``（App Environment）で選曲タブへ切替え + ``manualRecordingNavigationTick`` により ``SongsRootView`` が `presentedRecordingRoute = .manualRecording` で記録シートを開く**
   - [x] Empty State 用の再利用可能な View コンポーネントとして実装する。I-017 のインテントタブがデータ0件時にこれを表示する → **`SingingEmptyStateView` / `SingingEmptyStateCopy`**
 
 ---
@@ -303,21 +303,26 @@ Phase 2: I-017 → I-018
 - **依存**: I-005, I-007, I-016
 - **Labels**: `priority:must`, `type:feat`, `phase:2-インサイト`
 - **Tasks**:
-  - [ ] タイムマシン表示領域をレイアウトする
-  - [ ] マイアンセム表示領域をレイアウトする
-  - [ ] InsightRepository からデータを取得する ViewModel を用意する
-  - [ ] 歌唱データ0件時は I-016 の Empty State コンポーネントを表示する
+  - [x] タイムマシン表示領域をレイアウトする → **ヘッダー + 紫グラデの `TimeMachineInsightCardView`。「振り返る」で `TimeMachineRankingSheetView`（`fetchTimeMachineRanking()`）**
+  - [x] マイアンセム表示領域をレイアウトする → **インディゴグラデの `MyAnthemInsightCardView`。「聴く」で `MyAnthemRankingSheetView`（`fetchMyAnthemRankings`）**
+  - [x] InsightRepository からデータを取得する ViewModel を用意する → **`IntentTabViewModel`（`IntentTabContainerView` が生成）**
+  - [x] 歌唱データ0件時は I-016 の Empty State コンポーネントを表示する → **`sessionRepository.fetchAll(limit:1)` で判定し `SingingEmptyStateView`**
+- **ユニットテスト**（`Karaoke_supportTests`）:
+  - **`IntentTabViewModelTests`**: `load()` の成功（`Preview*` Repository）・セッション 0 件で Insight 未呼び出し・タイムマシン／先頭 `fetchAll` 失敗時のエラーメッセージ・**並行 `load()` で最新試行のみ Insight を取得**（`loadGeneration`）・**`computeMonthStats`**（今月のみカウント・600 件でページング・翌月境界除外）。スタブは `SessionRepositoryProtocol` の **日時降順**に合わせて `performedAt` でソート。
+  - **`InsightTrackRowTitleTests`**: `InsightTrackRowTitle.text` の優先順位（手入力名 / Spotify ID / 「曲名未設定」）・`InsightTrackCountRanking` / `InsightTrackScoreRanking` の **`makeSelectedTrack()`**（同一メタデータの一致・空白トリム・両方空で `nil` 等）。
+- **任意フォロー**: タイムマシン／マイアンセムの2シートを **`enum` + `.sheet(item:)` 一本化**し、両 `Bool` が同時に true になり得ることを防ぐ案 → [`v1_navigation_songs_recording.md`](./v1_navigation_songs_recording.md)「インテントタブのランキングシート」
 
 ---
 
 ### [I-018] タイムマシン表示
 - **依存**: I-005, I-017
 - **Labels**: `priority:must`, `type:feat`, `phase:2-インサイト`
+- **補足**: タイムマシン **ランキングの取得・一覧シート・タップで記録シート**は **I-017**（`TimeMachineRankingSheetView`・`IntentTabViewModel`）で実装済み。曲名は **`InsightTrackRowTitle`** で統一（`userEnteredName` 優先・フォールバック）。本 Issue のチェックは **I-017 との重複を解消**し、残差は **文言・専用画面の切り出し** 等を別タスクで扱う。
 - **Tasks**:
-  - [ ] fetchTimeMachineRanking() で過去1ヶ月のランキングを取得する
-  - [ ] 歌った回数降順でリスト表示する
-  - [ ] V1 では `track.userEnteredName ?? "不明"` で曲名を表示する
-  - [ ] ランキング内の曲をタップすると `SelectedTrack(spotifyTrackId: track.spotifyTrackId, userEnteredName: track.userEnteredName)` を navigationDestination で渡し、歌唱記録フローへ遷移する
+  - [x] fetchTimeMachineRanking() で過去1ヶ月のランキングを取得する → **I-017 / `IntentTabViewModel`・`TimeMachineRankingSheetView`**
+  - [x] 歌った回数降順でリスト表示する → **I-017 / `fetchTimeMachineRanking` と `fetchAll` の並び順に準拠したシート一覧**
+  - [x] V1 では曲名を一貫表示する → **`InsightTrackRowTitle`（I-017 のランキング行）**
+  - [x] ランキング内の曲をタップすると `SelectedTrack` を組み立て、`SongsRecordingRoute.recording` 経由で **記録シート**を開く → **I-017 / `SongsRootView` の `onSelectTrack`**
 
 ---
 
@@ -342,5 +347,5 @@ Phase 2: I-017 → I-018
 | 15 | Intent フィルターが動作する | □ |
 | 16 | 20件ごとの追加読み込みが動作する | □ |
 | 17 | 歌唱1件以上で、インテントタブにタイムマシンランキングが表示される | □ |
-| 18 | ランキング内の曲をタップすると歌唱記録フローへ遷移する | □ |
+| 18 | ランキング内の曲をタップすると記録シート（歌唱記録フロー）が開く | □ |
 | 19 | 曲選択 → Intent → スコア → 保存 → 履歴 が一連で動作する | □ |

@@ -1,0 +1,141 @@
+# feature/i-017-intent-tab-ui 実装ログ
+
+**日付**: 2026-03-25  
+**対象**: [I-017] インテントタブUI（`docs/v1_issues.md` L302–309）
+
+---
+
+## 概要
+
+選曲タブの **「インテント」セグメント**に、インサイト用の **ヒーローUI**（ヘッダー・タイムマシン・マイアンセムの2カード・今月統計）を配置した。データは **`InsightRepositoryProtocol`**（`fetchTimeMachineRanking` / `fetchMyAnthemRankings`）から **`IntentTabViewModel`** が取得する。歌唱セッションが **0 件**のときは I-016 の **`SingingEmptyStateView`** を表示し、手動記録への導線は **`navigateToManualRecording`**（`SongsRootView` が `@Environment` で受け取り注入）とする。
+
+ランキングの **一覧と曲タップ**はシート（`TimeMachineRankingSheetView` / `MyAnthemRankingSheetView`）で実装し、確定した **`SelectedTrack`** は親の **`presentedRecordingRoute = .recording(SelectedTrack)`** で **記録シート**を開く（[`docs/v1_navigation_songs_recording.md`](../../docs/v1_navigation_songs_recording.md)）。
+
+---
+
+## v1_issues タスク対応表
+
+| 要件 | 実装の要点 |
+|------|------------|
+| タイムマシン表示領域 | `TimeMachineInsightCardView`（紫系グラデ・NEW ANALYTICS・「振り返る」）。`IntentTabInsightStyle` で色トークンを集約。 |
+| マイアンセム表示領域 | `MyAnthemInsightCardView`（インディゴ系グラデ・感情アイコン・「AIが選曲しました」・「聴く」）。 |
+| InsightRepository ViewModel | `IntentTabViewModel` が `insightRepository` / `sessionRepository` を DI。`IntentTabContainerView` が `State(initialValue:)` で生成し、**`.task`** で `load()`。 |
+| 歌唱0件時 Empty State | `load()` 先頭で `fetchAll(limit: 1, offset: 0)` が空なら `hasSingingData = false` → `IntentTabInsightView` が `SingingEmptyStateView` を表示。 |
+
+---
+
+## レイヤー別の責務
+
+### `IntentTabViewModel`（`Presentation/Songs`）
+
+- `@Observable` / `@MainActor`。  
+- **`load()`**: セッション有無 → 無ければランキング取得をスキップ。あれば `fetchTimeMachineRanking` と `fetchMyAnthemRankings(period: .threeMonths)` を並列取得。  
+- **`computeMonthStats()`**: `fetchAll(limit:offset:)` をページングし、**半開区間** `[monthStart, nextMonthStart)` に入る `performedAt` のセッションだけで **今月の総曲数** と **平均スコア** を集計。  
+- 初回表示フラッシュ防止のため **`init` 完了時点で `isLoading = true`**。  
+- 失敗時は `loadErrorMessage` を表示し、`IntentTabInsightView` から「再試行」で `load()` 再実行。
+
+### `IntentTabContainerView`
+
+- `InsightRepository` / `SessionRepository` を **init で受け取り** `IntentTabViewModel` を `@State` で保持（Environment では `init` で参照できないため、親が `SongsRootView` から注入）。  
+- **`onSelectTrack`**: シートで選んだ `SelectedTrack` を親へ渡す（`presentedRecordingRoute = .recording(selected)`）。  
+- **`onNavigateToManualRecording`**: Empty State のボタン用。
+
+### `IntentTabInsightView`
+
+- ローディング / エラー / Empty / 通常（`ScrollView` + ヘッダー + 2カード + `IntentTabMonthlyStatsRowView`）の分岐。  
+- `.sheet` でランキング一覧を表示。
+
+### シート（`TimeMachineRankingSheetView` / `MyAnthemRankingSheetView`）
+
+- 行タップで `makeSelectedTrack()` → `dismiss` 後に `onSelectTrack`（`DispatchQueue.main.async` で親の `presentedRecordingRoute` 更新と競合しにくくする）。  
+- マイアンセムは **Intent ごとに Section**（`MyAnthemRanking` を `ForEach`、各 `byCount` の先頭5件）。
+
+### ドメイン補助
+
+- **`InsightTrackRowTitle`**: 曲名表示（手入力名を優先）。  
+- **`InsightTrackCountRanking` / `InsightTrackScoreRanking`**: `makeSelectedTrack()` で `SelectedTrack?` を生成。
+
+### `SongsRootView`
+
+- `@Environment(\.insightRepository)` / `sessionRepository` / `navigateToManualRecording` を取得。  
+- インテントセグメントで `IntentTabContainerView` を表示し、`onSelectTrack` で `presentedRecordingRoute = .recording(selected)`。  
+- **プレビュー**で各 Environment を明示的に注入。
+
+---
+
+## 表示・ナビゲーションの流れ
+
+1. ユーザーがインテントタブを開く → **`.task`** で `load()`。  
+2. **データあり** → ヘッダー・2カード・統計を表示。「振り返る」「聴く」でシート。  
+3. シートで曲を選択 → シートを閉じたあと **記録シート**（`.sheet(item:)`）で記録フローへ。  
+4. **データなし** → `SingingEmptyStateView` → タップで `navigateToManualRecording`（選曲タブへ切替 + 手動記録シート。I-016 と同じ Environment）。
+
+---
+
+## テスト（ユニット）
+
+ターゲット: **`Karaoke_supportTests`**（Xcode の `PBXFileSystemSynchronizedRootGroup` で `Karaoke_supportTests` フォルダが同期される）。
+
+### `IntentTabViewModelTests.swift`
+
+| メソッド | 検証内容 |
+|----------|----------|
+| `testLoad_withPreviewRepositories_loadsInsightData` | `PreviewInsightRepository` + `PreviewSessionRepository` で `load()` 成功。`hasSingingData`、タイムマシン非空、マイアンセムが Intent 数（3）、エラーなし。 |
+| `testLoad_emptySessions_doesNotCallInsightAndClearsRankings` | セッション 0 件時は **`fetchTimeMachine` / `fetchMyAnthem` を呼ばない**（Spy）。ランキング空・月次 0・平均 `nil`。 |
+| `testLoad_insightTimeMachineThrows_setsLoadErrorMessage` | タイムマシン取得が throw → 固定エラーメッセージ。 |
+| `testLoad_sessionRepositoryFetchAllThrows_setsLoadErrorMessage` | 先頭 `fetchAll` が throw → 同上。 |
+| `testLoad_concurrentInvocations_onlyLatestAttemptFetchesInsight` | **`async let` で `load()` を2回重ね**、`IntentTabSessionRepositoryStubOverlappingFirstPageFetch` で先頭ページ取得の重なりを制御。**Insight は各 1 回だけ**（古い試行は `loadGeneration` で打ち切り）。 |
+| `testLoad_computeMonthStats_countsOnlyCurrentCalendarMonth` | 今月外・今月内を混在させ、**件数 2・平均 60**（半開区間）。 |
+| `testLoad_computeMonthStats_paginatesFetchAll` | 今月内セッション **600 件**で **`fetchAll` のページング**（500+100）を通す。件数・平均 50。 |
+| `testLoad_computeMonthStats_excludesNextMonthAndLater` | `nextMonthStart` ちょうどのセッションは今月に含めない。 |
+
+スタブ **`IntentTabSessionRepositoryStub`** は `SessionRepositoryProtocol` の **日時降順**に合わせ、`fetchAll` 前に `performedAt` で **降順ソート**してから `offset`/`limit` でスライスする。
+
+### `InsightTrackRowTitleTests.swift`
+
+| 観点 | 内容 |
+|------|------|
+| `InsightTrackRowTitle.text` | 手入力名優先・Spotify のみ・両方 `nil` は「曲名未設定」。 |
+| `InsightTrackCountRanking` / `InsightTrackScoreRanking` の `makeSelectedTrack()` | フィールドが `SelectedTrack` に反映されること、**同一メタデータなら両ランキング型で一致**、**ユーザー名の空白トリム**、トリム後に両方空なら `nil`、空白のみユーザーは Spotify ID にフォールバック等。 |
+
+UI テストやスナップショットは **含めていない**（手動確認は V1 チェックリスト参照）。
+
+---
+
+## 月次統計（`computeMonthStats`）の注意 — パフォーマンスと将来の最適化
+
+### 現状（V1）
+
+- `SessionRepository.fetchAll(limit:offset:)` を **500 件ずつ**繰り返し、**全件走査に近い**形で集計する。セッション総数が増えるほど **`load()` 内の読み取り回数**が増える。
+- **`SessionRepositoryProtocol.fetchAll(limit:offset:)`** のドキュメントコメントで **「日時降順でセッションを取得する」** と契約が明記されている（`Sources/Domain/Repositories/SessionRepositoryProtocol.swift`）。本番の **`SwiftDataSessionRepository`** は `SortDescriptor(\.performedAt, order: .reverse)` でこれを満たす。
+
+### 検討されうる最適化（未実装・優先度は低〜中）
+
+- **上記の日時降順契約**を前提に、先頭から走査し **`performedAt < monthStart` が初めて出た時点**でページングを打ち切る、と **今月より古いセッションが現れた時点で以降のページは不要**になるため、過去データが多い場合に **読み取りを早く終えられる**可能性がある。
+- 入れる場合の前提: **`fetchAll` の「日時降順」契約を、すべての実装・プレビュー用モック・テスト用スタブが満たしていること**（並びがバラバラだと打ち切りは誤集計になる）。
+- **より根本的な対策**: `SessionRepository` に **期間指定の件数・平均**や **`#Predicate` による集計**を追加し、ViewModel ではページングしない。これは **V2 や別 Issue** で検討しうる。
+- **優先度**: 体感・計測で **ボトルネックが出るまで後回し（P2〜P3）** でよいことが多い。先に **半開区間による定義の正しさ**（`[monthStart, nextMonthStart)`）を優先した。
+
+---
+
+## I-018 との関係
+
+- **I-017** ではタイムマシンを **カード + シート一覧**として実装済み（`fetchTimeMachineRanking`・降順表示・`SelectedTrack` 遷移）。  
+- **`docs/v1_issues.md` [I-018]** は I-017 実装で満たす内容を **チェック済み**に整理し、残差は **文言・専用画面の切り出し** 等を別途扱う（本実装は `InsightTrackRowTitle` でフォールバック文言を統一）。
+
+## レビューで挙がった点（ドキュメント化）
+
+- **`SongsRecordingRoute.id`** と `.sheet(item:)` の衝突可能性 → **`docs/v1_navigation_songs_recording.md`** に注意書き。  
+- **タイムマシン／マイアンセムの2× `.sheet(isPresented:)`** → 同一 doc に「任意で enum 一本化」の案を記載。  
+- **`computeMonthStats` の全件ページング** → 本ログ「月次統計」の節に既に記載（早期打ち切りは任意）。
+
+---
+
+## 参照
+
+- Issue 定義: `docs/v1_issues.md` [I-017]  
+- Repository: `InsightRepositoryProtocol`, `SwiftDataInsightRepository`  
+- Empty State: `SingingEmptyStateView`, `ManualRecordingNavigationEnvironment`  
+- 選曲ルート: `SongsRecordingRoute`
+
+以上。
