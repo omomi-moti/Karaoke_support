@@ -13,6 +13,7 @@ struct InsightRankingSheetRowView: View {
 		Button(action: onTap) {
 			HStack(alignment: .center, spacing: 14) {
 				rankIcon
+					.accessibilityHidden(true)
 				VStack(alignment: .leading, spacing: 4) {
 					Text("#\(rank)")
 						.font(.caption.weight(.bold))
@@ -43,6 +44,17 @@ struct InsightRankingSheetRowView: View {
 			)
 		}
 		.buttonStyle(.plain)
+		.accessibilityElement(children: .combine)
+		.accessibilityLabel(accessibilityLabelText)
+	}
+
+	private var accessibilityLabelText: String {
+		var parts: [String] = ["\(rank)位", title]
+		if let artistLine, !artistLine.isEmpty {
+			parts.append(artistLine)
+		}
+		parts.append(rightValue)
+		return parts.joined(separator: "、")
 	}
 
 	@ViewBuilder
