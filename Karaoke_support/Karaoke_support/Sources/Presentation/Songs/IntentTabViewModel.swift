@@ -65,6 +65,12 @@ final class IntentTabViewModel {
 			averageScoreThisMonth = nil
 			return
 		}
+		/// 暦の「今月」は `monthStart <= performedAt < nextMonthStart`（翌月以降を含めない）。
+		guard let nextMonthStart = calendar.date(byAdding: .month, value: 1, to: monthStart) else {
+			monthSessionCount = 0
+			averageScoreThisMonth = nil
+			return
+		}
 
 		var countInMonth = 0
 		var scoreSum = 0.0
@@ -76,7 +82,8 @@ final class IntentTabViewModel {
 			let batch = try await sessionRepository.fetchAll(limit: pageSize, offset: offset)
 			if batch.isEmpty { break }
 			for session in batch {
-				if session.performedAt >= monthStart {
+				let t = session.performedAt
+				if t >= monthStart, t < nextMonthStart {
 					countInMonth += 1
 					scoreSum += session.score
 					scoreCount += 1
