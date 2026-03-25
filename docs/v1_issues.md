@@ -291,9 +291,9 @@ Phase 2: I-017 → I-018
 - **依存**: I-005, I-007
 - **Labels**: `priority:must`, `type:feat`, `phase:1-MVP`
 - **Tasks**:
-  - [ ] 歌唱データ0件時に「まず1曲歌ってみよう！」メッセージを表示する
-  - [ ] 「手動で曲名を入力して歌う」への導線を NavigationLink または Button で配置する。タップで手動曲名入力画面へ遷移
-  - [ ] Empty State 用の再利用可能な View コンポーネントとして実装する。I-017 のインテントタブがデータ0件時にこれを表示する
+  - [x] 歌唱データ0件時に「まず1曲歌ってみよう！」メッセージを表示する → **履歴「すべて」かつ 0 件時に ``SingingEmptyStateView``（文言は ``SingingEmptyStateCopy``）**
+  - [x] 「手動で曲名を入力して歌う」への導線を NavigationLink または Button で配置する。タップで手動曲名入力画面へ遷移 → **同一 View 内の Button。``navigateToManualRecording``（App Environment）で選曲タブへ切替え + ``SongsRecordingRoute.manualRecording``**
+  - [x] Empty State 用の再利用可能な View コンポーネントとして実装する。I-017 のインテントタブがデータ0件時にこれを表示する → **`SingingEmptyStateView` / `SingingEmptyStateCopy`**
 
 ---
 
