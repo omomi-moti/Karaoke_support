@@ -60,9 +60,10 @@ final class IntentTabViewModel {
 				return
 			}
 
-			async let tm = insightRepository.fetchTimeMachineRanking()
-			async let ma = insightRepository.fetchMyAnthemRankings(period: .threeMonths)
-			let (tmResult, maResult) = try await (tm, ma)
+			// ``InsightRepositoryProtocol`` は @MainActor のため `async let` でもランキング取得は実質直列。意図を明確にする。
+			let tmResult = try await insightRepository.fetchTimeMachineRanking()
+			guard attempt == loadGeneration else { return }
+			let maResult = try await insightRepository.fetchMyAnthemRankings(period: .threeMonths)
 			guard attempt == loadGeneration else { return }
 			timeMachineRanking = tmResult
 			myAnthemRankings = maResult
