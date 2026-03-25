@@ -188,4 +188,35 @@ final class IntentTabViewModelTests: XCTestCase {
 		let averagePaging = try XCTUnwrap(vm.averageScoreThisMonth)
 		XCTAssertEqual(averagePaging, 50, accuracy: 0.001)
 	}
+
+	/// `performedAt` が翌月1日0時以降のセッションは「今月」に含めない（`monthStart ..< nextMonthStart`）。
+	func testLoad_computeMonthStats_excludesNextMonthAndLater() async throws {
+		let cal = Calendar.current
+		guard let monthStart = cal.date(from: cal.dateComponents([.year, .month], from: Date())) else {
+			XCTFail("monthStart")
+			return
+		}
+		guard let nextMonthStart = cal.date(byAdding: .month, value: 1, to: monthStart) else {
+			XCTFail("nextMonthStart")
+			return
+		}
+		let inMonth = cal.date(byAdding: .day, value: 5, to: monthStart)!
+		let track = Track(userEnteredName: "境界")
+		let sessionStub = IntentTabSessionRepositoryStub()
+		sessionStub.sessions = [
+			SingingSession(track: track, intent: .shout, performedAt: inMonth, score: 80),
+			SingingSession(track: track, intent: .shout, performedAt: nextMonthStart, score: 99),
+		]
+
+		let vm = IntentTabViewModel(
+			insightRepository: InsightRepositorySpy(),
+			sessionRepository: sessionStub
+		)
+		await vm.load()
+
+		XCTAssertNil(vm.loadErrorMessage)
+		XCTAssertEqual(vm.monthSessionCount, 1)
+		let average = try XCTUnwrap(vm.averageScoreThisMonth)
+		XCTAssertEqual(average, 80, accuracy: 0.001)
+	}
 }
