@@ -10,6 +10,8 @@ final class IntentTabViewModel {
 
 	/// `load()` 呼び出しごとに増加。`await` 後もこの値と一致するときだけ状態を書く（再試行連打のレース回避）。
 	private var loadGeneration: UInt = 0
+	/// 初回の成功完了（空件数含む）後は `true`。記録画面から戻ったときの `.task` 再実行で全画面ローディングを出さないため。
+	private var hasCompletedInitialLoad = false
 
 	/// 歌唱セッションが 1 件以上あるか（0 件時は I-016 Empty State）。
 	var hasSingingData: Bool = false
@@ -23,6 +25,11 @@ final class IntentTabViewModel {
 	var monthSessionCount: Int = 0
 	/// 今月の歌唱の平均スコア（今月 0 件なら `nil`）。
 	var averageScoreThisMonth: Double?
+
+	/// 初回読み込みまたはエラー後の再試行のときだけ全画面ローディングを出す（`isLoading` だけでは記録から戻った再取得でチラつく）。
+	var shouldShowBlockingLoad: Bool {
+		isLoading && (!hasCompletedInitialLoad || loadErrorMessage != nil)
+	}
 
 	init(
 		insightRepository: any InsightRepositoryProtocol,
@@ -38,8 +45,12 @@ final class IntentTabViewModel {
 		loadGeneration += 1
 		let attempt = loadGeneration
 
-		isLoading = true
+		let wasRetryingAfterError = loadErrorMessage != nil
 		loadErrorMessage = nil
+		let shouldShowBlockingOverlay = !hasCompletedInitialLoad || wasRetryingAfterError
+		if shouldShowBlockingOverlay {
+			isLoading = true
+		}
 		defer {
 			if attempt == loadGeneration {
 				isLoading = false
@@ -57,6 +68,7 @@ final class IntentTabViewModel {
 				myAnthemRankings = []
 				monthSessionCount = 0
 				averageScoreThisMonth = nil
+				hasCompletedInitialLoad = true
 				return
 			}
 
@@ -68,6 +80,7 @@ final class IntentTabViewModel {
 			timeMachineRanking = tmResult
 			myAnthemRankings = maResult
 			try await computeMonthStats(attempt: attempt)
+			hasCompletedInitialLoad = true
 		} catch is CancellationError {
 			// `.task` のキャンセル（セグメント切替等）。エラー表示は出さない。
 			return
