@@ -33,4 +33,5 @@ struct HistoryListContainerView: View {
 
 #Preview {
 	HistoryListContainerView(sessionRepository: PreviewSessionRepository())
+		.environment(\.navigateToManualRecording) {}
 }
