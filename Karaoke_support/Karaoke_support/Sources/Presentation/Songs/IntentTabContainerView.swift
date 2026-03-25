@@ -29,8 +29,8 @@ struct IntentTabContainerView: View {
 			onSelectTrack: onSelectTrack,
 			onNavigateToManualRecording: onNavigateToManualRecording
 		)
-		.onAppear {
-			Task { await viewModel.load() }
+		.task {
+			await viewModel.load()
 		}
 	}
 }

@@ -52,6 +52,9 @@ final class IntentTabViewModel {
 			timeMachineRanking = try await tm
 			myAnthemRankings = try await ma
 			try await computeMonthStats()
+		} catch is CancellationError {
+			// `.task` のキャンセル（セグメント切替等）。エラー表示は出さない。
+			return
 		} catch {
 			loadErrorMessage = "読み込みに失敗しました。もう一度お試しください"
 		}
