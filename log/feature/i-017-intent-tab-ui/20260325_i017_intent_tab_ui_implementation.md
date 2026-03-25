@@ -83,12 +83,12 @@
 ### 現状（V1）
 
 - `SessionRepository.fetchAll(limit:offset:)` を **500 件ずつ**繰り返し、**全件走査に近い**形で集計する。セッション総数が増えるほど **`load()` 内の読み取り回数**が増える。
-- 本番の **`SwiftDataSessionRepository`** は `performedAt` **降順**で返す（`SortDescriptor`）。一方 **`SessionRepositoryProtocol`** にはソート順の明記がない。
+- **`SessionRepositoryProtocol.fetchAll(limit:offset:)`** のドキュメントコメントで **「日時降順でセッションを取得する」** と契約が明記されている（`Sources/Domain/Repositories/SessionRepositoryProtocol.swift`）。本番の **`SwiftDataSessionRepository`** は `SortDescriptor(\.performedAt, order: .reverse)` でこれを満たす。
 
 ### 検討されうる最適化（未実装・優先度は低〜中）
 
-- **降順前提**で、先頭から走査し **`performedAt < monthStart` が初めて出た時点**でページングを打ち切る、と **今月より古いセッションが現れた時点で以降のページは不要**になるため、過去データが多い場合に **読み取りを早く終えられる**可能性がある。
-- 入れる場合の前提: **プロトコルまたはドキュメントで `fetchAll` の並びを保証**する／**モック・テスト用スタブも `performedAt` 降順に揃える**（並びがバラバラだと打ち切りは誤集計になる）。
+- **上記の日時降順契約**を前提に、先頭から走査し **`performedAt < monthStart` が初めて出た時点**でページングを打ち切る、と **今月より古いセッションが現れた時点で以降のページは不要**になるため、過去データが多い場合に **読み取りを早く終えられる**可能性がある。
+- 入れる場合の前提: **`fetchAll` の「日時降順」契約を、すべての実装・プレビュー用モック・テスト用スタブが満たしていること**（並びがバラバラだと打ち切りは誤集計になる）。
 - **より根本的な対策**: `SessionRepository` に **期間指定の件数・平均**や **`#Predicate` による集計**を追加し、ViewModel ではページングしない。これは **V2 や別 Issue** で検討しうる。
 - **優先度**: 体感・計測で **ボトルネックが出るまで後回し（P2〜P3）** でよいことが多い。先に **半開区間による定義の正しさ**（`[monthStart, nextMonthStart)`）を優先した。
 

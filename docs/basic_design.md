@@ -178,8 +178,8 @@ flowchart TD
 **実装・パフォーマンス上の注意（V1）**
 
 - **`IntentTabViewModel.computeMonthStats()`** は `fetchAll` を **オフセットページング** で繰り返す。セッション数が大きいほど **読み取り回数・処理時間**が増える。
-- 本番の **`SwiftDataSessionRepository`** は `performedAt` **降順**で返すが、**`SessionRepositoryProtocol` にはソート順の契約が書かれていない**。
-- **将来の最適化案（未実装）**: `fetchAll` が `performedAt` 降順であることを前提に、**`performedAt < monthStart` が出たら以降のページ取得を打ち切る**など、過去データが多い場合の短絡が可能。導入する場合は **プロトコルまたはドキュメントで並びを保証**し、テスト用スタブも **降順に揃える**必要がある。より根本的には **`SessionRepository` に期間指定集計**を追加する方法がある。優先度は **体感・計測で問題が出るまで P2〜P3** 程度でよいことが多い。
+- **`SessionRepositoryProtocol.fetchAll(limit:offset:)`** のドキュメントコメントで **日時降順**取得が契約として明記されており、本番の **`SwiftDataSessionRepository`** は `SortDescriptor` でこれを満たす。
+- **将来の最適化案（未実装）**: その **日時降順契約**を前提に、**`performedAt < monthStart` が出たら以降のページ取得を打ち切る**など、過去データが多い場合の短絡が可能。導入する場合は **すべての実装・モック・テスト用スタブが同契約を満たすこと**（並びがバラバラだと打ち切りは誤集計になる）。より根本的には **`SessionRepository` に期間指定集計**を追加する方法がある。優先度は **体感・計測で問題が出るまで P2〜P3** 程度でよいことが多い。
 
 **本節は V1 の前提と V2 の検討余地のメモである。** 確定仕様はリリース計画に合わせて `docs/v1_issues.md` または後続 Issue で更新する。
 
