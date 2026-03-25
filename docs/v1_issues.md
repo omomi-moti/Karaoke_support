@@ -303,10 +303,10 @@ Phase 2: I-017 → I-018
 - **依存**: I-005, I-007, I-016
 - **Labels**: `priority:must`, `type:feat`, `phase:2-インサイト`
 - **Tasks**:
-  - [ ] タイムマシン表示領域をレイアウトする
-  - [ ] マイアンセム表示領域をレイアウトする
-  - [ ] InsightRepository からデータを取得する ViewModel を用意する
-  - [ ] 歌唱データ0件時は I-016 の Empty State コンポーネントを表示する
+  - [x] タイムマシン表示領域をレイアウトする → **ヘッダー + 紫グラデの `TimeMachineInsightCardView`。「振り返る」で `TimeMachineRankingSheetView`（`fetchTimeMachineRanking()`）**
+  - [x] マイアンセム表示領域をレイアウトする → **インディゴグラデの `MyAnthemInsightCardView`。「聴く」で `MyAnthemRankingSheetView`（`fetchMyAnthemRankings`）**
+  - [x] InsightRepository からデータを取得する ViewModel を用意する → **`IntentTabViewModel`（`IntentTabContainerView` が生成）**
+  - [x] 歌唱データ0件時は I-016 の Empty State コンポーネントを表示する → **`sessionRepository.fetchAll(limit:1)` で判定し `SingingEmptyStateView`**
 
 ---
 
