@@ -8,7 +8,7 @@ struct RootView: View {
 	}
 
 	@State private var selectedTab: RootTab = .songs
-	/// 履歴から手動記録へ遷移するたびに増やし、``SongsRootView`` が `NavigationPath` を立て直して `manualRecording` を積む（I-016）。
+	/// 履歴から手動記録へ遷移するたびに増やし、``SongsRootView`` が記録シートを開く（I-016）。
 	@State private var manualRecordingNavigationTick: Int = 0
 
 	var body: some View {
@@ -16,7 +16,11 @@ struct RootView: View {
 			/// 選曲タブの `NavigationStack` は `SongsRootView` 内のみ（二重スタック回避・I-013）。
 			SongsRootView(
 				onSavedMoveToHistory: {
-					selectedTab = .history
+					var transaction = Transaction()
+					transaction.disablesAnimations = true
+					withTransaction(transaction) {
+						selectedTab = .history
+					}
 				},
 				manualRecordingNavigationTick: $manualRecordingNavigationTick
 			)
