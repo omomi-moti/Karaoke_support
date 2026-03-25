@@ -11,36 +11,50 @@ struct MyAnthemRankingSheetView: View {
 		NavigationStack {
 			List {
 				ForEach(rankings) { block in
-					Section {
-						ForEach(Array(block.byCount.prefix(5).enumerated()), id: \.element.id) { index, row in
-							Button {
-								guard let track = row.makeSelectedTrack() else { return }
-								dismiss()
-								DispatchQueue.main.async {
-									onSelectTrack(track)
-								}
-							} label: {
-								HStack(alignment: .firstTextBaseline, spacing: 12) {
-									Text("\(index + 1)")
-										.font(.subheadline.monospacedDigit())
-										.foregroundStyle(AppColor.textSecondary)
-										.frame(width: 22, alignment: .trailing)
-									VStack(alignment: .leading, spacing: 4) {
-										Text(InsightTrackRowTitle.text(spotifyTrackId: row.spotifyTrackId, userEnteredName: row.userEnteredName))
-											.font(.body.weight(.medium))
-											.foregroundStyle(AppColor.textPrimary)
-										Text("歌唱 \(row.countInPeriod) 回")
-											.font(.caption)
-											.foregroundStyle(AppColor.textSecondary)
+					if !block.byCount.isEmpty {
+						Section {
+							ForEach(Array(block.byCount.prefix(5).enumerated()), id: \.element.id) { index, row in
+								Button {
+									guard let track = row.makeSelectedTrack() else { return }
+									dismiss()
+									DispatchQueue.main.async {
+										onSelectTrack(track)
 									}
-									Spacer(minLength: 0)
+								} label: {
+									rankingRowLabel(
+										rank: index + 1,
+										title: InsightTrackRowTitle.text(spotifyTrackId: row.spotifyTrackId, userEnteredName: row.userEnteredName),
+										subtitle: "歌唱 \(row.countInPeriod) 回"
+									)
 								}
-								.padding(.vertical, 2)
+								.buttonStyle(.plain)
 							}
-							.buttonStyle(.plain)
+						} header: {
+							Text("\(Self.sectionTitle(for: block.intent)) — 歌った回数")
 						}
-					} header: {
-						Text(Self.sectionTitle(for: block.intent))
+					}
+
+					if !block.byScore.isEmpty {
+						Section {
+							ForEach(Array(block.byScore.prefix(5).enumerated()), id: \.element.id) { index, row in
+								Button {
+									guard let track = row.makeSelectedTrack() else { return }
+									dismiss()
+									DispatchQueue.main.async {
+										onSelectTrack(track)
+									}
+								} label: {
+									rankingRowLabel(
+										rank: index + 1,
+										title: InsightTrackRowTitle.text(spotifyTrackId: row.spotifyTrackId, userEnteredName: row.userEnteredName),
+										subtitle: "最高点 \(String(format: "%.1f", row.bestScore))"
+									)
+								}
+								.buttonStyle(.plain)
+							}
+						} header: {
+							Text("\(Self.sectionTitle(for: block.intent)) — 点数")
+						}
 					}
 				}
 			}
@@ -61,8 +75,47 @@ struct MyAnthemRankingSheetView: View {
 		case .practice: return "🎤 Practice"
 		}
 	}
+
+	private func rankingRowLabel(rank: Int, title: String, subtitle: String) -> some View {
+		HStack(alignment: .firstTextBaseline, spacing: 12) {
+			Text("\(rank)")
+				.font(.subheadline.monospacedDigit())
+				.foregroundStyle(AppColor.textSecondary)
+				.frame(width: 22, alignment: .trailing)
+			VStack(alignment: .leading, spacing: 4) {
+				Text(title)
+					.font(.body.weight(.medium))
+					.foregroundStyle(AppColor.textPrimary)
+				Text(subtitle)
+					.font(.caption)
+					.foregroundStyle(AppColor.textSecondary)
+			}
+			Spacer(minLength: 0)
+		}
+		.padding(.vertical, 2)
+	}
 }
 
 #Preview {
-	MyAnthemRankingSheetView(rankings: [], onSelectTrack: { _ in })
+	let tid = UUID()
+	let countRow = InsightTrackCountRanking(
+		id: tid,
+		trackId: tid,
+		spotifyTrackId: "spotify:track:preview",
+		userEnteredName: "プレビュー曲",
+		countInPeriod: 4
+	)
+	let scoreRow = InsightTrackScoreRanking(
+		id: tid,
+		trackId: tid,
+		spotifyTrackId: "spotify:track:preview",
+		userEnteredName: "プレビュー曲",
+		bestScore: 93.5
+	)
+	return MyAnthemRankingSheetView(
+		rankings: [
+			MyAnthemRanking(intent: .shout, byCount: [countRow], byScore: [scoreRow]),
+		],
+		onSelectTrack: { _ in }
+	)
 }
