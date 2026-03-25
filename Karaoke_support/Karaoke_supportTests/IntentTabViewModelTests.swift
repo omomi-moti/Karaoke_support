@@ -65,10 +65,33 @@ private final class InsightRepositoryThrowingOnTimeMachine: InsightRepositoryPro
 	}
 }
 
+/// `fetchAll` が失敗する（先頭ページ取得でエラー）場合の検証用。
+@MainActor
+private final class SessionRepositoryFetchAllThrowing: SessionRepositoryProtocol {
+	struct StubError: Error {}
+
+	func saveNewRecordingSession(_ session: SingingSession) async throws {}
+	func updateRecordingSession(_ session: SingingSession) async throws {}
+	func deleteRecordingSession(uuid: UUID) async throws {}
+	func exists(uuid: UUID) async throws -> Bool { false }
+	func fetchRecordingSession(uuid: UUID) async throws -> SingingSession {
+		throw SessionRepositoryError.sessionNotFound(uuid)
+	}
+
+	func fetchAll(limit: Int, offset: Int) async throws -> [SingingSession] {
+		throw StubError()
+	}
+
+	func fetchByIntent(_ intent: Intent, limit: Int, offset: Int) async throws -> [SingingSession] {
+		[]
+	}
+}
+
 // MARK: - Tests
 
 @MainActor
 final class IntentTabViewModelTests: XCTestCase {
+	/// 成功パス。0件・Insight失敗・Session失敗・月次集計は別テストを参照。
 	func testLoad_withPreviewRepositories_loadsInsightData() async {
 		let vm = IntentTabViewModel(
 			insightRepository: PreviewInsightRepository(),
@@ -118,6 +141,18 @@ final class IntentTabViewModelTests: XCTestCase {
 		await vm.load()
 
 		XCTAssertTrue(vm.hasSingingData)
+		XCTAssertFalse(vm.isLoading)
+		XCTAssertEqual(vm.loadErrorMessage, "読み込みに失敗しました。もう一度お試しください")
+	}
+
+	func testLoad_sessionRepositoryFetchAllThrows_setsLoadErrorMessage() async {
+		let vm = IntentTabViewModel(
+			insightRepository: InsightRepositorySpy(),
+			sessionRepository: SessionRepositoryFetchAllThrowing()
+		)
+		await vm.load()
+
+		XCTAssertFalse(vm.hasSingingData)
 		XCTAssertFalse(vm.isLoading)
 		XCTAssertEqual(vm.loadErrorMessage, "読み込みに失敗しました。もう一度お試しください")
 	}
