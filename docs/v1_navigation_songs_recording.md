@@ -2,7 +2,7 @@
 
 ## 方針
 
-- **単一の `NavigationStack`** を選曲タブ内に持つ（`SongsRootView`）。V1 では **インテントのルートコンテンツ（`IntentTabContainerView`）のみ**を載せる（Spotify 視聴履歴タブは V2 でセグメント等として追加予定）。`RootView` の選曲タブ側では **外側に `NavigationStack` を重ねない**（二重スタック回避）。
+- **単一の `NavigationStack`** を選曲タブ内に持つ（`SongsRootView`）。ここでは **セグメント（インテント / Spotify）とルートコンテンツ**のみを載せる。`RootView` の選曲タブ側では **外側に `NavigationStack` を重ねない**（二重スタック回避）。
 - **歌唱記録 UI** は **`NavigationStack` の push では出さない**。`@State private var presentedRecordingRoute: SongsRecordingRoute?` と **`.sheet(item: $presentedRecordingRoute)`** で `RecordingSheetContainerView` をモーダル表示する（`presentation: .sheet`）。
 - **理由（UX）**: push で `NavigationPath` を空にして pop すると、必ず一度 **下のルート（インテント一覧）が露出**する。保存後に履歴タブへ切り替えるときの「一瞬チラつき」を避けるため、**シートの dismiss** で閉じる。
 

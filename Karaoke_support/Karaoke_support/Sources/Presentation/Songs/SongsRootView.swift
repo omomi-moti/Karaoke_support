@@ -8,20 +8,48 @@ struct SongsRootView: View {
 	@Environment(\.sessionRepository) private var sessionRepository
 	@Environment(\.navigateToManualRecording) private var navigateToManualRecording
 
+	private enum Segment: String, CaseIterable, Identifiable {
+		case intent = "インテント"
+		case spotify = "Spotify"
+
+		var id: String { rawValue }
+	}
+
+	@State private var segment: Segment = .intent
 	/// 記録は `NavigationStack` の push ではなくシートで出し、保存後に pop でルートが一瞬見えるのを避ける。
 	@State private var presentedRecordingRoute: SongsRecordingRoute?
 
 	var body: some View {
 		NavigationStack {
-			IntentTabContainerView(
-				insightRepository: insightRepository,
-				sessionRepository: sessionRepository,
-				onSelectTrack: { selected in
-					presentedRecordingRoute = .recording(selected)
-				},
-				onNavigateToManualRecording: navigateToManualRecording
-			)
-			.frame(maxWidth: .infinity, maxHeight: .infinity)
+			VStack(spacing: 16) {
+				Picker("選曲タブ", selection: $segment) {
+					ForEach(Segment.allCases) { segment in
+						Text(segment.rawValue).tag(segment)
+					}
+				}
+				.pickerStyle(.segmented)
+				.padding(.horizontal)
+
+				Group {
+					switch segment {
+					case .intent:
+						IntentTabContainerView(
+							insightRepository: insightRepository,
+							sessionRepository: sessionRepository,
+							onSelectTrack: { selected in
+								presentedRecordingRoute = .recording(selected)
+							},
+							onNavigateToManualRecording: navigateToManualRecording
+						)
+					case .spotify:
+						EmptyPlaceholderView(
+							title: "Spotify視聴履歴（準備中）",
+							message: "V1ではプレースホルダー表示です。"
+						)
+					}
+				}
+				.frame(maxWidth: .infinity, maxHeight: .infinity)
+			}
 			.navigationTitle("選曲")
 			.navigationBarTitleDisplayMode(.inline)
 			.toolbar {
