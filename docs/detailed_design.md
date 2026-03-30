@@ -409,21 +409,36 @@ enum TrackMetadataState {
 
 ## 4. ディレクトリ構成
 
+実装の最新ツリーは **README の「📂 ディレクトリ構成」** と一致させる。概要は次のとおり。
+
 ```
 Sources/
-├── Presentation/            # View + ViewModel（画面単位でサブフォルダ）
-│   ├── Recording/           # RecordingView, RecordingViewModel
-│   ├── Search/              # SearchView, SearchViewModel
-│   ├── Insight/             # InsightView, InsightViewModel
-│   └── History/             # HistoryView, SessionListViewModel
-├── Domain/                  # Protocol定義・モデル（フレームワーク非依存）
-│   ├── Models/              # Track, SingingSession, Intent
-│   └── Repositories/        # SessionRepository(protocol), TrackRepository(protocol), InsightRepository(protocol)
-└── Data/                    # 具体実装（SwiftData, Spotify, Cache）
-    ├── SwiftData/           # SwiftDataSessionRepository, SwiftDataTrackRepository
-    ├── Spotify/             # SpotifyAPIClient, TrackMetadataService
-    └── Cache/               # TrackMetadataCache, RecentlyPlayedCache
+├── App/                          # @main、EnvironmentKey（DI）、プレビュー用モック
+│   ├── KaraokeSupportApp.swift
+│   ├── Environment/              # Repository / Network / ナビ用 EnvironmentKey
+│   └── PreviewSupport/           # プレビュー用モック Repository
+├── Presentation/                 # View + ViewModel（画面単位でサブフォルダ）
+│   ├── Recording/                # 歌唱記録シート（Sheet / Sections / TrackInput 等）
+│   ├── History/                  # 履歴一覧（List / Filters 等）
+│   ├── Songs/                    # 選曲ルート・インテントタブ（IntentTab / TimeMachine / MyAnthem / Ranking 等）
+│   ├── Insight/                  # プレースホルダー（将来）
+│   ├── Search/                   # V2 プレースホルダー
+│   ├── Settings/                 # プレースホルダー
+│   ├── Root/                     # RootView（TabView）
+│   ├── Common/                   # 共通コンポーネント
+│   └── Theme/                    # AppColor 等
+├── Domain/                       # Protocol・モデル（フレームワーク非依存が原則）
+│   ├── Models/                   # SwiftData / Enums / Flow / Rankings 等
+│   ├── Repositories/             # *RepositoryProtocol、エラー型等
+│   └── Helpers/                  # TrackDisplayTitle 等
+└── Data/                         # 具体実装
+    ├── SwiftData/                # SwiftData*Repository
+    ├── Network/                  # NetworkMonitor
+    ├── Spotify/                  # V2 用
+    └── Cache/                    # V2 用
 ```
+
+**ユニットテスト**: `Karaoke_supportTests/` は上記レイヤに対応するよう `Domain` / `Data` / `Presentation` にミラー配置する（詳細は README）。
 
 **依存の方向**: `Presentation → Domain Protocol ← Data`
 - Presentation は Domain の Protocol に依存する。Data の具体実装には依存しない

@@ -424,15 +424,29 @@ flowchart TD
 Sources/
 ├── App/                          # @main エントリポイント、EnvironmentKey（DI 配線）
 │   ├── KaraokeSupportApp.swift   # ModelContainer 生成、Repository 注入
-│   ├── *RepositoryEnvironment.swift  # 各 Repository の EnvironmentKey
-│   ├── Preview*Repository.swift  # プレビュー用モック
-│   ├── NetworkMonitorEnvironment.swift
-│   └── ManualRecordingNavigationEnvironment.swift
+│   ├── Environment/              # Repository / Network / ナビ用 EnvironmentKey
+│   └── PreviewSupport/           # プレビュー用モック Repository
 │
 ├── Presentation/                 # View + ViewModel（画面単位でサブフォルダ）
 │   ├── Recording/                # 歌唱記録シート（曲入力 → スコア → Intent → メモ + 保存）
+│   │   ├── Sheet/                # Container / Content / ViewModel / SessionSeed / ContentPresentation
+│   │   ├── Sections/             # Intent・スコア・歌唱日時・メモの各セクション
+│   │   ├── TrackInput/           # 曲入力 UI・状態・Resolver
+│   │   ├── OfflineBannerView.swift
+│   │   └── InlineErrorRetryView.swift
 │   ├── History/                  # 履歴一覧（フィルター・ソート・ページネーション・削除・編集）
-│   ├── Songs/                    # 選曲ルート・インテントタブ（タイムマシン・マイアンセム、`NavigationStack` + `.sheet`）
+│   │   ├── List/                 # 一覧・行・バッジ・行表示用 DisplayItem
+│   │   ├── Filters/              # フィルターバー・Intent フィルター・ソート
+│   │   ├── HistoryRootView.swift
+│   │   ├── HistoryListContainerView.swift
+│   │   └── HistoryViewModel.swift
+│   ├── Songs/                    # 選曲ルート・インテントタブ（`NavigationStack` + `.sheet`）
+│   │   ├── SongsRootView.swift
+│   │   ├── SongsRecordingRoute.swift
+│   │   ├── IntentTab/            # コンテナ・ViewModel・インサイト行・スタイル
+│   │   ├── TimeMachine/          # タイムマシンカード・ランキングシート
+│   │   ├── MyAnthem/             # マイアンセムカード・ランキングシート
+│   │   └── Ranking/              # ランキングシート共通（行・ヒーローヘッダー）
 │   ├── Insight/                  # 現状はプレースホルダー（`.gitkeep`）。将来の拡張用
 │   ├── Search/                   # ハイブリッド検索（V2・現状 `.gitkeep`）
 │   ├── Settings/                 # 設定画面（プレースホルダー、V2 で本実装）
@@ -636,6 +650,47 @@ open Karaoke_support/Karaoke_support.xcodeproj
 ---
 
 ## 🧪 テスト
+
+### `Karaoke_supportTests/` の配置
+
+`Sources/` のレイヤ・機能にミラーしたサブフォルダです。`Karaoke_supportTests.swift` のみルート直下です。
+
+<details>
+<summary>ツリー（クリックで展開）</summary>
+
+```
+Karaoke_supportTests/
+├── Karaoke_supportTests.swift
+├── Domain/
+│   ├── Helpers/
+│   │   └── TrackDisplayTitleTests.swift
+│   └── Models/
+│       └── Rankings/
+│           └── InsightTrackRowTitleTests.swift
+├── Data/
+│   └── SwiftData/
+│       ├── I011SessionIdempotencyTests.swift
+│       ├── SwiftDataSessionRepositoryDeleteRecordingSessionTests.swift
+│       ├── SwiftDataSessionRepositoryFetchByIntentTests.swift
+│       ├── SwiftDataSessionRepositoryFetchRecordingSessionTests.swift
+│       └── SwiftDataSessionRepositoryUpdateRecordingSessionTests.swift
+└── Presentation/
+    ├── Common/
+    │   └── SingingEmptyStateCopyTests.swift
+    ├── History/
+    │   ├── HistoryViewModelPaginationTests.swift
+    │   ├── HistoryViewModelSortTests.swift
+    │   └── Filters/
+    │       └── HistorySortOrderTests.swift
+    ├── Recording/
+    │   └── Sheet/
+    │       └── RecordingSheetViewModelEditSaveTests.swift
+    └── Songs/
+        └── IntentTab/
+            └── IntentTabViewModelTests.swift
+```
+
+</details>
 
 ### ユニットテスト（14 ファイル）
 

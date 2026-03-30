@@ -193,7 +193,7 @@ Phase 2: I-017 → I-018
   - [x] 保存前に SessionRepository.exists(uuid) で重複チェックを行う
   - [x] 既存の場合はスキップし、二重登録を防止する
   - [x] クライアント生成の UUID を Idempotency Key として使用する
-  - [x] 冪等性が保証されることを確認する（`Karaoke_supportTests/I011SessionIdempotencyTests.swift`）
+  - [x] 冪等性が保証されることを確認する（`Karaoke_supportTests/Data/SwiftData/I011SessionIdempotencyTests.swift`）
 - **MVP 仕様メモ（冪等の意味）**:
   - **同一 Idempotency Key（`SingingSession.id`）の再送**は、データ層では **既存なら insert・`singCount` 加算を行わず成功扱い**（＝**同一キーの再送は無視**）。
   - **V1 / MVP** では、保存失敗後の **再試行は「同じ入力内容でのやり直し」を推奨**とする。失敗後に曲名・スコア・Intent 等を変えてから再試行した場合、**既に同一キーで保存済み**だと **画面上の変更が DB に反映されないのに成功に見える**可能性がある（境界仕様）。詳細は [`manual_qa_I008_I009_record_save.md`](./manual_qa_I008_I009_record_save.md) の任意シナリオを参照。
@@ -307,7 +307,7 @@ Phase 2: I-017 → I-018
   - [x] マイアンセム表示領域をレイアウトする → **インディゴグラデの `MyAnthemInsightCardView`。「聴く」で `MyAnthemRankingSheetView`（`fetchMyAnthemRankings`）**
   - [x] InsightRepository からデータを取得する ViewModel を用意する → **`IntentTabViewModel`（`IntentTabContainerView` が生成）**
   - [x] 歌唱データ0件時は I-016 の Empty State コンポーネントを表示する → **`sessionRepository.fetchAll(limit:1)` で判定し `SingingEmptyStateView`**
-- **ユニットテスト**（`Karaoke_supportTests`）:
+- **ユニットテスト**（`Karaoke_supportTests` — `Domain` / `Data` / `Presentation` にミラー配置）:
   - **`IntentTabViewModelTests`**: `load()` の成功（`Preview*` Repository）・セッション 0 件で Insight 未呼び出し・タイムマシン／先頭 `fetchAll` 失敗時のエラーメッセージ・**並行 `load()` で最新試行のみ Insight を取得**（`loadGeneration`）・**`computeMonthStats`**（今月のみカウント・600 件でページング・翌月境界除外）。スタブは `SessionRepositoryProtocol` の **日時降順**に合わせて `performedAt` でソート。
   - **`InsightTrackRowTitleTests`**: `InsightTrackRowTitle.text` の優先順位（手入力名 / Spotify ID / 「曲名未設定」）・`InsightTrackCountRanking` / `InsightTrackScoreRanking` の **`makeSelectedTrack()`**（同一メタデータの一致・空白トリム・両方空で `nil` 等）。
 - **任意フォロー**: タイムマシン／マイアンセムの2シートを **`enum` + `.sheet(item:)` 一本化**し、両 `Bool` が同時に true になり得ることを防ぐ案 → [`v1_navigation_songs_recording.md`](./v1_navigation_songs_recording.md)「インテントタブのランキングシート」
