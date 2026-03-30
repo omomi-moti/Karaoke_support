@@ -24,12 +24,12 @@ Recording Sheet の UI・手動入力・I-010 は別ログ [`../i-008-i-012-i-00
 | 保存前に `SessionRepository.exists(uuid)` | `SwiftDataSessionRepository.saveNewRecordingSession` 先頭で `if try await exists(uuid: session.id) { return }`。 |
 | 既存ならスキップ | 上記により **insert・`singCount` 更新をスキップ**し二重登録を防止。 |
 | クライアント UUID を Idempotency Key | `RecordingSheetViewModel` — 初回保存で `UUID()` を生成し `pendingSessionIdForSave` に保持。成功で `nil` にクリア。失敗時は同じ ID で `save()` を再実行可能。 |
-| 冪等性の検証 | `Karaoke_supportTests/I011SessionIdempotencyTests.swift` — 同一 UUID で `saveNewRecordingSession` を2回呼び、セッション行数が 1、`track.singCount` が二重に増えないことを検証。 |
+| 冪等性の検証 | `Karaoke_supportTests/Data/SwiftData/I011SessionIdempotencyTests.swift` — 同一 UUID で `saveNewRecordingSession` を2回呼び、セッション行数が 1、`track.singCount` が二重に増えないことを検証。 |
 
 ### Repository
 
 - **`Sources/Data/SwiftData/SwiftDataSessionRepository.swift`** — `saveNewRecordingSession` / `exists`
-- **`Sources/App/PreviewSessionRepository.swift`** — プレビュー用に同一冪等セマンティクス（保存済み ID を `Set` で保持）
+- **`Sources/App/PreviewSupport/PreviewSessionRepository.swift`** — プレビュー用に同一冪等セマンティクス（保存済み ID を `Set` で保持）
 
 ### Domain
 
@@ -37,7 +37,7 @@ Recording Sheet の UI・手動入力・I-010 は別ログ [`../i-008-i-012-i-00
 
 ### ViewModel（Idempotency Key 保持）
 
-- **`Sources/Presentation/Recording/RecordingSheetViewModel.swift`** — `pendingSessionIdForSave`
+- **`Sources/Presentation/Recording/Sheet/RecordingSheetViewModel.swift`** — `pendingSessionIdForSave`
 
 ---
 
@@ -45,7 +45,7 @@ Recording Sheet の UI・手動入力・I-010 は別ログ [`../i-008-i-012-i-00
 
 | ファイル | 内容 |
 |----------|------|
-| `Karaoke_supportTests/I011SessionIdempotencyTests.swift` | 同一 `SingingSession.id` で2回 `saveNewRecordingSession` しても行数・`singCount` が増えないこと |
+| `Karaoke_supportTests/Data/SwiftData/I011SessionIdempotencyTests.swift` | 同一 `SingingSession.id` で2回 `saveNewRecordingSession` しても行数・`singCount` が増えないこと |
 
 ---
 
