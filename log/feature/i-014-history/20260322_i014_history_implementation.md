@@ -24,10 +24,10 @@
 
 ### 主なファイル
 
-- `Sources/Presentation/History/HistoryListView.swift` — 一覧・フィルター・ソート UI・`NavigationLink` / スワイプ
+- `Sources/Presentation/History/List/HistoryListView.swift` — 一覧・フィルター・ソート UI・`NavigationLink` / スワイプ
 - `Sources/Presentation/History/HistoryListContainerView.swift` — `NavigationStack(path:)`、編集先 `navigationDestination(for: UUID.self)`、保存後 `load()`、`editPath.removeLast()` は **`isEmpty` ガード付き**
 - `Sources/Presentation/History/HistoryViewModel.swift` — `load` / `deleteSession`、`filter → sort`
-- `Sources/Presentation/History/HistorySessionRowView.swift` / `HistorySessionRowDisplayItem.swift` — 行 UI・値スナップショット
+- `Sources/Presentation/History/List/HistorySessionRowView.swift` / `HistorySessionRowDisplayItem.swift` — 行 UI・値スナップショット
 - `Sources/Presentation/Root/RootView.swift` — 履歴タブは **外側 `NavigationStack` を外し**、スタックは `HistoryListContainerView` に集約（編集 push 用・二重スタック回避）
 
 ---
@@ -38,7 +38,7 @@
 - ダーク寄せ固定・コントラスト方針は **`docs/design/color_tokens_v1.md`** に記載。
 - `AccentColor.colorset` と `AppAccentScore` の整合。
 
-関連: `Sources/Presentation/Common/AppColor.swift`（または同等の集約）、`Assets.xcassets` のセマンティックカラー。
+関連: `Sources/Presentation/Theme/AppColor.swift`、`Assets.xcassets` のセマンティックカラー。
 
 ---
 
@@ -48,7 +48,7 @@
 - UI: **`HistorySortControlView`**（フィルター直下、メニュー形式 Picker）。VoiceOver は Picker に `accessibilityLabel` / `accessibilityValue`（HStack の `combine` は未使用）。
 - V1 は **`fetchAll` 後のメモリ整列**。I-015 ページネーション時に DB 側 sort を検討可能。
 
-主なファイル: `HistorySortOrder.swift`, `HistorySortControlView.swift`。
+主なファイル: `Sources/Presentation/History/Filters/HistorySortOrder.swift`, `Sources/Presentation/History/Filters/HistorySortControlView.swift`。
 
 ---
 

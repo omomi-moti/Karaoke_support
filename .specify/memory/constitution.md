@@ -58,26 +58,36 @@
 
 ### ディレクトリ構成
 
-レイヤー別（Presentation / Domain / Data）構成を標準とする：
+レイヤー別（App / Presentation / Domain / Data）構成を標準とする：
 
 ```
 Sources/
+├── App/                 # @main、EnvironmentKey（DI）、プレビュー用モック
+│   ├── KaraokeSupportApp.swift
+│   ├── Environment/     # Repository / Network 等の EnvironmentKey
+│   └── PreviewSupport/  # プレビュー用モック Repository
 ├── Presentation/        # View + ViewModel（画面単位でサブフォルダ）
-│   ├── Recording/
+│   ├── Recording/       # Sheet / Sections / TrackInput 等（歌唱記録シート）
+│   ├── History/         # List / Filters 等（履歴一覧）
+│   ├── Songs/           # 選曲タブ・インテントタブ等
 │   ├── Search/
 │   ├── Insight/
-│   └── History/
+│   ├── Root/            # TabView 等
+│   ├── Common/
+│   └── Theme/
 ├── Domain/              # Protocol定義・モデル（フレームワーク非依存）
-│   ├── Models/          # Track, SingingSession, Intent
-│   └── Repositories/    # SessionRepository(protocol), TrackRepository(protocol)
+│   ├── Models/          # Track, SingingSession, Intent 等
+│   ├── Repositories/    # SessionRepository(protocol), TrackRepository(protocol)
+│   └── Helpers/
 └── Data/                # 具体実装（SwiftData, Spotify, Cache）
     ├── SwiftData/
+    ├── Network/
     ├── Spotify/
     └── Cache/
 ```
 
 - Presentation → Domain Protocol に依存。Data の具体実装には依存しない
-- **Data 層は SwiftUI に依存しない**。EnvironmentKey 等の SwiftUI DI 配線は App 層（Sources/App/）に配置する。
+- **Data 層は SwiftUI に依存しない**。EnvironmentKey 等の SwiftUI DI 配線は App 層（`Sources/App/Environment/` 等）に配置する。
 - Domain は原則として外部フレームワーク（SwiftData 等）に依存しない純粋な Swift とする。**例外**: 永続化に SwiftData を用いる場合に限り、Track および SingingSession の @Model 定義を Domain/Models に置くことを許容する（型の二重定義とマッピング層を避け、実装をシンプルに保つため）。
 - 新機能追加時は必ず上記レイヤーに従って配置する
 

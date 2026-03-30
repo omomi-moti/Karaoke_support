@@ -31,7 +31,7 @@
 - `Sources/Presentation/Recording/TrackInput/TrackInputState.swift`
 - `Sources/Presentation/Recording/TrackInput/TrackResolver.swift`
 - `Sources/Presentation/Recording/OfflineBannerView.swift`
-- `Sources/Presentation/Recording/RecordingSheetContentView.swift`
+- `Sources/Presentation/Recording/Sheet/RecordingSheetContentView.swift`
 
 ---
 
@@ -48,8 +48,8 @@
 
 ### 関連ファイル（主）
 
-- `Sources/Presentation/Recording/RecordingSheetIntentSection.swift`
-- `Sources/Presentation/Recording/RecordingSheetViewModel.swift`（`RecordingDraft`）
+- `Sources/Presentation/Recording/Sections/RecordingSheetIntentSection.swift`
+- `Sources/Presentation/Recording/Sheet/RecordingSheetViewModel.swift`（`RecordingDraft`）
 
 ---
 
@@ -67,10 +67,10 @@
 
 ### 関連ファイル（主）
 
-- `Sources/Presentation/Recording/RecordingSheetScoreSection.swift`
-- `Sources/Presentation/Recording/RecordingSheetMemoSection.swift`
+- `Sources/Presentation/Recording/Sections/RecordingSheetScoreSection.swift`
+- `Sources/Presentation/Recording/Sections/RecordingSheetMemoSection.swift`
 - `Sources/Presentation/Recording/InlineErrorRetryView.swift`
-- `Sources/Presentation/Recording/RecordingSheetContainerView.swift`
+- `Sources/Presentation/Recording/Sheet/RecordingSheetContainerView.swift`
 
 ### 手動 QA
 
@@ -95,8 +95,8 @@
 
 ### 関連ファイル（主）
 
-- `Sources/Presentation/Recording/RecordingSheetContentView.swift`
-- `Sources/Presentation/Recording/RecordingSheetViewModel.swift`
+- `Sources/Presentation/Recording/Sheet/RecordingSheetContentView.swift`
+- `Sources/Presentation/Recording/Sheet/RecordingSheetViewModel.swift`
 
 ---
 
