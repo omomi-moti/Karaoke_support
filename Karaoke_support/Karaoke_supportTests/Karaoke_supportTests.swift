@@ -8,7 +8,7 @@
 import XCTest
 
 final class Karaoke_supportTests: XCTestCase {
-
+    /// "デフォルトテンプレの空テストであり、アサーションはない"
     func testExample() throws {
         // Write your test here and use XCTest APIs like `XCTAssert(...)` to check expected conditions.
     }
