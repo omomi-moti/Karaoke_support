@@ -11,7 +11,7 @@ import XCTest
 @testable import Karaoke_support
 
 final class I011SessionIdempotencyTests: XCTestCase {
-
+    /// "境界：同一クライアント生成 UUID で saveNewRecordingSession を二度呼んでも、セッション行は1件のまま・singCount も二重に増えない"
 	@MainActor
 	func testSaveNewRecordingSessionSecondCallWithSameIdDoesNotDoubleIncrement() async throws {
 		let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
