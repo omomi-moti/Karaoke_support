@@ -11,7 +11,7 @@ import XCTest
 @testable import Karaoke_support
 
 final class SwiftDataSessionRepositoryDeleteRecordingSessionTests: XCTestCase {
-
+	/// 保存済みのセッションを削除した場合、データ行が削除され、紐づくTrackのsingCountが1減少すること
 	@MainActor
 	func testDeleteRecordingSessionRemovesRowAndDecrementsSingCount() async throws {
 		let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
@@ -39,7 +39,7 @@ final class SwiftDataSessionRepositoryDeleteRecordingSessionTests: XCTestCase {
 		let remaining = try context.fetch(fetchDescriptor)
 		XCTAssertTrue(remaining.isEmpty)
 	}
-
+    /// 存在しないセッションIDを指定して削除を試みた場合、sessionNotFoundエラーとなること
 	@MainActor
 	func testDeleteRecordingSessionThrowsWhenIdMissing() async throws {
 		let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
