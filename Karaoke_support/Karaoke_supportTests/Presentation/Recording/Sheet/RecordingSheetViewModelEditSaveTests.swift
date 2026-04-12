@@ -63,6 +63,10 @@ private final class SpySessionRepositoryForEdit: SessionRepositoryProtocol {
 @MainActor
 final class RecordingSheetViewModelEditSaveTests: XCTestCase {
 
+	/// 概要: 編集モードで save() を呼ぶと updateRecordingSession が呼ばれ、saveNewRecordingSession は呼ばれないこと
+	/// 前提(Given): 既存セッションを editingSession として渡した RecordingSheetViewModel と、呼び出しを記録する SpySessionRepositoryForEdit
+	/// 実行(When): vm.save() を呼ぶ
+	/// 検証(Then): 戻り値が true、spy.didCallUpdate=true、spy.didCallSaveNew=false となる
 	func testSave_UsesUpdateRecordingSessionWhenEditing() async {
 		let track = Track(userEnteredName: "編集テスト曲")
 		let session = SingingSession(

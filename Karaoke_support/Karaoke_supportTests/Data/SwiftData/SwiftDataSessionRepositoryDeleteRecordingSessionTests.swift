@@ -12,6 +12,10 @@ import XCTest
 
 final class SwiftDataSessionRepositoryDeleteRecordingSessionTests: XCTestCase {
 
+	/// 概要: 保存済みのセッションを削除すると、DB 行が消え、紐づく Track の singCount が 1 減少すること
+	/// 前提(Given): saveNewRecordingSession で保存し singCount=1 になっているセッション
+	/// 実行(When): そのセッションの UUID で deleteRecordingSession(uuid:) を呼ぶ
+	/// 検証(Then): Track の singCount が 0 になり、該当 UUID の SingingSession が DB から存在しなくなる
 	@MainActor
 	func testDeleteRecordingSessionRemovesRowAndDecrementsSingCount() async throws {
 		let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
@@ -40,6 +44,10 @@ final class SwiftDataSessionRepositoryDeleteRecordingSessionTests: XCTestCase {
 		XCTAssertTrue(remaining.isEmpty)
 	}
 
+	/// 概要: 存在しない UUID で削除を試みると sessionNotFound エラーがスローされること
+	/// 前提(Given): セッションを一切保存していない空のインメモリ DB
+	/// 実行(When): 未登録の UUID で deleteRecordingSession(uuid:) を呼ぶ
+	/// 検証(Then): SessionRepositoryError.sessionNotFound(missingId) がスローされ、エラーに含まれる id が指定した UUID と一致する
 	@MainActor
 	func testDeleteRecordingSessionThrowsWhenIdMissing() async throws {
 		let configuration = ModelConfiguration(isStoredInMemoryOnly: true)

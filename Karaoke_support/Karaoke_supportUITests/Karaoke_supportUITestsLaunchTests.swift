@@ -18,6 +18,10 @@ final class Karaoke_supportUITestsLaunchTests: XCTestCase {
         continueAfterFailure = false
     }
 
+    /// 概要: アプリが起動してフォアグラウンドに遷移することを確認するスモークテスト
+    /// 前提(Given): KARAOKE_UITEST_IN_MEMORY=1 環境変数を設定した XCUIApplication
+    /// 実行(When): app.launch() でアプリを起動し、.runningForeground になるまで最大 10 秒待機する
+    /// 検証(Then): アプリが .runningForeground 状態になり、起動直後のスクリーンショットが添付される
     func testLaunch() throws {
         let app = XCUIApplication()
         app.launchEnvironment["KARAOKE_UITEST_IN_MEMORY"] = "1"

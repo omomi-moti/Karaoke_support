@@ -59,6 +59,10 @@ final class HistoryViewModelPaginationTests: XCTestCase {
 		}
 	}
 
+	/// 概要: filter=.all のとき loadInitial と loadNextPageIfNeeded が offset ページングで fetchAll を呼ぶこと
+	/// 前提(Given): 第 1 ページ 20 件・第 2 ページ 10 件を返すスタブで filter=.all を設定
+	/// 実行(When): loadInitial() → sessions 末尾の ID で loadNextPageIfNeeded() を順に呼ぶ
+	/// 検証(Then): fetchAll の offset が [0, 20] で呼ばれ、sessions が 30 件に増え、hasMorePages が false になる
 	func testLoadInitialAndLoadNextPage_UsesOffsetPagingForAll() async throws {
 		let stub = PagingStubSessionRepository()
 		stub.allPages = [
@@ -81,6 +85,10 @@ final class HistoryViewModelPaginationTests: XCTestCase {
 		XCTAssertFalse(vm.hasMorePages)
 	}
 
+	/// 概要: filter=.intent(.emo) のとき offset ページングで fetchByIntent(.emo) が呼ばれること
+	/// 前提(Given): .emo の第 1 ページ 20 件・第 2 ページ 5 件を返すスタブで filter=.intent(.emo) を設定
+	/// 実行(When): loadInitial() → sessions 末尾 ID で loadNextPageIfNeeded() を順に呼ぶ
+	/// 検証(Then): fetchByIntent の offset が [0, 20] で呼ばれ、sessions が 25 件に増え、hasMorePages が false になる
 	func testLoadInitialAndLoadNextPage_UsesFetchByIntentPaging() async throws {
 		let stub = PagingStubSessionRepository()
 		stub.intentPages[.emo] = [
@@ -102,6 +110,10 @@ final class HistoryViewModelPaginationTests: XCTestCase {
 		XCTAssertFalse(vm.hasMorePages)
 	}
 
+	/// 概要: リストの先頭付近のアイテムで loadNextPageIfNeeded を呼んでも追加フェッチが発生しないこと
+	/// 前提(Given): 20 件の第 1 ページをロード済みの状態
+	/// 実行(When): sessions の先頭アイテムの ID で loadNextPageIfNeeded(currentItemID:) を呼ぶ
+	/// 検証(Then): fetchAll の呼び出し offset が [0] のまま増えず、sessions 件数も 20 件から変わらない
 	func testLoadNextPageIfNeeded_DoesNothingWhenNotNearBottom() async throws {
 		let stub = PagingStubSessionRepository()
 		stub.allPages = [makeSessions(count: 20, startingAt: 1_000), makeSessions(count: 20, startingAt: 900)]
@@ -116,7 +128,10 @@ final class HistoryViewModelPaginationTests: XCTestCase {
 		XCTAssertEqual(vm.sessions.count, 20)
 	}
 
-	/// `maxDisplayedSessionRows`（500）を超えたら末尾を捨て、`hasMorePages` で追加読み込みを止める（I-015）。
+	/// 概要: 表示件数上限（500 件）に達したら sessions が先頭 500 件に切り詰められ、hasMorePages が false になること（I-015）
+	/// 前提(Given): 20 件 × 26 ページ = 520 件を返すスタブで filter=.all を設定
+	/// 実行(When): loadInitial() の後、sessions 末尾 ID で loadNextPageIfNeeded を 25 回繰り返す
+	/// 検証(Then): sessions が 500 件に切り詰められ、hasMorePages=false となり、その後の loadNextPageIfNeeded で Repository が呼ばれなくなる
 	func testPagination_StopsAtDisplayedSessionCap() async throws {
 		let stub = PagingStubSessionRepository()
 		// 20 件 × 26 ページ = 520 件 → 1 回目の append で 500 超え → prefix(500) と hasMorePages = false

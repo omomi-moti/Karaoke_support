@@ -12,6 +12,10 @@ import XCTest
 
 final class SwiftDataSessionRepositoryUpdateRecordingSessionTests: XCTestCase {
 
+	/// 概要: 編集保存でフィールドが上書きされ、singCount が増加しないこと
+	/// 前提(Given): intent=.shout・score=80・memo="old" で saveNewRecordingSession を呼び、singCount=1 の状態
+	/// 実行(When): 同一セッション ID で intent=.emo・score=91.25・memo="new"・performedAt=2_000 に変えた SingingSession で updateRecordingSession を呼ぶ
+	/// 検証(Then): Track の singCount は 1 のまま変わらず、DB 上のレコードが新しい intent / score / memo / performedAt に上書きされている
 	@MainActor
 	func testUpdateRecordingSessionOverwritesFieldsWithoutIncrementingSingCount() async throws {
 		let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
@@ -58,6 +62,10 @@ final class SwiftDataSessionRepositoryUpdateRecordingSessionTests: XCTestCase {
 		XCTAssertEqual(persisted?.performedAt, Date(timeIntervalSince1970: 2_000))
 	}
 
+	/// 概要: 存在しない ID のセッションを更新しようとすると sessionNotFound エラーがスローされること
+	/// 前提(Given): セッションを一切保存していない空のインメモリ DB
+	/// 実行(When): 未登録の UUID を持つ SingingSession で updateRecordingSession を呼ぶ
+	/// 検証(Then): SessionRepositoryError.sessionNotFound(missingId) がスローされ、エラーに含まれる id が指定した UUID と一致する
 	@MainActor
 	func testUpdateRecordingSessionThrowsWhenIdMissing() async throws {
 		let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
@@ -80,6 +88,10 @@ final class SwiftDataSessionRepositoryUpdateRecordingSessionTests: XCTestCase {
 		}
 	}
 
+	/// 概要: 更新時に Track を差し替えようとするとエラーがスローされること（Track の変更は未サポート）
+	/// 前提(Given): TrackA に紐づくセッションを saveNewRecordingSession で登録済み
+	/// 実行(When): 同一セッション ID で TrackB に紐づけたセッションを updateRecordingSession に渡す
+	/// 検証(Then): SessionRepositoryError.sessionUpdateTrackChangeNotSupported がスローされる
 	@MainActor
 	func testUpdateRecordingSessionThrowsWhenTrackChanges() async throws {
 		let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
