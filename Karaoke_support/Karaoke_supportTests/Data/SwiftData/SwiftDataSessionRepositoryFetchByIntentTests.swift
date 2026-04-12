@@ -12,6 +12,10 @@ import XCTest
 
 final class SwiftDataSessionRepositoryFetchByIntentTests: XCTestCase {
 
+	/// 概要: Intent で絞り込んだ結果が他の Intent を含まず、performedAt 降順で返ること
+	/// 前提(Given): インメモリ DB に同一 Track の .shout セッション 2 件（最新・最旧）と .emo セッション 1 件（中間）を保存
+	/// 実行(When): fetchByIntent(.shout, limit:20, offset:0) と fetchByIntent(.emo, limit:20, offset:0) をそれぞれ呼ぶ
+	/// 検証(Then): .shout は 2 件ですべて .shout かつ新しい順に並び、.emo は 1 件で .emo のみ返る
 	@MainActor
 	func testFetchByIntentReturnsOnlyMatchingIntentInPerformedAtDescendingOrder() async throws {
 		let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
@@ -47,7 +51,10 @@ final class SwiftDataSessionRepositoryFetchByIntentTests: XCTestCase {
 		XCTAssertEqual(emos[0].performedAt, middle)
 	}
 
-	/// limit / offset のページングが Intent 絞り込み後の配列に対して適用されることを検証する。
+	/// 概要: limit / offset のページングが Intent 絞り込み後の結果に正しく適用されること
+	/// 前提(Given): 60 件のセッション（偶数 index = .emo, 奇数 index = .shout）をインメモリ DB に保存
+	/// 実行(When): .emo を limit=10 で offset=0, 10, 20, 30 と順次 fetchByIntent を呼ぶ
+	/// 検証(Then): 先頭 3 ページは 10 件ずつ全件 .emo で performedAt 降順、offset=30 は空配列となり、ページ間で performedAt が連続的に降順になること
 	@MainActor
 	func testFetchByIntentSupportsPaging() async throws {
 		let configuration = ModelConfiguration(isStoredInMemoryOnly: true)

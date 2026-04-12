@@ -12,6 +12,10 @@ import XCTest
 
 final class SwiftDataSessionRepositoryFetchRecordingSessionTests: XCTestCase {
 
+	/// 概要: 保存済みセッションを UUID で取得したとき、全フィールドが保存時と一致すること
+	/// 前提(Given): UUID・intent=.practice・score=77.5・memo="fetch me"・performedAt 指定のセッションを saveNewRecordingSession で保存
+	/// 実行(When): 保存時と同一の UUID で fetchRecordingSession(uuid:) を呼ぶ
+	/// 検証(Then): 返却されたセッションの id / intent / score / memo / performedAt / track.id がすべて保存値と一致する
 	@MainActor
 	func testFetchRecordingSessionReturnsPersistedSession() async throws {
 		let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
@@ -44,6 +48,10 @@ final class SwiftDataSessionRepositoryFetchRecordingSessionTests: XCTestCase {
 		XCTAssertEqual(fetched.track.id, track.id)
 	}
 
+	/// 概要: 存在しない UUID を指定した場合に sessionNotFound エラーがスローされること
+	/// 前提(Given): セッションを一切保存していない空のインメモリ DB
+	/// 実行(When): 未登録の UUID で fetchRecordingSession(uuid:) を呼ぶ
+	/// 検証(Then): SessionRepositoryError.sessionNotFound(missingId) がスローされ、エラーに含まれる id が指定した UUID と一致する
 	@MainActor
 	func testFetchRecordingSessionThrowsWhenIdMissing() async throws {
 		let configuration = ModelConfiguration(isStoredInMemoryOnly: true)

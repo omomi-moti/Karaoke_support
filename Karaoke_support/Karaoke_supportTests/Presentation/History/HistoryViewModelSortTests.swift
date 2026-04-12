@@ -40,6 +40,10 @@ private final class StubSessionRepository: SessionRepositoryProtocol {
 @MainActor
 final class HistoryViewModelSortTests: XCTestCase {
 
+	/// 概要: load() 後に sortOrder=.scoreDescending が適用され、スコアの高い順に sessions が並ぶこと
+	/// 前提(Given): score=10 と score=95 のセッションがスタブに逆順で格納され、sortOrder=.scoreDescending を設定
+	/// 実行(When): vm.load() を呼ぶ
+	/// 検証(Then): loadErrorMessage が nil で、sessions のスコアが [95, 10] の降順になる
 	func testLoad_SortsByScoreDescendingAfterFetch() async {
 		let stub = StubSessionRepository()
 		let track = Track(userEnteredName: "Stub Track")
@@ -67,6 +71,10 @@ final class HistoryViewModelSortTests: XCTestCase {
 		XCTAssertEqual(vm.sessions.map(\.score), [95, 10])
 	}
 
+	/// 概要: filter=.intent(.shout) と sortOrder=.performedAtAscending を組み合わせると、.shout のみが古い順で返ること
+	/// 前提(Given): .emo / .shout 混在の 3 件がスタブに格納され、filter=.intent(.shout)・sortOrder=.performedAtAscending を設定
+	/// 実行(When): vm.load() を呼ぶ
+	/// 検証(Then): sessions が 2 件（.shout のみ）で、performedAt が [shoutOld, shoutNew] の昇順になる
 	func testLoad_AppliesIntentFilterThenSortByPerformedAtAscending() async {
 		let stub = StubSessionRepository()
 		let t1 = Track(userEnteredName: "A")
@@ -100,6 +108,10 @@ final class HistoryViewModelSortTests: XCTestCase {
 		XCTAssertEqual(vm.sessions.map(\.performedAt), [shoutOld.performedAt, shoutNew.performedAt])
 	}
 
+	/// 概要: applySortToLoadedSessions() がリポジトリを再フェッチせず、すでに読み込み済みの sessions を再整列させること
+	/// 前提(Given): load() 済みの 2 件（sortOrder=.performedAtDescending、[b, a] 順）
+	/// 実行(When): sortOrder=.scoreAscending に変更して applySortToLoadedSessions() を呼ぶ
+	/// 検証(Then): sessions のスコアが [20, 80] の昇順に変わり、Repository への追加フェッチは発生しない
 	func testApplySortToLoadedSessions_ReordersWithoutRefetch() async {
 		let stub = StubSessionRepository()
 		let track = Track(userEnteredName: "R")

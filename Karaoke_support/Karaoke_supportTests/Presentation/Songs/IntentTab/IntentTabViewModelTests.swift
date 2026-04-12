@@ -133,7 +133,11 @@ private final class SessionRepositoryFetchAllThrowing: SessionRepositoryProtocol
 
 @MainActor
 final class IntentTabViewModelTests: XCTestCase {
-	/// 成功パス。0件・Insight失敗・Session失敗・月次集計は別テストを参照。
+
+	/// 概要: プレビュー用リポジトリで load() が正常完了し、Insight データが画面に反映されること（成功パスのスモークテスト）
+	/// 前提(Given): PreviewInsightRepository と PreviewSessionRepository を注入した IntentTabViewModel
+	/// 実行(When): vm.load() を呼ぶ
+	/// 検証(Then): hasSingingData=true・isLoading=false・loadErrorMessage=nil・timeMachineRanking が非空・myAnthemRankings の件数が Intent.allCases.count と一致する
 	func testLoad_withPreviewRepositories_loadsInsightData() async {
 		let vm = IntentTabViewModel(
 			insightRepository: PreviewInsightRepository(),
@@ -147,6 +151,10 @@ final class IntentTabViewModelTests: XCTestCase {
 		XCTAssertEqual(vm.myAnthemRankings.count, Intent.allCases.count)
 	}
 
+	/// 概要: セッションが 0 件のとき Insight 取得は呼ばれず、ランキングと統計が空になること
+	/// 前提(Given): sessions=[] の SessionRepository スタブと InsightRepositorySpy
+	/// 実行(When): vm.load() を呼ぶ
+	/// 検証(Then): hasSingingData=false・isLoading=false・各ランキングが空・monthSessionCount=0・averageScoreThisMonth=nil・Insight の fetch が 0 回
 	func testLoad_emptySessions_doesNotCallInsightAndClearsRankings() async {
 		let sessionStub = IntentTabSessionRepositoryStub()
 		sessionStub.sessions = []
@@ -169,6 +177,10 @@ final class IntentTabViewModelTests: XCTestCase {
 		XCTAssertEqual(insightSpy.fetchMyAnthemCallCount, 0)
 	}
 
+	/// 概要: TimeMachine ランキング取得がエラーになったとき、loadErrorMessage にエラー文言がセットされること
+	/// 前提(Given): 1 件のセッションを返すスタブと fetchTimeMachineRanking でエラーをスローする InsightRepository
+	/// 実行(When): vm.load() を呼ぶ
+	/// 検証(Then): hasSingingData=true・isLoading=false・loadErrorMessage が "読み込みに失敗しました。もう一度お試しください" になる
 	func testLoad_insightTimeMachineThrows_setsLoadErrorMessage() async {
 		let sessionStub = IntentTabSessionRepositoryStub()
 		let track = Track(userEnteredName: "テスト曲")
@@ -187,6 +199,10 @@ final class IntentTabViewModelTests: XCTestCase {
 		XCTAssertEqual(vm.loadErrorMessage, "読み込みに失敗しました。もう一度お試しください")
 	}
 
+	/// 概要: セッション取得がエラーになったとき、loadErrorMessage にエラー文言がセットされること
+	/// 前提(Given): fetchAll で常にエラーをスローする SessionRepository と InsightRepositorySpy
+	/// 実行(When): vm.load() を呼ぶ
+	/// 検証(Then): hasSingingData=false・isLoading=false・loadErrorMessage が "読み込みに失敗しました。もう一度お試しください" になる
 	func testLoad_sessionRepositoryFetchAllThrows_setsLoadErrorMessage() async {
 		let vm = IntentTabViewModel(
 			insightRepository: InsightRepositorySpy(),
@@ -199,7 +215,10 @@ final class IntentTabViewModelTests: XCTestCase {
 		XCTAssertEqual(vm.loadErrorMessage, "読み込みに失敗しました。もう一度お試しください")
 	}
 
-	/// `load()` を同時に走らせたとき、古い試行は先頭ページ取得後に打ち切られ、インサイトは最新試行のみが呼ぶ（再試行連打のレース回避）。
+	/// 概要: load() を並行して 2 回呼んだとき、古い試行が中断され Insight フェッチは最新の 1 回だけ行われること
+	/// 前提(Given): 先頭ページ取得を意図的に suspend できるスタブと InsightRepositorySpy。1 件のセッションを保有
+	/// 実行(When): async let で load() を 2 並行起動し、両方 await する
+	/// 検証(Then): loadErrorMessage=nil・hasSingingData=true・fetchTimeMachineCallCount=1・fetchMyAnthemCallCount=1（重複呼び出しなし）
 	func testLoad_concurrentInvocations_onlyLatestAttemptFetchesInsight() async {
 		let sessionStub = IntentTabSessionRepositoryStubOverlappingFirstPageFetch()
 		let track = Track(userEnteredName: "並行")
@@ -224,6 +243,10 @@ final class IntentTabViewModelTests: XCTestCase {
 		XCTAssertEqual(insightSpy.fetchMyAnthemCallCount, 1)
 	}
 
+	/// 概要: 今月のセッション件数・平均スコアが先月以前を除いた正しい値になること
+	/// 前提(Given): 先月末の 1 件（score=10）、今月 1 日+1 日の 1 件（score=80）、今月 1 日+2 日の 1 件（score=40）
+	/// 実行(When): vm.load() を呼ぶ
+	/// 検証(Then): monthSessionCount=2（今月分のみ）、averageScoreThisMonth=(80+40)/2=60 になる
 	func testLoad_computeMonthStats_countsOnlyCurrentCalendarMonth() async throws {
 		let cal = Calendar.current
 		let now = Date()
@@ -260,6 +283,10 @@ final class IntentTabViewModelTests: XCTestCase {
 		XCTAssertEqual(average, 60, accuracy: 0.001)
 	}
 
+	/// 概要: 月次統計の集計が fetchAll のページングを使って 600 件すべてを集計できること
+	/// 前提(Given): 全件が今月内・score=50 の SingingSession が 600 件
+	/// 実行(When): vm.load() を呼ぶ
+	/// 検証(Then): monthSessionCount=600、averageScoreThisMonth=50 になる（ページング未実装なら件数不足で失敗する）
 	func testLoad_computeMonthStats_paginatesFetchAll() async throws {
 		let cal = Calendar.current
 		let now = Date()
@@ -299,7 +326,10 @@ final class IntentTabViewModelTests: XCTestCase {
 		XCTAssertEqual(averagePaging, 50, accuracy: 0.001)
 	}
 
-	/// `performedAt` が翌月1日0時以降のセッションは「今月」に含めない（`monthStart ..< nextMonthStart`）。
+	/// 概要: 翌月 1 日 0 時以降のセッションは「今月」カウントに含まれないこと（月末境界の検証）
+	/// 前提(Given): 今月 5 日（score=80）と翌月 1 日 0 時ちょうど（score=99）のセッション 2 件
+	/// 実行(When): vm.load() を呼ぶ
+	/// 検証(Then): monthSessionCount=1（翌月分を除外）、averageScoreThisMonth=80 になる
 	func testLoad_computeMonthStats_excludesNextMonthAndLater() async throws {
 		let cal = Calendar.current
 		guard let monthStart = cal.date(from: cal.dateComponents([.year, .month], from: Date())) else {
