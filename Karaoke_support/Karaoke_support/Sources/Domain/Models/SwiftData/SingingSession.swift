@@ -25,7 +25,7 @@ final class SingingSession {
 		score: Double,
 		memo: String? = nil
 	) {
-		assert(score >= 0 && score <= 100, "SingingSession score must be in 0...100.")
+		precondition(score >= 0 && score <= 100, "SingingSession score must be in 0...100.")
 		self.id = id
 		self.track = track
 		self.intent = intent

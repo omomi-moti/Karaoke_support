@@ -1,8 +1,8 @@
 # ヒトカラモバイルiOS - 詳細設計書
 
-**Version**: 1.1  
+**Version**: 1.2  
 **Created**: 2026-03-12  
-**Updated**: 2026-03-12（Spotify API規約準拠、メタデータ非永続化）  
+**Updated**: 2026-05-03（§2 Domainモデル設計セクション追加、セクション番号更新）  
 **参照**: docs/basic_design.md, specs/001-hitora-karaoke-ios/spec.md
 
 ---
@@ -127,7 +127,89 @@ sequenceDiagram
 
 ---
 
-## 2. クラス図
+## 2. Domainモデル設計
+
+### 2.1 設計方針
+
+Domain層のモデルは以下の原則に従って設計されている。
+
+- **SwiftUI / SwiftData に対する依存を最小化する**。`Track` と `SingingSession` は永続化のために `@Model` を使用しているが、これは「Domain層に `@Model` を置くことでマッピング層を不要にし、実装をシンプルに保つ」ための意図的な例外（`.specify/memory/constitution.md` 参照）
+- **Spotify メタデータを永続化しない**。Spotify から取得した曲名・アーティスト名・アートワーク等は SwiftData / UserDefaults 等に一切保存しない。永続化するのは識別子（`spotifyTrackId`）とユーザー生成データのみ（詳細は §4 参照）
+- **ユーザーの意図（Intent）をドメイン概念として扱う**。Intent は UI 表示用ラベルではなく、インサイト集計・フィルタリングのキーとして全域で機能するドメイン概念である
+
+### 2.2 Track
+
+**責務**: 「どの曲を歌ったか」を識別するエンティティ。Spotify 由来の曲と手動入力曲を統一的に扱い、歌唱回数（`singCount`）の集計値を保持する。
+
+**主なプロパティ**:
+
+| プロパティ | 型 | 説明 |
+|---|---|---|
+| `id` | `UUID` | 内部主キー |
+| `spotifyTrackId` | `String?` | Spotify 識別子（永続化可のキー）。Spotify 由来の曲のみ非 nil |
+| `userEnteredName` | `String?` | ユーザーが入力した曲名（ユーザー生成データのため永続化可）。手動入力曲のみ非 nil |
+| `singCount` | `Int` | 歌唱回数の集計値。`saveNewRecordingSession` で +1、`deleteRecordingSession` で -1 |
+| `sessions` | `[SingingSession]` | 紐づく歌唱記録（逆参照。現状の集計処理では未使用） |
+
+**設計制約**:
+
+- `spotifyTrackId` と `userEnteredName` の**少なくとも一方**は必ず非 nil かつ非空文字でなければならない（両方 non-nil も許容）。これを保証するために public な初期化子を 2 本用意し、両方 nil でのインスタンス化をコンパイル時に防いでいる
+- Spotify から取得した曲名・アーティスト名・アートワーク等は **このモデルに保存しない**（Spotify API 規約準拠）
+
+```
+// Track の2種の初期化経路
+Track(spotifyTrackId: "xxx")          // Spotify 由来の曲
+Track(userEnteredName: "夜に駆ける")   // 手動入力の曲
+```
+
+### 2.3 SingingSession
+
+**責務**: 「1回の歌唱記録」を表現するエンティティ。どの曲（Track）を、どの意図（Intent）で、いつ、何点で歌ったかを保持する。SingingSession が歌唱体験データの SSOT。
+
+**主なプロパティ**:
+
+| プロパティ | 型 | 説明 |
+|---|---|---|
+| `id` | `UUID` | Idempotency Key（二重送信防止の主キー）。UI 層で生成する |
+| `track` | `Track` | 紐づく曲（必須） |
+| `intent` | `Intent` | 歌唱の意図（永続化時は `RawValue: String`） |
+| `performedAt` | `Date` | 歌唱日時 |
+| `score` | `Double` | スコア（0〜100）。桁数・丸めは ViewModel で制御する |
+| `memo` | `String?` | メモ（任意） |
+
+**冪等性の保証**: `id` を Idempotency Key として使用し、同一 `id` のセッションが既に存在する場合は insert も `singCount` 加算も行わずに成功扱いとする。UI 層の `isSaving` フラグと合わせた二重構造で重複保存を防止する。
+
+### 2.4 Intent
+
+**責務**: ユーザーが歌唱時に持った「意図・モード」を表すドメイン列挙型。単なる表示ラベルではなく、インサイト集計（`fetchMyAnthemRankings`）・履歴フィルタリング（`HistoryIntentFilter`）のキーとして全域で機能するドメイン概念。
+
+**定義されている値**:
+
+| 値 | 意味 | 表示名 | emoji | systemImage |
+|---|---|---|---|---|
+| `shout` | 叫び・シャウト系 | Shout | 🔥 | `flame.fill` |
+| `emo` | エモ・感情系 | Emo | 🌙 | `moon.fill` |
+| `practice` | 練習・技術向上 | Practice | 🎤 | `mic.fill` |
+
+> **表示仕様の配置方針**: `displayLabel` / `emoji` / `systemImage` などの UI 表現は Domain 層の `Intent` に直接持たせず、Presentation 層の共通ヘルパー（将来: `IntentDisplayStyle` 等）に集約する。Domain 層に SwiftUI 依存を入れないための判断。現時点では `HistoryIntentBadgeView` と `RecordingSheetIntentSection` にそれぞれ switch 文が存在する。
+
+**準拠プロトコル**:
+- `String` RawValue（SwiftData の永続化で使用）
+- `Codable`（API 連携の将来対応）
+- `CaseIterable`（全 Intent 一覧が必要な集計処理で使用）
+- `Sendable`（Swift Concurrency 対応）
+
+### 2.5 @Model をDomain層に置く設計判断
+
+SwiftData の `@Model` マクロを Domain 層のファイル（`Domain/Models/SwiftData/`）に直接記述している。これは以下の理由による意図的な例外設計。
+
+**採用理由**: `@Model` 型に対してマッピング層（DTO ↔ Domain Model の変換層）を設けると、型の二重定義・変換コストが発生し、V1 スコープでは過剰な複雑さになる。`Track` と `SingingSession` のリレーションが 1:N の単純な構造であるため、`@Model` を Domain 層に置いても依存方向（`Presentation → Domain Protocol ← Data`）は維持できる。
+
+**制約**: Domain 層に `@Model` を置くため、`Domain/Models/SwiftData/` の型は SwiftData に依存する。SwiftUI には依存しない。将来的に純粋な Domain プロトコルへ分離する必要が生じた場合は、DTO + マッパー層の導入を検討する。
+
+---
+
+## 3. クラス図
 
 ```mermaid
 classDiagram
@@ -146,7 +228,6 @@ classDiagram
         +String? spotifyTrackId
         +String? userEnteredName
         +Int singCount
-        +Double? latestScore
     }
 
     class TrackMetadata {
@@ -251,9 +332,9 @@ classDiagram
 
 ---
 
-## 3. データベース設計
+## 4. データベース設計
 
-### 3.1 SwiftData スキーマ設計（Spotify API規約準拠）
+### 4.1 SwiftData スキーマ設計（Spotify API規約準拠）
 
 ```mermaid
 erDiagram
@@ -263,7 +344,6 @@ erDiagram
         string spotifyTrackId "nullable"
         string userEnteredName "nullable, 手動入力時のみ"
         int singCount "集計"
-        double latestScore "nullable, 集計"
         datetime createdAt
         datetime updatedAt
     }
@@ -284,7 +364,7 @@ erDiagram
 
 **補足**: 同一曲の2回目以降は既存 Track を取得し、新規 SingingSession のみ追加する。
 
-### 3.2 エンティティ定義（SwiftData @Model）
+### 4.2 エンティティ定義（SwiftData @Model）
 
 ```swift
 // Why: Spotify API規約により、曲名・アーティスト名・アートワーク等の永続保存が禁止されているため。
@@ -296,7 +376,6 @@ final class Track {
     /// 手動入力曲用。ユーザーが入力した曲名（ユーザー生成データのため永続化可）。Spotify メタデータではない。
     var userEnteredName: String?
     var singCount: Int
-    var latestScore: Double?
     var createdAt: Date
     var updatedAt: Date
 
@@ -322,11 +401,11 @@ final class SingingSession {
 }
 ```
 
-**補足（Track の生成）**: Track は「どちらか必須」を型で保証するため、public の初期化子を 2 本用意している。`init(spotifyTrackId: String, userEnteredName: String? = nil, ...)`（Spotify 由来の曲用）と `init(userEnteredName: String, spotifyTrackId: String? = nil, ...)`（手動入力曲用）。`Track()` や両方 nil での生成はコンパイル不可。空文字は precondition で拒否。代入ロジックは private init に集約している。
+**補足（Track の生成）**: Track は「少なくとも一方が必須（両方 non-nil も許容）」を型で保証するため、public の初期化子を 2 本用意している。`init(spotifyTrackId: String, userEnteredName: String? = nil, ...)`（Spotify 由来の曲用）と `init(userEnteredName: String, spotifyTrackId: String? = nil, ...)`（手動入力曲用）。`Track()` や両方 nil での生成はコンパイル不可。空文字は precondition で拒否。代入ロジックは private init に集約している。
 
 **補足（紐付けの正本）**: Track と外部データの紐付けは `Track.spotifyTrackId` を唯一の正本キーとして扱う。`SingingSession` は `Track` への外部キー（`track` リレーション）のみを持ち、`spotifyTrackId` を冗長に保持しない。曲名・アーティスト名・アートワーク等は表示用の揮発データであり、SwiftData には保存しない。
 
-### 3.3 メタデータの一時キャッシュ（Spotify視聴履歴・表示用）
+### 4.3 メタデータの一時キャッシュ（Spotify視聴履歴・表示用）
 
 ```swift
 // Why: Spotify API規約によりメタデータの永続保存が禁止。24時間以内の一時キャッシュのみ許容。
@@ -374,7 +453,7 @@ actor TrackMetadataCache {
 }
 ```
 
-### 3.4 最近再生した曲のキャッシュ
+### 4.4 最近再生した曲のキャッシュ
 
 ```swift
 // Why: 最近再生した曲は流動的で件数も限定的。SwiftDataより軽量。
@@ -385,7 +464,7 @@ struct RecentlyPlayedCache {
 }
 ```
 
-### 3.5 メタデータ欠損時の表示状態
+### 4.5 メタデータ欠損時の表示状態
 
 ```swift
 enum TrackMetadataState {
@@ -400,14 +479,14 @@ enum TrackMetadataState {
 - 欠損時はプレースホルダ文言（例:「曲情報を取得できません」）と再試行導線を表示する。
 - スコア・Intent・日時・メモは常に表示し、ユーザーの記録閲覧体験を維持する。
 
-### 3.6 App Store審査・コンプライアンス
+### 4.6 App Store審査・コンプライアンス
 
 - **Spotify クレジット**: 検索結果画面・設定画面に「Powered by Spotify」ロゴ等を配置。
 - **プライバシーポリシー**: アプリ内に「データは端末内のみ保存、外部送信なし」旨のプライバシーポリシー（Web）へのリンクを設置。
 
 ---
 
-## 4. ディレクトリ構成
+## 5. ディレクトリ構成
 
 実装の最新ツリーは **README の「📂 ディレクトリ構成」** と一致させる。概要は次のとおり。
 
@@ -447,16 +526,16 @@ Sources/
 
 ---
 
-## 5. API仕様書（Spotify Web API）
+## 6. API仕様書（Spotify Web API）
 
-### 5.1 利用エンドポイント一覧
+### 6.1 利用エンドポイント一覧
 
 | 用途 | エンドポイント | メソッド | スコープ |
 |------|---------------|----------|----------|
 | 最近再生した曲 | `/v1/me/player/recently-played` | GET | user-read-recently-played |
 | 曲検索 | `/v1/search` | GET | （標準スコープ） |
 
-### 5.2 最近再生した曲
+### 6.2 最近再生した曲
 
 **Request**
 
@@ -494,7 +573,7 @@ Authorization: Bearer {access_token}
 }
 ```
 
-### 5.3 曲検索
+### 6.3 曲検索
 
 **Request**
 
@@ -532,7 +611,7 @@ Authorization: Bearer {access_token}
 }
 ```
 
-### 5.4 オフライン・エラー時のフォールバック処理
+### 6.4 オフライン・エラー時のフォールバック処理
 
 ```mermaid
 flowchart TD
@@ -560,7 +639,7 @@ flowchart TD
 | タイムアウト | 30秒でタイムアウト。ローカルデータで継続、再試行UI表示。 |
 | その他 4xx/5xx | エラーログ出力。再試行ボタン表示。該当機能は一時無効化可能。 |
 
-### 5.5 指数バックオフ仕様
+### 6.5 指数バックオフ仕様
 
 - **初回待機**: 1秒
 - **倍率**: 2（1s → 2s → 4s → 8s...）
