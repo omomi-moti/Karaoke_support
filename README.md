@@ -370,7 +370,7 @@ flowchart TD
 
 | 区分 | 永続化・ストレージ | 対象 |
 |------|-------------------|------|
-| **V1 で実装済み** | **SwiftData（SSOT）** | Track（`spotifyTrackId`, `userEnteredName`, `singCount`, `latestScore`）、SingingSession（`intent`, `score`, `memo`, `performedAt`） |
+| **V1 で実装済み** | **SwiftData（SSOT）** | Track（`spotifyTrackId`, `userEnteredName`, `singCount`）、SingingSession（`intent`, `score`, `memo`, `performedAt`） |
 | **V2 設計・未実装** | **インメモリ TTL キャッシュ（24h）** | Spotify メタデータ（曲名・アーティスト名・アートワーク）— API 規約により永続化禁止 |
 | **V2 設計・未実装** | **Keychain** | OAuth トークン（現コードベースでは Keychain 未使用） |
 
