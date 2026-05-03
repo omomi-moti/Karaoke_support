@@ -153,7 +153,7 @@ Domain層のモデルは以下の原則に従って設計されている。
 
 **設計制約**:
 
-- `spotifyTrackId` と `userEnteredName` のどちらか一方は必ず非 nil かつ非空文字でなければならない。これを保証するために public な初期化子を 2 本用意し、両方 nil でのインスタンス化をコンパイル時に防いでいる
+- `spotifyTrackId` と `userEnteredName` の**少なくとも一方**は必ず非 nil かつ非空文字でなければならない（両方 non-nil も許容）。これを保証するために public な初期化子を 2 本用意し、両方 nil でのインスタンス化をコンパイル時に防いでいる
 - Spotify から取得した曲名・アーティスト名・アートワーク等は **このモデルに保存しない**（Spotify API 規約準拠）
 
 ```
@@ -401,7 +401,7 @@ final class SingingSession {
 }
 ```
 
-**補足（Track の生成）**: Track は「どちらか必須」を型で保証するため、public の初期化子を 2 本用意している。`init(spotifyTrackId: String, userEnteredName: String? = nil, ...)`（Spotify 由来の曲用）と `init(userEnteredName: String, spotifyTrackId: String? = nil, ...)`（手動入力曲用）。`Track()` や両方 nil での生成はコンパイル不可。空文字は precondition で拒否。代入ロジックは private init に集約している。
+**補足（Track の生成）**: Track は「少なくとも一方が必須（両方 non-nil も許容）」を型で保証するため、public の初期化子を 2 本用意している。`init(spotifyTrackId: String, userEnteredName: String? = nil, ...)`（Spotify 由来の曲用）と `init(userEnteredName: String, spotifyTrackId: String? = nil, ...)`（手動入力曲用）。`Track()` や両方 nil での生成はコンパイル不可。空文字は precondition で拒否。代入ロジックは private init に集約している。
 
 **補足（紐付けの正本）**: Track と外部データの紐付けは `Track.spotifyTrackId` を唯一の正本キーとして扱う。`SingingSession` は `Track` への外部キー（`track` リレーション）のみを持ち、`spotifyTrackId` を冗長に保持しない。曲名・アーティスト名・アートワーク等は表示用の揮発データであり、SwiftData には保存しない。
 
