@@ -21,7 +21,7 @@
 ### [I-002] SwiftDataモデル定義
 - **Labels**: `priority:must`, `type:feat`, `phase:0-基盤`
 - **Tasks**:
-  - [ ] Track エンティティを @Model で定義する（id, spotifyTrackId, userEnteredName, singCount, latestScore, createdAt, updatedAt）
+  - [ ] Track エンティティを @Model で定義する（id, spotifyTrackId, userEnteredName, singCount, createdAt, updatedAt）
   - [ ] SingingSession エンティティを @Model で定義する（id, track, intent, performedAt, score, memo）
         ※ spotifyTrackId は Track.spotifyTrackId に一本化。SingingSession 側には持たない。
   - [ ] Track と SingingSession のリレーション（1:N、cascade削除）を設定する
