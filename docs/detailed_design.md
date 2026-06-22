@@ -149,6 +149,7 @@ Domain層のモデルは以下の原則に従って設計されている。
 | `spotifyTrackId` | `String?` | Spotify 識別子（永続化可のキー）。Spotify 由来の曲のみ非 nil |
 | `userEnteredName` | `String?` | ユーザーが入力した曲名（ユーザー生成データのため永続化可）。手動入力曲のみ非 nil |
 | `singCount` | `Int` | 歌唱回数の集計値。`saveNewRecordingSession` で +1、`deleteRecordingSession` で -1 |
+| `latestScore` | `Double?` | 最終スコアの集計値（**現在未更新・要方針決定**。§4.1 参照） |
 | `sessions` | `[SingingSession]` | 紐づく歌唱記録（逆参照。現状の集計処理では未使用） |
 
 **設計制約**:
@@ -228,6 +229,7 @@ classDiagram
         +String? spotifyTrackId
         +String? userEnteredName
         +Int singCount
+        +Double? latestScore
     }
 
     class TrackMetadata {
@@ -344,6 +346,7 @@ erDiagram
         string spotifyTrackId "nullable"
         string userEnteredName "nullable, 手動入力時のみ"
         int singCount "集計"
+        double latestScore "nullable, 集計"
         datetime createdAt
         datetime updatedAt
     }
@@ -376,6 +379,7 @@ final class Track {
     /// 手動入力曲用。ユーザーが入力した曲名（ユーザー生成データのため永続化可）。Spotify メタデータではない。
     var userEnteredName: String?
     var singCount: Int
+    var latestScore: Double?
     var createdAt: Date
     var updatedAt: Date
 

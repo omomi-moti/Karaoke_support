@@ -49,7 +49,7 @@ Phase 2: I-017 → I-018
 - **依存**: I-001
 - **Labels**: `priority:must`, `type:feat`, `phase:0-基盤`
 - **Tasks**:
-  - [x] Track エンティティを @Model で定義する（id, spotifyTrackId, userEnteredName, singCount, createdAt, updatedAt）
+  - [x] Track エンティティを @Model で定義する（id, spotifyTrackId, userEnteredName, singCount, latestScore, createdAt, updatedAt）
   - [x] SingingSession エンティティを @Model で定義する（id, track, intent, performedAt, score, memo）
   - [x] Intent エンティティを enum で定義する（shout, emo, practice）
   - [x] Track と SingingSession のリレーション（1:N、cascade削除）を設定する

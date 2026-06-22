@@ -15,6 +15,7 @@ final class Track {
 	/// 手動入力曲用。ユーザーが入力した曲名（ユーザー生成データのため永続化可）。Spotify メタデータではない。
 	var userEnteredName: String?
 	var singCount: Int
+	var latestScore: Double?
 	var createdAt: Date
 	var updatedAt: Date
 
@@ -27,6 +28,7 @@ final class Track {
 		spotifyTrackId: String?,
 		userEnteredName: String?,
 		singCount: Int,
+		latestScore: Double?,
 		createdAt: Date,
 		updatedAt: Date
 	) {
@@ -34,6 +36,7 @@ final class Track {
 		self.spotifyTrackId = spotifyTrackId
 		self.userEnteredName = userEnteredName
 		self.singCount = singCount
+		self.latestScore = latestScore
 		self.createdAt = createdAt
 		self.updatedAt = updatedAt
 	}
@@ -44,6 +47,7 @@ final class Track {
 		spotifyTrackId: String,
 		userEnteredName: String? = nil,
 		singCount: Int = 0,
+		latestScore: Double? = nil,
 		createdAt: Date = .now,
 		updatedAtOverride: Date? = nil
 	) {
@@ -54,6 +58,7 @@ final class Track {
 			spotifyTrackId: spotifyTrackId,
 			userEnteredName: userEnteredName,
 			singCount: singCount,
+			latestScore: latestScore,
 			createdAt: createdAt,
 			updatedAt: resolvedUpdatedAt
 		)
@@ -65,6 +70,7 @@ final class Track {
 		userEnteredName: String,
 		spotifyTrackId: String? = nil,
 		singCount: Int = 0,
+		latestScore: Double? = nil,
 		createdAt: Date = .now,
 		updatedAtOverride: Date? = nil
 	) {
@@ -75,8 +81,10 @@ final class Track {
 			spotifyTrackId: spotifyTrackId,
 			userEnteredName: userEnteredName,
 			singCount: singCount,
+			latestScore: latestScore,
 			createdAt: createdAt,
 			updatedAt: resolvedUpdatedAt
 		)
 	}
 }
+
