@@ -7,7 +7,7 @@ struct SongsRootView: View {
 	@Environment(\.insightRepository) private var insightRepository
 	@Environment(\.sessionRepository) private var sessionRepository
 	@Environment(\.navigateToManualRecording) private var navigateToManualRecording
-
+    @Environment(\.trackRepository) private var trackRepository 
 	private enum Segment: String, CaseIterable, Identifiable {
 		case intent = "インテント"
 		case spotify = "Spotify"
@@ -18,7 +18,8 @@ struct SongsRootView: View {
 	@State private var segment: Segment = .intent
 	/// 記録は `NavigationStack` の push ではなくシートで出し、保存後に pop でルートが一瞬見えるのを避ける。
 	@State private var presentedRecordingRoute: SongsRecordingRoute?
-
+    @State private var isSearchPresented = false
+    
 	var body: some View {
 		NavigationStack {
 			VStack(spacing: 16) {
@@ -60,6 +61,13 @@ struct SongsRootView: View {
 						Label("記録を追加", systemImage: "plus")
 					}
 				}
+                ToolbarItem(placement: .topBarTrailing) {
+                                    Button {
+                                        isSearchPresented = true
+                                    } label: {
+                                        Label("検索", systemImage: "magnifyingglass")
+                                    }
+                                }
 			}
 			.sheet(item: $presentedRecordingRoute) { route in
 				RecordingSheetContainerView(
@@ -68,6 +76,14 @@ struct SongsRootView: View {
 					onSavedMoveToHistory: { handleRecordingSaved() }
 				)
 			}
+            .sheet(isPresented: $isSearchPresented) {
+                            SearchContainerView(
+                                trackRepository: trackRepository,
+                                onSelectTrack: { selected in
+                                    presentedRecordingRoute = .recording(selected)
+                                }
+                            )
+                        }
 			.onChange(of: manualRecordingNavigationTick) { _, newValue in
 				guard newValue > 0 else { return }
 				presentedRecordingRoute = .manualRecording
