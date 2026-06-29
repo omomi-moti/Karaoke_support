@@ -25,43 +25,34 @@ struct  SearchContainerView: View {
     }
     
     var body: some View{
-        NavigationStack{
-            SearchView(
-                viewModel: viewModel,
-                onSelectTrack: { track in
-                    let selected = SelectedTrack(
-                        spotifyTrackId: track.spotifyTrackId,
-                        userEnteredName: track.userEnteredName
-                    )
-                    if let selected {
-                        onSelectTrack(selected)
-                    }
+        
+            VStack(spacing: 0) {
+                SheetHeaderView(title: "検索") {
                     dismiss()
-                    
                 }
-            )
-            .navigationTitle("検索")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar{
-                ToolbarItem(placement : .topBarTrailing ){
-                    Button{
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                
+                SearchView(
+                    viewModel: viewModel,
+                    onSelectTrack: { track in
+                        let selected = SelectedTrack(
+                            spotifyTrackId: track.spotifyTrackId,
+                            userEnteredName: track.userEnteredName
+                        )
+                        if let selected {
+                            onSelectTrack(selected)
+                        }
                         dismiss()
-                    } label:{
-                        Image(systemName: "xmark")
-                            .font(.body.weight(.semibold))
-                            .foregroundStyle(.pink)   
-                            .padding(10)
-                            .background(.thinMaterial, in: Circle())
+                           
                     }
-                    .accessibilityLabel("閉じる")
-                    
-                }
+                        
+                )
+                .padding(.horizontal, 16)
             }
         }
         
     }
-    
-}
 
 #Preview {
     SearchContainerView(
