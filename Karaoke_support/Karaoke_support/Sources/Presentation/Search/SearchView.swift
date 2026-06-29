@@ -13,16 +13,22 @@ struct SearchView : View{
     let onSelectTrack: (Track) -> Void
     
     var body : some View{
-        VStack{
+        VStack(spacing: 0){
             TextField("曲名を検索",text : $viewModel.searchText)
                 .textFieldStyle(.roundedBorder)
                 .padding()
             
+            Divider()
+            
             if viewModel.isSearching{
+                Spacer()
                 ProgressView()
+                Spacer()
             }
             else if viewModel.result.isEmpty && !viewModel.searchText.isEmpty{
+                Spacer()
                 Text("該当する曲が見つかりません")
+                Spacer()
             }
             else{
                 List(viewModel.result) { track in
@@ -33,6 +39,7 @@ struct SearchView : View{
                     }
                     .buttonStyle(.plain)
                 }
+                .listStyle(.plain)
                 
             }
             
