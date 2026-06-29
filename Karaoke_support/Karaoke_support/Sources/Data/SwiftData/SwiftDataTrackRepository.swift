@@ -25,7 +25,7 @@ final class SwiftDataTrackRepository: TrackRepositoryProtocol {
 		let descriptor = FetchDescriptor<Track>(
 			predicate: #Predicate<Track> { track in
 				if let name = track.userEnteredName {
-					name.contains(searchQuery)
+					name.localizedStandardContains(searchQuery)
 				} else {
 					false
 				}
