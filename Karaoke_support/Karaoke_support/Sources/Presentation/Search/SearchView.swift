@@ -13,10 +13,12 @@ struct SearchView : View{
     let onSelectTrack: (Track) -> Void
     
     var body : some View{
+        
         VStack(spacing: 0){
-            TextField("曲名を検索",text : $viewModel.searchText)
-                .textFieldStyle(.roundedBorder)
-                .padding()
+            TextField("過去の歌った曲から検索しよう",text : $viewModel.searchText)
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(AppColor.textPrimary)
+                .lineLimit(1)
             
             Divider()
             
