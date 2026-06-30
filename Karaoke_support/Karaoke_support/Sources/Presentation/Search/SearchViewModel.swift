@@ -28,7 +28,9 @@ final class SearchViewModel{
         searchGeneration += 1 //検索を呼ばれたときに世代番号をインクリメントする
         let attempt = searchGeneration //ここでの世代番号を固定
         
-        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else{
+        let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedQuery.isEmpty else {
+            isSearching = false
             result = []
             errorMessage = nil
             return
@@ -54,7 +56,7 @@ final class SearchViewModel{
         }
         
         do{
-            let found = try await trackRepository.searchLocal(query: query)
+            let found = try await trackRepository.searchLocal(query: trimmedQuery)
             guard attempt == searchGeneration else{
                 return
             }
