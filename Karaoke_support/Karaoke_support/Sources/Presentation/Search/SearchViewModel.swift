@@ -19,7 +19,11 @@ final class SearchViewModel{
     var result : [Track] = []
     var isSearching : Bool = false
     var errorMessage : String?
-    
+
+    var hasActiveQuery: Bool {
+        !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     init(trackRepository: any TrackRepositoryProtocol){
         self.trackRepository = trackRepository
     }
