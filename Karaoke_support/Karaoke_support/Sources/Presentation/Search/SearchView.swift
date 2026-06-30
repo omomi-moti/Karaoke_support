@@ -22,7 +22,14 @@ struct SearchView : View{
             
             Divider()
             
-            if viewModel.isSearching{
+            if let errorMessage = viewModel.errorMessage{
+                Spacer()
+                    Text(errorMessage)
+                        .font(.subheadline)
+                        .foregroundStyle(AppColor.semanticError)
+                    Spacer()
+            }
+            else if viewModel.isSearching{
                 Spacer()
                 ProgressView()
                 Spacer()
