@@ -32,7 +32,10 @@
 - `@Observable` / `@MainActor`。
 - **`search(query:)`**: `searchGeneration`（`UInt`）による非同期レース防止。既存の `HistoryViewModel.loadGeneration` / `IntentTabViewModel.loadGeneration` と同じパターンを踏襲。
 - **300ms デバウンス**: `Task.sleep(for: .milliseconds(300))` でキーストロークごとの即時検索を抑制。キャンセル時は `CancellationError` で早期リターン。
-- **エラーハンドリング**: 失敗時は `errorMessage` に固定メッセージを設定（FR-011 準拠）。
+- **エラーハンドリング**: 失敗時は `errorMessage` に固定メッセージを設定（FR-011 準拠）。View 側は `errorMessage` を最優先で表示する。
+- **`hasActiveQuery`**: 空白のみの入力を「未入力」として扱うための computed property。View 側で trim ロジックを書くのを避け、判定を ViewModel に集約。
+- **クエリの trim**: `search(query:)` 内で `trimmingCharacters(in: .whitespacesAndNewlines)` した `trimmedQuery` を空チェック・`searchLocal` の両方で使い回す。
+- **`defer` の整理**: デバウンス前の不要な `defer { isSearching = false }` を削除。`isSearching = true` の直後に `defer` を1つだけ置く構造に統一。
 
 ### `SearchView`
 
@@ -43,14 +46,14 @@
 ### `SearchResultRowView`
 
 - `Track` を受け取り、角丸カード（`AppColor.surfaceCard` + `borderSubtle`）で表示。
-- `track.sessions` リレーションから最終歌唱日を取得（`sorted` + `first`）。
+- `track.sessions` リレーションから最終歌唱日を取得（`max(by:)` で O(n)。当初 `sorted` + `first` で O(n log n) だったものを最適化）。
 - 履歴カード（`HistorySessionRowView`）と同じ `AppColor` トークン・角丸スタイルで視覚的一貫性を確保。
 
 ### `SearchContainerView`
 
 - シートのラッパー。`SheetHeaderView(title: "検索")` + `SearchView` を `VStack(spacing: 0)` で組み合わせ。
 - `TrackRepositoryProtocol` を `init` で受け取り、`SearchViewModel` を `@State(initialValue:)` で生成（`HistoryListContainerView` / `IntentTabContainerView` と同じ Container View パターン）。
-- `onSelectTrack: (SelectedTrack) -> Void` コールバックで選択結果を親に返す。
+- `onSelectTrack: (SelectedTrack) -> Void` コールバックで選択結果を親に返す。`dismiss()` 後に `Task { @MainActor in }` で次のランループでコールバックを実行し、検索シートと記録シートの同時表示を防止（`TimeMachineRankingSheetView` / `MyAnthemRankingSheetView` と同じパターン）。
 
 ### `SheetHeaderView`（`Presentation/Common`）
 
@@ -67,6 +70,7 @@
 ### `RecordingSheetContentView`（変更）
 
 - `private var sheetHeader` を削除し、`SheetHeaderView(title: recordingTitle, isDisabled: viewModel.isSaving)` に置換。
+- `SheetHeaderView` 導入時にブレース位置がずれ、`isSaving` オーバーレイと `.safeAreaInset` が `ScrollView` 内に入っていた問題を修正。`if viewModel.isSaving` を `ZStack` 直下に、`.safeAreaInset` 等のモディファイアを `ZStack` の外に正しく配置。
 
 ### `SwiftDataTrackRepository`（変更）
 
@@ -97,6 +101,14 @@
 ### `localizedStandardContains`
 
 iOS 標準の検索挙動（Spotlight・連絡先等）と同じロケール対応の部分一致。大文字小文字・全角半角・アクセント記号を区別しない。日本語の検索にも適している。
+
+### `dismiss()` → `Task { @MainActor in }` の順序
+
+検索結果タップ時、`dismiss()` で検索シートを閉じてから `Task { @MainActor in onSelectTrack(selected) }` で次のランループで記録シートを開く。`DispatchQueue.main.async` ではなく Swift Concurrency（`Task { @MainActor in }`）を使用し、`TimeMachineRankingSheetView` / `MyAnthemRankingSheetView` と非同期スタイルを統一。
+
+### `isSaving` オーバーレイの配置
+
+`SheetHeaderView` 導入時のリファクタリングでブレース位置がずれ、保存中オーバーレイが `ScrollView` 内に入っていた。スクロールコンテンツとして扱われ全画面遮蔽が機能しなくなるため、`ZStack` 直下に修正。
 
 ---
 
