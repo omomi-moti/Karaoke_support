@@ -11,9 +11,7 @@ struct SearchResultRowView: View {
     let track : Track
     
     private var latestSession: SingingSession? {
-        track.sessions
-            .sorted { $0.performedAt > $1.performedAt }
-            .first
+        track.sessions.max(by: { $0.performedAt < $1.performedAt })
     }
     
     private static let dateFormatter: DateFormatter = {
