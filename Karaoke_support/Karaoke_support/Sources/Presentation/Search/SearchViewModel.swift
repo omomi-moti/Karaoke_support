@@ -28,7 +28,7 @@ final class SearchViewModel{
         searchGeneration += 1 //検索を呼ばれたときに世代番号をインクリメントする
         let attempt = searchGeneration //ここでの世代番号を固定
         
-        guard !query.isEmpty else{
+        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else{
             result = []
             errorMessage = nil
             return
