@@ -41,7 +41,7 @@ struct  SearchContainerView: View {
                             userEnteredName: track.userEnteredName
                         )
                         if let selected {
-                            DispatchQueue.main.async{
+                            Task { @MainActor in
                                 onSelectTrack(selected)
                             }
                         }
