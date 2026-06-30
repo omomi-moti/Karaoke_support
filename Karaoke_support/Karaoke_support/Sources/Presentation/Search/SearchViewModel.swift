@@ -34,7 +34,6 @@ final class SearchViewModel{
             return
         }
         
-        defer{isSearching = false}
         do{
             try await Task.sleep(for: .milliseconds(300))
         }
