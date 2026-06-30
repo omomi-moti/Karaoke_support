@@ -34,7 +34,7 @@ struct SearchView : View{
                 ProgressView()
                 Spacer()
             }
-            else if viewModel.result.isEmpty && !viewModel.searchText.isEmpty{
+            else if viewModel.result.isEmpty && viewModel.hasActiveQuery{
                 Spacer()
                 Text("該当する曲が見つかりません")
                 Spacer()
