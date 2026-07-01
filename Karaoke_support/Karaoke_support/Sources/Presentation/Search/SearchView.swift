@@ -47,9 +47,13 @@ struct SearchView : View{
                         SearchResultRowView(track: track)
                     }
                     .buttonStyle(.plain)
+                    .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
                 }
                 .listStyle(.plain)
-                
+                .scrollContentBackground(.hidden)
+
             }
             
             
