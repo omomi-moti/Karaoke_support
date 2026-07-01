@@ -6,6 +6,18 @@ struct SettingsRootView: View {
 			title: "設定（準備中）",
 			message: "V1ではプレースホルダー表示です。"
 		)
+		.frame(maxWidth: .infinity, maxHeight: .infinity)
+		.background(
+			LinearGradient(
+				colors: [
+					AppColor.backgroundGradientStart,
+					AppColor.backgroundGradientEnd,
+				],
+				startPoint: .top,
+				endPoint: .bottom
+			)
+			.ignoresSafeArea()
+		)
 		.navigationTitle("設定")
 		.navigationBarTitleDisplayMode(.inline)
 	}
