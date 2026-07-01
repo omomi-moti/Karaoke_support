@@ -57,6 +57,18 @@ struct RecordingSheetContainerView: View {
 					.accessibilityLabel("閉じる")
 				}
 				.padding(24)
+				.frame(maxWidth: .infinity, maxHeight: .infinity)
+				.background(
+					LinearGradient(
+						colors: [
+							AppColor.backgroundGradientStart,
+							AppColor.backgroundGradientEnd,
+						],
+						startPoint: .top,
+						endPoint: .bottom
+					)
+					.ignoresSafeArea()
+				)
 			} else if let vm = viewModel {
 				RecordingSheetContentView(
 					viewModel: vm,
@@ -64,9 +76,16 @@ struct RecordingSheetContainerView: View {
 					onSavedMoveToHistory: onSavedMoveToHistory
 				)
 			} else {
-				Color.clear
-					.frame(width: 0, height: 0)
-					.accessibilityHidden(true)
+				LinearGradient(
+					colors: [
+						AppColor.backgroundGradientStart,
+						AppColor.backgroundGradientEnd,
+					],
+					startPoint: .top,
+					endPoint: .bottom
+				)
+				.ignoresSafeArea()
+				.accessibilityHidden(true)
 			}
 		}
 		.task(id: seed) {
