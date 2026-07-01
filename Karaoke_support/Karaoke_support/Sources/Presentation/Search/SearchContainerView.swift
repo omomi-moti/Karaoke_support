@@ -52,8 +52,19 @@ struct  SearchContainerView: View {
                 )
                 .padding(.horizontal, 16)
             }
+            .background(
+                LinearGradient(
+                    colors: [
+                        AppColor.backgroundGradientStart,
+                        AppColor.backgroundGradientEnd,
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
+            )
         }
-        
+
     }
 
 #Preview {
