@@ -51,17 +51,7 @@ struct SongsRootView: View {
 				}
 				.frame(maxWidth: .infinity, maxHeight: .infinity)
 			}
-			.background(
-				LinearGradient(
-					colors: [
-						AppColor.backgroundGradientStart,
-						AppColor.backgroundGradientEnd,
-					],
-					startPoint: .top,
-					endPoint: .bottom
-				)
-				.ignoresSafeArea()
-			)
+			.appBackgroundGradient()
 			.navigationTitle("選曲")
 			.navigationBarTitleDisplayMode(.inline)
 			.toolbar {

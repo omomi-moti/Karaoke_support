@@ -17,15 +17,7 @@ struct RecordingSheetContentView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [
-                    AppColor.backgroundGradientStart,
-                    AppColor.backgroundGradientEnd,
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            AppBackgroundGradientView()
 
             let isRetrying = viewModel.inlineErrorMessage != nil
             let trackSectionDisabled = isRetrying || viewModel.isTrackInputLockedForEdit
