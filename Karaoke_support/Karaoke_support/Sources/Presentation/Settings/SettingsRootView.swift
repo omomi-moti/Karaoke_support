@@ -7,17 +7,7 @@ struct SettingsRootView: View {
 			message: "V1ではプレースホルダー表示です。"
 		)
 		.frame(maxWidth: .infinity, maxHeight: .infinity)
-		.background(
-			LinearGradient(
-				colors: [
-					AppColor.backgroundGradientStart,
-					AppColor.backgroundGradientEnd,
-				],
-				startPoint: .top,
-				endPoint: .bottom
-			)
-			.ignoresSafeArea()
-		)
+		.appBackgroundGradient()
 		.navigationTitle("設定")
 		.navigationBarTitleDisplayMode(.inline)
 	}

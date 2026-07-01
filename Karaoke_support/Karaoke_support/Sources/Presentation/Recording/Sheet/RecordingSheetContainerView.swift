@@ -58,17 +58,7 @@ struct RecordingSheetContainerView: View {
 				}
 				.padding(24)
 				.frame(maxWidth: .infinity, maxHeight: .infinity)
-				.background(
-					LinearGradient(
-						colors: [
-							AppColor.backgroundGradientStart,
-							AppColor.backgroundGradientEnd,
-						],
-						startPoint: .top,
-						endPoint: .bottom
-					)
-					.ignoresSafeArea()
-				)
+				.appBackgroundGradient()
 			} else if let vm = viewModel {
 				RecordingSheetContentView(
 					viewModel: vm,
@@ -76,16 +66,8 @@ struct RecordingSheetContainerView: View {
 					onSavedMoveToHistory: onSavedMoveToHistory
 				)
 			} else {
-				LinearGradient(
-					colors: [
-						AppColor.backgroundGradientStart,
-						AppColor.backgroundGradientEnd,
-					],
-					startPoint: .top,
-					endPoint: .bottom
-				)
-				.ignoresSafeArea()
-				.accessibilityHidden(true)
+				AppBackgroundGradientView()
+					.accessibilityHidden(true)
 			}
 		}
 		.task(id: seed) {

@@ -8,15 +8,7 @@ struct HistoryListView: View {
 
 	var body: some View {
 		ZStack {
-			LinearGradient(
-				colors: [
-					AppColor.backgroundGradientStart,
-					AppColor.backgroundGradientEnd,
-				],
-				startPoint: .top,
-				endPoint: .bottom
-			)
-			.ignoresSafeArea()
+			AppBackgroundGradientView()
 
 			VStack(alignment: .leading, spacing: 12) {
 				HistoryFilterBarView(selection: $viewModel.filter)
