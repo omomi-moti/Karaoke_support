@@ -84,6 +84,22 @@ struct HistoryListView: View {
 					.listStyle(.plain)
 					.scrollContentBackground(.hidden)
 					.frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .overlay{
+                        if viewModel.isLoading {
+                            ZStack {
+                                AppColor.backgroundGradientEnd.opacity(0.4)
+                                ProgressView()
+                            }
+                            .transition(
+                                .asymmetric(
+                                    insertion: .opacity.animation(.easeInOut(duration: 0.15).delay(0.2)),
+                                    removal: .opacity.animation(.easeInOut(duration: 0.1))
+                                )
+                            )
+                        }
+                    }
+                    .allowsHitTesting(!viewModel.isLoading)
+                    .animation(.easeInOut(duration: 0.001), value: viewModel.isLoading)
 				}
 			}
 			.padding(.horizontal, 16)
