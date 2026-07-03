@@ -15,7 +15,8 @@ final class HistoryViewModel {
 	var filter: HistoryIntentFilter = .all
 	/// 既定は歌唱日時の新しい順（`performedAt` 降順）。Repository の取得順に依存せず、表示直前に整列する。
 	var sortOrder: HistorySortOrder = .performedAtDescending
-	var isLoading: Bool = false
+	/// 生成直後は「初回ロード中」扱いにして、`.task` 発火前の 1 フレームに Empty State が挟まるのを防ぐ。
+	var isLoading: Bool = true
 	var isLoadingNextPage: Bool = false
 	var loadErrorMessage: String?
 	/// 削除失敗時のみ表示。`load()` 成功時にクリアする。
@@ -46,7 +47,6 @@ final class HistoryViewModel {
 		isLoadingNextPage = false
 		currentPage = 0
 		hasMorePages = true
-		sessions = []
 		loadErrorMessage = nil
 		deleteErrorMessage = nil
 		defer {
