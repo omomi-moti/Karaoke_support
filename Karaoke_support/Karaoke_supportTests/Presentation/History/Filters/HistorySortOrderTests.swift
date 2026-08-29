@@ -27,6 +27,7 @@ final class HistorySortOrderTests: XCTestCase {
 	func testPerformedAtDescending_PutsNewerFirst() {
 		let older = HistorySessionRowDisplayItem(
 			id: idLow,
+			trackId: UUID(),
 			intent: .shout,
 			trackPrimaryTitle: "A",
 			performedAt: Date(timeIntervalSince1970: 100),
@@ -34,6 +35,7 @@ final class HistorySortOrderTests: XCTestCase {
 		)
 		let newer = HistorySessionRowDisplayItem(
 			id: idHigh,
+			trackId: UUID(),
 			intent: .shout,
 			trackPrimaryTitle: "B",
 			performedAt: Date(timeIntervalSince1970: 200),
@@ -50,6 +52,7 @@ final class HistorySortOrderTests: XCTestCase {
 	func testScoreDescending_PutsHigherScoreFirst() {
 		let newerLowScore = HistorySessionRowDisplayItem(
 			id: idLow,
+			trackId: UUID(),
 			intent: .shout,
 			trackPrimaryTitle: "A",
 			performedAt: Date(timeIntervalSince1970: 300),
@@ -57,6 +60,7 @@ final class HistorySortOrderTests: XCTestCase {
 		)
 		let olderHighScore = HistorySessionRowDisplayItem(
 			id: idHigh,
+			trackId: UUID(),
 			intent: .shout,
 			trackPrimaryTitle: "B",
 			performedAt: Date(timeIntervalSince1970: 100),
@@ -73,6 +77,7 @@ final class HistorySortOrderTests: XCTestCase {
 	func testScoreAscending_PutsLowerScoreFirst() {
 		let high = HistorySessionRowDisplayItem(
 			id: idLow,
+			trackId: UUID(),
 			intent: .practice,
 			trackPrimaryTitle: "A",
 			performedAt: Date(timeIntervalSince1970: 100),
@@ -80,6 +85,7 @@ final class HistorySortOrderTests: XCTestCase {
 		)
 		let low = HistorySessionRowDisplayItem(
 			id: idHigh,
+			trackId: UUID(),
 			intent: .practice,
 			trackPrimaryTitle: "B",
 			performedAt: Date(timeIntervalSince1970: 200),
@@ -96,6 +102,7 @@ final class HistorySortOrderTests: XCTestCase {
 	func testEqualScore_UsesPerformedAtDescendingAsSecondary() {
 		let older = HistorySessionRowDisplayItem(
 			id: idLow,
+			trackId: UUID(),
 			intent: .emo,
 			trackPrimaryTitle: "A",
 			performedAt: Date(timeIntervalSince1970: 100),
@@ -103,6 +110,7 @@ final class HistorySortOrderTests: XCTestCase {
 		)
 		let newer = HistorySessionRowDisplayItem(
 			id: idHigh,
+			trackId: UUID(),
 			intent: .emo,
 			trackPrimaryTitle: "B",
 			performedAt: Date(timeIntervalSince1970: 200),

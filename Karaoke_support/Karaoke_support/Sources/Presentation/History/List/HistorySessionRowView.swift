@@ -60,6 +60,7 @@ struct HistorySessionRowView: View {
 	HistorySessionRowView(
 		item: HistorySessionRowDisplayItem(
 			id: UUID(),
+			trackId: UUID(),
 			intent: .shout,
 			trackPrimaryTitle: "アイドル",
 			performedAt: .now,

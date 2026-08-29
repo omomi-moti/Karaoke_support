@@ -3,7 +3,7 @@ import SwiftUI
 /// 履歴タブの本体（一覧 + フィルター）。`HistoryViewModel` を `@Bindable` で受け取る。
 struct HistoryListView: View {
 	@Bindable var viewModel: HistoryViewModel
-	@Binding var editNavigationPath: NavigationPath
+	@Binding var navigationPath: NavigationPath
 	@Environment(\.navigateToManualRecording) private var navigateToManualRecording
 
 	var body: some View {
@@ -42,7 +42,7 @@ struct HistoryListView: View {
 				} else {
 					List {
 						ForEach(viewModel.sessions, id: \.id) { session in
-							NavigationLink(value: session.id) {
+							NavigationLink(value: HistoryRoute.trackDetail(trackId: session.trackId, title: session.trackPrimaryTitle)) {
 								HistorySessionRowView(item: session)
 							}
 							.task(id: session.id) {
@@ -54,7 +54,7 @@ struct HistoryListView: View {
 							.listRowBackground(Color.clear)
 							.swipeActions(edge: .leading, allowsFullSwipe: true) {
 								Button {
-									editNavigationPath.append(session.id)
+									navigationPath.append(HistoryRoute.editSession(sessionId: session.id))
 								} label: {
 									Label("編集", systemImage: "pencil")
 								}
@@ -140,8 +140,8 @@ struct HistoryListView: View {
 #Preview {
 	@Previewable @State var path = NavigationPath()
 	return NavigationStack(path: $path) {
-		HistoryListView(viewModel: HistoryViewModel(sessionRepository: PreviewSessionRepository()), editNavigationPath: $path)
-			.navigationDestination(for: UUID.self) { _ in
+		HistoryListView(viewModel: HistoryViewModel(sessionRepository: PreviewSessionRepository()), navigationPath: $path)
+			.navigationDestination(for: HistoryRoute.self) { _ in
 				EmptyView()
 			}
 	}
