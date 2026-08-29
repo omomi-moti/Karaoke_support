@@ -32,6 +32,8 @@ final class PreviewSessionRepository: SessionRepositoryProtocol {
 	private static let sampleId1 = makeUUID("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE0001")
 	private static let sampleId2 = makeUUID("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE0002")
 	private static let sampleId3 = makeUUID("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE0003")
+	/// 曲詳細プレビュー用。`t1` の Track id を固定し、`fetchSessions(trackId:)` を指定できるようにする。
+	static let sampleTrackIdForTrend = makeUUID("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE1001")
 
 	func saveNewRecordingSession(_ session: SingingSession) async throws {
 		if try await exists(uuid: session.id) {
@@ -110,7 +112,7 @@ final class PreviewSessionRepository: SessionRepositoryProtocol {
 	}
 
 	private static let sampleSessions: [SingingSession] = {
-		let t1 = Track(userEnteredName: "アイドル")
+		let t1 = Track(id: sampleTrackIdForTrend, userEnteredName: "アイドル")
 		let t2 = Track(userEnteredName: "怪獣の花唄")
 		let t3 = Track(userEnteredName: "Subtitle")
 
