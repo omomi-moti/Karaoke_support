@@ -99,6 +99,16 @@ final class PreviewSessionRepository: SessionRepositoryProtocol {
 		return session
 	}
 
+	func fetchSessions(trackId: UUID) async throws -> [SingingSession] {
+		Self.sampleSessions
+			.filter { session in
+				!deletedSampleSessionIds.contains(session.id) && session.track.id == trackId
+			}
+			.sorted { lhs, rhs in
+				lhs.performedAt < rhs.performedAt
+			}
+	}
+
 	private static let sampleSessions: [SingingSession] = {
 		let t1 = Track(userEnteredName: "アイドル")
 		let t2 = Track(userEnteredName: "怪獣の花唄")
@@ -125,6 +135,55 @@ final class PreviewSessionRepository: SessionRepositoryProtocol {
 				intent: .emo,
 				performedAt: .now.addingTimeInterval(-10800),
 				score: 94.2
+			),
+			SingingSession(
+				id: makeUUID("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE0004"),
+				track: t1,
+				intent: .practice,
+				performedAt: .now.addingTimeInterval(-86_400 * 2),
+				score: 78.4
+			),
+			SingingSession(
+				id: makeUUID("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE0005"),
+				track: t1,
+				intent: .practice,
+				performedAt: .now.addingTimeInterval(-86_400 * 5),
+				score: 81.0
+			),
+			SingingSession(
+				id: makeUUID("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE0006"),
+				track: t1,
+				intent: .shout,
+				performedAt: .now.addingTimeInterval(-86_400 * 9),
+				score: 85.6
+			),
+			SingingSession(
+				id: makeUUID("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE0007"),
+				track: t1,
+				intent: .emo,
+				performedAt: .now.addingTimeInterval(-86_400 * 14),
+				score: 83.2
+			),
+			SingingSession(
+				id: makeUUID("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE0008"),
+				track: t1,
+				intent: .shout,
+				performedAt: .now.addingTimeInterval(-86_400 * 20),
+				score: 89.9
+			),
+			SingingSession(
+				id: makeUUID("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE0009"),
+				track: t1,
+				intent: .practice,
+				performedAt: .now.addingTimeInterval(-86_400 * 27),
+				score: 74.5
+			),
+			SingingSession(
+				id: makeUUID("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE0010"),
+				track: t1,
+				intent: .emo,
+				performedAt: .now.addingTimeInterval(-86_400 * 33),
+				score: 91.1
 			),
 		]
 	}()

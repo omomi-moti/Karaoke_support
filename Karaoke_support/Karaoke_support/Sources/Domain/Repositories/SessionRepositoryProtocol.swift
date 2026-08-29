@@ -18,6 +18,9 @@ protocol SessionRepositoryProtocol {
 	func exists(uuid: UUID) async throws -> Bool
 
 	func fetchRecordingSession(uuid: UUID) async throws -> SingingSession
+
+	/// `performedAt` 昇順（他の fetch と逆）。Track が無ければ空配列。
+	func fetchSessions(trackId: UUID) async throws -> [SingingSession]
 }
 
 extension SessionRepositoryProtocol {

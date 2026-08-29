@@ -1,10 +1,3 @@
-//
-//  SwiftDataSessionRepository.swift
-//  Karaoke_support
-//
-//  I-003: SessionRepository の SwiftData 実装。
-//
-
 import Foundation
 import SwiftData
 
@@ -30,7 +23,7 @@ final class SwiftDataSessionRepository: SessionRepositoryProtocol {
 		return min(raw, count)
 	}
 
-	/// I-011: 同一 ``SingingSession.id`` の再試行は insert / singCount 更新をスキップして冪等にする。
+	/// 同一 ``SingingSession.id`` の再試行は insert / singCount 更新をスキップして冪等にする。
 	func saveNewRecordingSession(_ session: SingingSession) async throws {
 		if try await exists(uuid: session.id) {
 			return
@@ -138,5 +131,22 @@ final class SwiftDataSessionRepository: SessionRepositoryProtocol {
 			throw SessionRepositoryError.sessionNotFound(uuid)
 		}
 		return session
+	}
+
+	func fetchSessions(trackId: UUID) async throws -> [SingingSession] {
+		let idToMatch = trackId
+
+		var descriptor = FetchDescriptor<Track>(
+			predicate: #Predicate<Track> { track in
+				track.id == idToMatch
+			}
+		)
+		descriptor.fetchLimit = 1
+
+		guard let matchedTrack = try modelContext.fetch(descriptor).first else { return [] }
+
+		return matchedTrack.sessions.sorted { lhs, rhs in
+			lhs.performedAt < rhs.performedAt
+		}
 	}
 }
