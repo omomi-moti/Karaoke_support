@@ -59,6 +59,19 @@ SwiftUI は **`id` が変わったか**でシートの同一性を判断する�
 - `Sources/Presentation/Recording/Sheet/RecordingSheetContentView.swift` — 保存成功時の `onSavedMoveToHistory` / `.sheet` 時の `dismiss()`
 - `Sources/Presentation/Root/RootView.swift` — `onSavedMoveToHistory` で `selectedTab = .history`
 
+## 履歴タブのナビゲーション（I-014-C / I-019）
+
+履歴タブは `NavigationStack(path:)` + `navigationDestination(for: HistoryRoute.self)` の 1 経路で、2 つの遷移先を **enum で分岐**する。
+
+| ケース | 起点 | 遷移先 |
+|--------|------|--------|
+| `trackDetail(trackId:title:)` | 行タップ（`NavigationLink(value:)`） | `TrackDetailContainerView`（読み取り専用） |
+| `editSession(sessionId:)` | リードスワイプ「編集」 | `RecordingSheetContainerView(presentation: .navigationStack)` |
+
+- どちらも `UUID` を運ぶため、`navigationDestination(for: UUID.self)` のままだと **行タップで編集が開く**取り違えが型チェックを素通りする。`HistoryRoute` で区別している
+- 曲名は行のスナップショットから `title` としてルートに載せる。曲詳細のヘッダーを追加クエリなしで描画するため
+- 編集の保存成功時のみ `navigationPath.removeLast()` で pop し、`viewModel.load()` で一覧を再同期する
+
 ## インテントタブのランキングシート（I-017）
 
 - **タイムマシン**（`TimeMachineRankingSheetView`）と **マイアンセム**（`MyAnthemRankingSheetView`）は、`IntentTabInsightView` 上で **`.sheet(isPresented:)` を2つ**（`showTimeMachineSheet` / `showMyAnthemSheet`）使っている。通常 UI では同時に開かないが、**両方 `true` になり得ると挙動が曖昧になりうる**。必要なら **`enum ActiveRankingSheet` + `.sheet(item:)` 一本化**を検討する（任意・優先度低）。
