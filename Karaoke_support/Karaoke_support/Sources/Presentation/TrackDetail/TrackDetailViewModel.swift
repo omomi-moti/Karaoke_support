@@ -17,6 +17,10 @@ final class TrackDetailViewModel {
 	private(set) var isLoading = true
 	private(set) var loadErrorMessage: String?
 
+	/// `.task` の外（再試行ボタン等）から呼ばれた 2 本目を弾く。
+	/// `isLoading` は初期値が `true` のため、これを再入判定に流用すると初回ロードが即 return する。
+	private var isLoadInFlight = false
+
 	var chartPoints: [TrackScoreTrendPoint] {
 		Array(points.suffix(Self.maxChartPoints))
 	}
@@ -37,6 +41,10 @@ final class TrackDetailViewModel {
 
 	/// 非同期処理はこの 1 本だけで、所有者は `.task`。古い結果の破棄は世代番号ではなくキャンセルで行う。
 	func load() async {
+		guard !isLoadInFlight else { return }
+		isLoadInFlight = true
+		defer { isLoadInFlight = false }
+
 		isLoading = true
 		loadErrorMessage = nil
 		defer {
