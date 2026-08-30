@@ -24,6 +24,7 @@ private final class PagingStubSessionRepository: SessionRepositoryProtocol {
 	func fetchRecordingSession(uuid: UUID) async throws -> SingingSession {
 		throw SessionRepositoryError.sessionNotFound(uuid)
 	}
+	func fetchSessions(trackId: UUID) async throws -> [SingingSession] { [] }
 
 	func fetchAll(limit: Int, offset: Int) async throws -> [SingingSession] {
 		fetchAllCalls.append((limit, offset))

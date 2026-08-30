@@ -35,6 +35,8 @@ private final class StubSessionRepository: SessionRepositoryProtocol {
 	func fetchRecordingSession(uuid: UUID) async throws -> SingingSession {
 		throw SessionRepositoryError.sessionNotFound(uuid)
 	}
+
+	func fetchSessions(trackId: UUID) async throws -> [SingingSession] { [] }
 }
 
 @MainActor

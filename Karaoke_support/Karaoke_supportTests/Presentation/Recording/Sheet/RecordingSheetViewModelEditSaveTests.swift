@@ -58,6 +58,8 @@ private final class SpySessionRepositoryForEdit: SessionRepositoryProtocol {
 		}
 		return sessionToEdit
 	}
+
+	func fetchSessions(trackId: UUID) async throws -> [SingingSession] { [] }
 }
 
 @MainActor

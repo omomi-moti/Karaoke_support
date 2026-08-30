@@ -32,6 +32,8 @@ final class PreviewSessionRepository: SessionRepositoryProtocol {
 	private static let sampleId1 = makeUUID("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE0001")
 	private static let sampleId2 = makeUUID("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE0002")
 	private static let sampleId3 = makeUUID("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE0003")
+	/// 曲詳細プレビュー用。`t1` の Track id を固定し、`fetchSessions(trackId:)` を指定できるようにする。
+	static let sampleTrackIdForTrend = makeUUID("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE1001")
 
 	func saveNewRecordingSession(_ session: SingingSession) async throws {
 		if try await exists(uuid: session.id) {
@@ -99,8 +101,18 @@ final class PreviewSessionRepository: SessionRepositoryProtocol {
 		return session
 	}
 
+	func fetchSessions(trackId: UUID) async throws -> [SingingSession] {
+		Self.sampleSessions
+			.filter { session in
+				!deletedSampleSessionIds.contains(session.id) && session.track.id == trackId
+			}
+			.sorted { lhs, rhs in
+				lhs.performedAt < rhs.performedAt
+			}
+	}
+
 	private static let sampleSessions: [SingingSession] = {
-		let t1 = Track(userEnteredName: "アイドル")
+		let t1 = Track(id: sampleTrackIdForTrend, userEnteredName: "アイドル")
 		let t2 = Track(userEnteredName: "怪獣の花唄")
 		let t3 = Track(userEnteredName: "Subtitle")
 
@@ -125,6 +137,55 @@ final class PreviewSessionRepository: SessionRepositoryProtocol {
 				intent: .emo,
 				performedAt: .now.addingTimeInterval(-10800),
 				score: 94.2
+			),
+			SingingSession(
+				id: makeUUID("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE0004"),
+				track: t1,
+				intent: .practice,
+				performedAt: .now.addingTimeInterval(-86_400 * 2),
+				score: 78.4
+			),
+			SingingSession(
+				id: makeUUID("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE0005"),
+				track: t1,
+				intent: .practice,
+				performedAt: .now.addingTimeInterval(-86_400 * 5),
+				score: 81.0
+			),
+			SingingSession(
+				id: makeUUID("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE0006"),
+				track: t1,
+				intent: .shout,
+				performedAt: .now.addingTimeInterval(-86_400 * 9),
+				score: 85.6
+			),
+			SingingSession(
+				id: makeUUID("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE0007"),
+				track: t1,
+				intent: .emo,
+				performedAt: .now.addingTimeInterval(-86_400 * 14),
+				score: 83.2
+			),
+			SingingSession(
+				id: makeUUID("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE0008"),
+				track: t1,
+				intent: .shout,
+				performedAt: .now.addingTimeInterval(-86_400 * 20),
+				score: 89.9
+			),
+			SingingSession(
+				id: makeUUID("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE0009"),
+				track: t1,
+				intent: .practice,
+				performedAt: .now.addingTimeInterval(-86_400 * 27),
+				score: 74.5
+			),
+			SingingSession(
+				id: makeUUID("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEE0010"),
+				track: t1,
+				intent: .emo,
+				performedAt: .now.addingTimeInterval(-86_400 * 33),
+				score: 91.1
 			),
 		]
 	}()

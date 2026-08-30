@@ -22,6 +22,7 @@ private final class IntentTabSessionRepositoryStub: SessionRepositoryProtocol {
 	func fetchRecordingSession(uuid: UUID) async throws -> SingingSession {
 		throw SessionRepositoryError.sessionNotFound(uuid)
 	}
+	func fetchSessions(trackId: UUID) async throws -> [SingingSession] { [] }
 
 	func fetchAll(limit: Int, offset: Int) async throws -> [SingingSession] {
 		guard limit >= 0, offset >= 0 else {
@@ -52,6 +53,7 @@ private final class IntentTabSessionRepositoryStubOverlappingFirstPageFetch: Ses
 	func fetchRecordingSession(uuid: UUID) async throws -> SingingSession {
 		throw SessionRepositoryError.sessionNotFound(uuid)
 	}
+	func fetchSessions(trackId: UUID) async throws -> [SingingSession] { [] }
 
 	func fetchAll(limit: Int, offset: Int) async throws -> [SingingSession] {
 		guard limit >= 0, offset >= 0 else {
@@ -119,6 +121,7 @@ private final class SessionRepositoryFetchAllThrowing: SessionRepositoryProtocol
 	func fetchRecordingSession(uuid: UUID) async throws -> SingingSession {
 		throw SessionRepositoryError.sessionNotFound(uuid)
 	}
+	func fetchSessions(trackId: UUID) async throws -> [SingingSession] { [] }
 
 	func fetchAll(limit: Int, offset: Int) async throws -> [SingingSession] {
 		throw StubError()

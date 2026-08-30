@@ -24,7 +24,7 @@ struct HistorySessionRowView: View {
 					.font(.subheadline)
 					.foregroundStyle(AppColor.textSecondary)
 
-				HistoryIntentBadgeView(intent: item.intent)
+				IntentBadgeView(intent: item.intent)
 			}
 			.frame(maxWidth: .infinity, alignment: .leading)
 
@@ -60,6 +60,7 @@ struct HistorySessionRowView: View {
 	HistorySessionRowView(
 		item: HistorySessionRowDisplayItem(
 			id: UUID(),
+			trackId: UUID(),
 			intent: .shout,
 			trackPrimaryTitle: "アイドル",
 			performedAt: .now,

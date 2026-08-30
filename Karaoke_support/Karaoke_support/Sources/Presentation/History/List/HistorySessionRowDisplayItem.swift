@@ -6,6 +6,7 @@ import Foundation
 /// `intent` 等の fault で fatal になりうるため、Repository から取得した直後に値だけをコピーして保持する。
 struct HistorySessionRowDisplayItem: Identifiable, Equatable {
 	let id: UUID
+	let trackId: UUID
 	let intent: Intent
 	let trackPrimaryTitle: String
 	let performedAt: Date
@@ -13,12 +14,14 @@ struct HistorySessionRowDisplayItem: Identifiable, Equatable {
 
 	init(
 		id: UUID,
+		trackId: UUID,
 		intent: Intent,
 		trackPrimaryTitle: String,
 		performedAt: Date,
 		score: Double
 	) {
 		self.id = id
+		self.trackId = trackId
 		self.intent = intent
 		self.trackPrimaryTitle = trackPrimaryTitle
 		self.performedAt = performedAt
@@ -28,6 +31,7 @@ struct HistorySessionRowDisplayItem: Identifiable, Equatable {
 	init(mapping session: SingingSession) {
 		self.init(
 			id: session.id,
+			trackId: session.track.id,
 			intent: session.intent,
 			trackPrimaryTitle: TrackDisplayTitle.primary(for: session.track),
 			performedAt: session.performedAt,

@@ -267,7 +267,7 @@ Phase 2: I-017 → I-018
 
 ##### [I-014-C] 履歴からの記録の更新（編集）
 
-- [x] 行タップ（またはスワイプ補助アクション）で **編集フロー**へ遷移するナビゲーションを定義する（`NavigationPath` / sheet / フルスクリーンのいずれか） → **`NavigationStack` + 行タップ `NavigationLink` + リードスワイプ「編集」**
+- [x] 行タップ（またはスワイプ補助アクション）で **編集フロー**へ遷移するナビゲーションを定義する（`NavigationPath` / sheet / フルスクリーンのいずれか） → **`NavigationStack` + リードスワイプ「編集」**。※ **I-019 で行タップは曲詳細へ変更**され、編集はリードスワイプに一本化された
 - [x] 既存 `SingingSession` を編集対象として **`RecordingSheetViewModel` に編集モード**を追加する（初期値に intent / score / memo / performedAt を注入）
 - [x] `save()` 内で **新規 → `saveNewRecordingSession`**、**既存更新 → `updateRecordingSession`** を分岐する（**I-003** の注意: 同 id を `saveNew` に流さない）
 - [x] 保存成功後に **履歴一覧を `load()` または同等の再取得**で同期する
@@ -323,6 +323,29 @@ Phase 2: I-017 → I-018
   - [x] 歌った回数降順でリスト表示する → **I-017 / `fetchTimeMachineRanking` と `fetchAll` の並び順に準拠したシート一覧**
   - [x] V1 では曲名を一貫表示する → **`InsightTrackRowTitle`（I-017 のランキング行）**
   - [x] ランキング内の曲をタップすると `SelectedTrack` を組み立て、`SongsRecordingRoute.recording` 経由で **記録シート**を開く → **I-017 / `SongsRootView` の `onSelectTrack`**
+
+---
+
+### [I-019] 曲ごとの点数推移画面
+- **依存**: I-003, I-014
+- **Labels**: `priority:should`, `type:feat`, `phase:2-インサイト`
+- **補足**: V1 スコープ（I-001〜I-018）の後に追加した Issue（[#87](https://github.com/omomi-moti/Karaoke_support/issues/87)）。**読み取り専用**の画面で、編集は履歴のリードスワイプに一本化する。
+- **Tasks**:
+  - [x] `SessionRepositoryProtocol` に `fetchSessions(trackId:)` を追加する（`performedAt` **昇順**・Track 不在時は空配列）。SwiftData 実装は Track を id で引いて `sessions` をメモリ整列（iOS 17 のリレーション述語を避ける。`fetchByIntent` と同方針）
+  - [x] 履歴行タップで曲詳細画面へ push する（`HistoryRoute` で **行タップ＝曲詳細 / リードスワイプ＝編集** を型で分岐）
+  - [x] Swift Charts で点数推移グラフを表示する（線は `AppAccentScore` 単色1本、点のみ Intent 色分け、**Y軸は実スコアレンジ ± 5**、平均値の破線）
+  - [x] グラフ下に日付・Intent・スコアの履歴リストを表示する（新しい順。グラフは古い→新しい）
+  - [x] 0 件時の空状態を表示する
+  - [x] 統計は取得済み配列から算出する（主役は **直近スコアと前回比**、回数・平均・ベストは補足の 1 行）
+- **設計メモ**:
+  - グラフは **直近 50 件**まで。統計は全件から算出する（`TrackDetailViewModel.maxChartPoints`）
+  - 非同期は `load()` の 1 本のみで所有者は `.task`。**世代番号は使わず** `Task.checkCancellation()` / `Task.isCancelled` で古い結果を捨てる
+  - 表示は `TrackScoreTrendPoint`（値型）に写す。履歴一覧の `HistorySessionRowDisplayItem` と同じ理由（削除後の fault 回避）
+- **ユニットテスト**（Swift Testing）:
+  - `SwiftDataSessionRepositoryFetchSessionsByTrackTests` — 昇順 / 他 Track 混入なし / 未登録 id で空配列 / 削除の反映
+  - `TrackScoreSummaryTests` — 0 件で nil・回数/平均/最高・直近スコアと前回差
+  - `TrackDetailViewModelTests` — 成功・0 件・失敗・直近50件への絞り込み・**キャンセル済みロードが結果で上書きしない**
+- **残タスク**: グラフのインタラクション（ノード選択・Intent フォーカス・出現アニメーション）は **I-019-A** として分離
 
 ---
 
