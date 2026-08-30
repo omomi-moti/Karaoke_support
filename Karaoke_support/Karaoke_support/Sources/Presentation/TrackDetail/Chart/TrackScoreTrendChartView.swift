@@ -39,22 +39,24 @@ struct TrackScoreTrendChartView: View {
 
 	/// `foregroundStyle(by:)` を使うと Intent ごとに系列が分かれて線が割れるため、マークへ直接色を渡す。
 	private var chart: some View {
-		Chart(points) { point in
-			LineMark(
-				x: .value("歌唱回数", point.order),
-				y: .value("スコア", point.score)
-			)
-			.foregroundStyle(AppColor.accentScore)
-			.interpolationMethod(.catmullRom)
+		Chart {
+			ForEach(points) { point in
+				LineMark(
+					x: .value("歌唱回数", point.order),
+					y: .value("スコア", point.score)
+				)
+				.foregroundStyle(AppColor.accentScore)
+				.interpolationMethod(.catmullRom)
 
-			PointMark(
-				x: .value("歌唱回数", point.order),
-				y: .value("スコア", point.score)
-			)
-			.foregroundStyle(IntentPalette.foreground(point.intent))
-			.symbolSize(70)
-			.accessibilityLabel(point.performedAt.formatted(date: .abbreviated, time: .omitted))
-			.accessibilityValue("\(point.score.formatted(.number.precision(.fractionLength(1))))点")
+				PointMark(
+					x: .value("歌唱回数", point.order),
+					y: .value("スコア", point.score)
+				)
+				.foregroundStyle(IntentPalette.foreground(point.intent))
+				.symbolSize(70)
+				.accessibilityLabel(point.performedAt.formatted(date: .abbreviated, time: .omitted))
+				.accessibilityValue("\(point.score.formatted(.number.precision(.fractionLength(1))))点")
+			}
 
 			RuleMark(y: .value("平均", averageScore))
 				.lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
