@@ -30,6 +30,7 @@ private final class TrackDetailSessionRepositoryStub: SessionRepositoryProtocol 
 @MainActor
 private final class GatedSessionRepositoryStub: SessionRepositoryProtocol {
 	var sessionsToReturn: [SingingSession] = []
+	private(set) var fetchSessionsCallCount = 0
 	private var resumeFetch: CheckedContinuation<Void, Never>?
 	private var notifyStarted: CheckedContinuation<Void, Never>?
 	private var didStartFetch = false
@@ -45,6 +46,7 @@ private final class GatedSessionRepositoryStub: SessionRepositoryProtocol {
 	}
 
 	func fetchSessions(trackId: UUID) async throws -> [SingingSession] {
+		fetchSessionsCallCount += 1
 		didStartFetch = true
 		notifyStarted?.resume()
 		notifyStarted = nil
@@ -147,6 +149,28 @@ struct TrackDetailViewModelTests {
 		#expect(vm.chartPoints.count == TrackDetailViewModel.maxChartPoints)
 		#expect(vm.chartPoints.first?.order == 11)
 		#expect(vm.chartPoints.last?.order == 60)
+	}
+
+	@Test("走行中に呼ばれた2本目のロードは無視される")
+	func reentrantLoadIsIgnoredWhileInFlight() async {
+		let track = Track(userEnteredName: "再入")
+		let stub = GatedSessionRepositoryStub()
+		stub.sessionsToReturn = [
+			SingingSession(track: track, intent: .shout, performedAt: Date(timeIntervalSince1970: 100), score: 80),
+		]
+		let vm = TrackDetailViewModel(sessionRepository: stub, trackId: track.id, trackTitle: "再入")
+
+		let first = Task { await vm.load() }
+		await stub.waitUntilFetchStarted()
+		await vm.load()
+
+		#expect(stub.fetchSessionsCallCount == 1)
+
+		stub.finishFetch()
+		await first.value
+
+		#expect(vm.points.count == 1)
+		#expect(stub.fetchSessionsCallCount == 1)
 	}
 
 	@Test("キャンセル済みのロードは遅れて返った結果で上書きしない")
