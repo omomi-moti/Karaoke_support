@@ -4,18 +4,10 @@ import SwiftUI
 struct TrackDetailSessionRowView: View {
 	let point: TrackScoreTrendPoint
 
-	private static let performedAtFormatter: DateFormatter = {
-		let f = DateFormatter()
-		f.locale = Locale(identifier: "ja_JP")
-		f.dateStyle = .medium
-		f.timeStyle = .short
-		return f
-	}()
-
 	var body: some View {
 		HStack(alignment: .center, spacing: 12) {
 			VStack(alignment: .leading, spacing: 8) {
-				Text(Self.performedAtFormatter.string(from: point.performedAt))
+				Text(PerformedAtFormat.dateTime(point.performedAt))
 					.font(.subheadline)
 					.foregroundStyle(AppColor.textSecondary)
 				IntentBadgeView(intent: point.intent)

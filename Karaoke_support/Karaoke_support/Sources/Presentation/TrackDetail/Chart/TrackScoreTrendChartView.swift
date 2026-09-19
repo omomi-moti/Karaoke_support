@@ -7,6 +7,13 @@ struct TrackScoreTrendChartView: View {
 	let averageScore: Double
 	let isTruncated: Bool
 
+	@State private var selectedOrder: Int?
+
+	private var selectedPoint: TrackScoreTrendPoint? {
+		guard let selectedOrder else { return nil }
+		return points.first { $0.order == selectedOrder }
+	}
+
 	var body: some View {
 		VStack(alignment: .leading, spacing: 16) {
 			header
@@ -53,18 +60,34 @@ struct TrackScoreTrendChartView: View {
 					y: .value("スコア", point.score)
 				)
 				.foregroundStyle(IntentPalette.foreground(point.intent))
-				.symbolSize(70)
-				.accessibilityLabel(point.performedAt.formatted(date: .abbreviated, time: .omitted))
+				.symbolSize(point.order == selectedOrder ? 160 : 70)
+				.accessibilityLabel(PerformedAtFormat.dateOnly(point.performedAt))
 				.accessibilityValue("\(point.score.formatted(.number.precision(.fractionLength(1))))点")
+			}
+
+			if let selectedPoint {
+				RuleMark(x: .value("選択", selectedPoint.order))
+					.lineStyle(StrokeStyle(lineWidth: 1))
+					.foregroundStyle(AppColor.borderSubtle)
+					.zIndex(-1)
+					.annotation(
+						position: .top,
+						spacing: 8,
+						overflowResolution: .init(x: .fit(to: .chart), y: .disabled)
+					) {
+						selectionCallout(selectedPoint)
+					}
 			}
 
 			RuleMark(y: .value("平均", averageScore))
 				.lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
 				.foregroundStyle(AppColor.borderSubtle)
 				.annotation(position: .top, alignment: .leading) {
-					Text("平均 \(averageScore, format: .number.precision(.fractionLength(1)))")
-						.font(.caption2.weight(.semibold))
-						.foregroundStyle(AppColor.textTertiary)
+					if selectedPoint == nil {
+						Text("平均 \(averageScore, format: .number.precision(.fractionLength(1)))")
+							.font(.caption2.weight(.semibold))
+							.foregroundStyle(AppColor.textTertiary)
+					}
 				}
 		}
 		.chartYScale(domain: yDomain)
@@ -81,6 +104,8 @@ struct TrackScoreTrendChartView: View {
 				AxisValueLabel().foregroundStyle(AppColor.textTertiary)
 			}
 		}
+		.chartXSelection(value: $selectedOrder)
+		.sensoryFeedback(.selection, trigger: selectedOrder)
 		.frame(height: 200)
 	}
 
@@ -90,6 +115,32 @@ struct TrackScoreTrendChartView: View {
 			IntentBadgeView(intent: .emo)
 			IntentBadgeView(intent: .practice)
 		}
+	}
+
+	private func selectionCallout(_ point: TrackScoreTrendPoint) -> some View {
+		VStack(alignment: .leading, spacing: 6) {
+			Text(PerformedAtFormat.dateTime(point.performedAt))
+				.font(.caption2)
+				.foregroundStyle(AppColor.textSecondary)
+
+			HStack(spacing: 8) {
+				IntentBadgeView(intent: point.intent)
+				Text(point.score, format: .number.precision(.fractionLength(1)))
+					.font(.headline.weight(.bold))
+					.monospacedDigit()
+					.foregroundStyle(AppColor.textPrimary)
+			}
+		}
+		.padding(.horizontal, 10)
+		.padding(.vertical, 8)
+		.background(
+			RoundedRectangle(cornerRadius: 10, style: .continuous)
+				.fill(AppColor.backgroundGradientEnd)
+		)
+		.overlay(
+			RoundedRectangle(cornerRadius: 10, style: .continuous)
+				.stroke(AppColor.borderSubtle, lineWidth: 1)
+		)
 	}
 
 	/// スコアの実レンジに 5 点刻みの余白を足した範囲。0〜100 固定だと変動が上端に潰れて推移が読めない。

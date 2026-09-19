@@ -4,14 +4,6 @@ import SwiftUI
 struct HistorySessionRowView: View {
 	let item: HistorySessionRowDisplayItem
 
-	private static let performedAtFormatter: DateFormatter = {
-		let f = DateFormatter()
-		f.locale = Locale(identifier: "ja_JP")
-		f.dateStyle = .medium
-		f.timeStyle = .short
-		return f
-	}()
-
 	var body: some View {
 		HStack(alignment: .top, spacing: 12) {
 			VStack(alignment: .leading, spacing: 6) {
@@ -20,7 +12,7 @@ struct HistorySessionRowView: View {
 					.foregroundStyle(AppColor.textPrimary)
 					.multilineTextAlignment(.leading)
 
-				Text(Self.performedAtFormatter.string(from: item.performedAt))
+				Text(PerformedAtFormat.dateTime(item.performedAt))
 					.font(.subheadline)
 					.foregroundStyle(AppColor.textSecondary)
 
