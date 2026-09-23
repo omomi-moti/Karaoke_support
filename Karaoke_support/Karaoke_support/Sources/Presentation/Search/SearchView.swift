@@ -1,49 +1,28 @@
-//
-//  SearchView.swift
-//  Karaoke_support
-//
-//  Created by 鈴木聖也 on 2026/06/29.
-//
-
 import SwiftUI
 import Observation
 
-struct SearchView : View{
+struct SearchView: View {
     @Bindable var viewModel: SearchViewModel
     let onSelectTrack: (Track) -> Void
-    
-    var body : some View{
-        
-        VStack(spacing: 0){
-            TextField("過去の歌った曲から検索しよう",text : $viewModel.searchText)
-                .font(.headline.weight(.semibold))
-                .foregroundStyle(AppColor.textPrimary)
-                .lineLimit(1)
-            
-            Divider()
-            
-            if let errorMessage = viewModel.errorMessage{
-                Spacer()
-                    Text(errorMessage)
-                        .font(.subheadline)
-                        .foregroundStyle(AppColor.semanticError)
-                    Spacer()
-            }
-            else if viewModel.isSearching{
-                Spacer()
+
+    var body: some View {
+        Group {
+            if let errorMessage = viewModel.errorMessage {
+                Text(errorMessage)
+                    .font(.subheadline)
+                    .foregroundStyle(AppColor.semanticError)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if viewModel.isSearching {
                 ProgressView()
-                Spacer()
-            }
-            else if viewModel.result.isEmpty && viewModel.hasActiveQuery{
-                Spacer()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if viewModel.result.isEmpty && viewModel.hasActiveQuery {
                 Text("該当する曲が見つかりません")
-                Spacer()
-            }
-            else{
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
                 List(viewModel.result) { track in
-                    Button{
+                    Button {
                         onSelectTrack(track)
-                    } label:{
+                    } label: {
                         SearchResultRowView(track: track)
                     }
                     .buttonStyle(.plain)
@@ -53,14 +32,10 @@ struct SearchView : View{
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
-
             }
-            
-            
         }
-        .task(id: viewModel.searchText){
+        .task(id: viewModel.searchText) {
             await viewModel.search(query: viewModel.searchText)
         }
     }
 }
-

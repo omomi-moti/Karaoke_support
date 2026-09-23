@@ -1,56 +1,126 @@
 import SwiftUI
 
 struct RootView: View {
-	enum RootTab: Hashable {
-		case songs
-		case history
-		case settings
-	}
+    enum RootTab: Hashable {
+        case songs
+        case history
+        case settings
+        case search
+    }
 
-	@State private var selectedTab: RootTab = .songs
-	/// 履歴から手動記録へ遷移するたびに増やし、``SongsRootView`` が記録シートを開く（I-016）。
-	@State private var manualRecordingNavigationTick: Int = 0
+    private struct RecordingSheetItem: Identifiable {
+        let id = UUID()
+        let seed: RecordingSessionSeed
+    }
 
-	var body: some View {
-		TabView(selection: $selectedTab) {
-			/// 選曲タブの `NavigationStack` は `SongsRootView` 内のみ（二重スタック回避・I-013）。
-			SongsRootView(
-				onSavedMoveToHistory: {
-					var transaction = Transaction()
-					transaction.disablesAnimations = true
-					withTransaction(transaction) {
-						selectedTab = .history
-					}
-				},
-				manualRecordingNavigationTick: $manualRecordingNavigationTick
-			)
-			.tabItem {
-				Label("選曲", systemImage: "music.note.list")
-			}
-			.tag(RootTab.songs)
+    @Environment(\.trackRepository) private var trackRepository
 
-			/// ナビゲーションは ``HistoryListContainerView`` 内の `NavigationStack` に集約（履歴→編集の push を含む・I-014-C）。
-			HistoryRootView()
-			.tabItem {
-				Label("履歴", systemImage: "clock")
-			}
-			.tag(RootTab.history)
+    @State private var selectedTab: RootTab = .songs
+    @State private var recordingSheetItem: RecordingSheetItem?
 
-			NavigationStack {
-				SettingsRootView()
-			}
-			.tabItem {
-				Label("設定", systemImage: "gearshape")
-			}
-			.tag(RootTab.settings)
-		}
-		.environment(\.navigateToManualRecording) {
-			selectedTab = .songs
-			manualRecordingNavigationTick += 1
-		}
-	}
+    var body: some View {
+        TabView(selection: $selectedTab) {
+            Tab("選曲", systemImage: "music.note.list", value: .songs) {
+                SongsRootView(onSelectTrack: presentRecording)
+                    .modifier(AddRecordingButton(action: presentManualRecording))
+            }
+
+            Tab("履歴", systemImage: "clock", value: .history) {
+                HistoryRootView()
+                    .modifier(AddRecordingButton(action: presentManualRecording))
+            }
+
+            Tab("設定", systemImage: "gearshape", value: .settings) {
+                NavigationStack {
+                    SettingsRootView()
+                }
+            }
+
+            Tab(value: .search, role: .search) {
+                NavigationStack {
+                    SearchContainerView(
+                        trackRepository: trackRepository,
+                        onSelectTrack: presentRecording
+                    )
+                }
+            }
+        }
+        .modifier(MinimizeOnScroll())
+        .sheet(item: $recordingSheetItem) { item in
+            RecordingSheetContainerView(
+                seed: item.seed,
+                onSavedMoveToHistory: {
+                    recordingSheetItem = nil
+                    moveToHistory()
+                }
+            )
+        }
+        .environment(\.navigateToManualRecording, presentManualRecording)
+    }
+
+    private func presentManualRecording() {
+        recordingSheetItem = RecordingSheetItem(seed: .mode(.manual))
+    }
+
+    private func presentRecording(_ selected: SelectedTrack) {
+        recordingSheetItem = RecordingSheetItem(seed: .selectedTrack(selected))
+    }
+
+    private func moveToHistory() {
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            selectedTab = .history
+        }
+    }
+}
+
+private struct AddRecordingButton: ViewModifier {
+    let action: () -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(alignment: .bottomTrailing) {
+                Button(action: action) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 20, weight: .semibold))
+                        .frame(width: 48, height: 48)
+                }
+                .modifier(FloatingButtonStyle())
+                .accessibilityLabel("手動で記録")
+                .padding(16)
+            }
+    }
+}
+
+private struct MinimizeOnScroll: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content.tabBarMinimizeBehavior(.onScrollDown)
+        } else {
+            content
+        }
+    }
+}
+
+private struct FloatingButtonStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content
+                .buttonStyle(.glassProminent)
+                .buttonBorderShape(.circle)
+        } else {
+            content
+                .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.circle)
+        }
+    }
 }
 
 #Preview {
-	RootView()
+    RootView()
+        .environment(\.networkMonitor, NetworkMonitor(startsMonitoring: false))
+        .environment(\.trackRepository, PreviewTrackRepository())
+        .environment(\.insightRepository, PreviewInsightRepository())
+        .environment(\.sessionRepository, PreviewSessionRepository())
 }
