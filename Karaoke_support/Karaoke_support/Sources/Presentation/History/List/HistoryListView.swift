@@ -5,6 +5,7 @@ struct HistoryListView: View {
 	@Bindable var viewModel: HistoryViewModel
 	@Binding var navigationPath: NavigationPath
 	@Environment(\.navigateToManualRecording) private var navigateToManualRecording
+	@Environment(\.historyReloadTick) private var historyReloadTick
 
 	var body: some View {
 		ZStack {
@@ -106,10 +107,15 @@ struct HistoryListView: View {
 		}
 		.navigationTitle("履歴")
 		.navigationBarTitleDisplayMode(.inline)
-		/// `filter` 変更時に前の非同期タスクをキャンセルし、最新の絞り込みだけ `load()` させる（連打時のレース回避）。
-		.task(id: viewModel.filter) {
+		/// `filter` 変更・記録保存のたびに前の非同期タスクをキャンセルし、最新の条件だけ `load()` させる（連打時のレース回避）。
+		.task(id: ReloadKey(filter: viewModel.filter, tick: historyReloadTick)) {
 			await viewModel.load()
 		}
+	}
+
+	private struct ReloadKey: Hashable {
+		let filter: HistoryIntentFilter
+		let tick: Int
 	}
 
 	private var emptyState: some View {
