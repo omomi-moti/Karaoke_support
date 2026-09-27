@@ -39,8 +39,13 @@ struct RecordingSheetContentView: View {
 
                     TrackInputSectionView(
                         state: $viewModel.trackState,
-                        isDisabled: trackSectionDisabled
+                        isDisabled: trackSectionDisabled,
+                        suggestionState: trackSectionDisabled ? .hidden : viewModel.trackSuggestionState,
+                        onSelectSuggestion: viewModel.applyTrackSuggestion
                     )
+                    .task(id: viewModel.trackState.manualName) {
+                        await viewModel.updateTrackSuggestions(for: viewModel.trackState.manualName)
+                    }
                     RecordingSheetScoreSection(
                         score: $viewModel.draft.score,
                         isDisabled: isRetrying

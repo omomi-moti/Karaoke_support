@@ -23,6 +23,18 @@ final class RecordingSheetViewModel {
 
 	var isTrackInputLockedForEdit: Bool { editingSessionId != nil }
 
+	static let maxTrackSuggestions = 5
+
+	/// 曲名入力欄の下の「もしかして」欄。
+	private(set) var trackSuggestionState: TrackSuggestionState = .hidden
+
+	/// 入力が止まってから検索するまでの待ち時間。テストでは `.zero` にする。
+	@ObservationIgnored var suggestionDebounce: Duration = .milliseconds(300)
+
+	private var canShowTrackSuggestions: Bool {
+		trackState.isEditable && !isTrackInputLockedForEdit
+	}
+
 	init(
 		trackMode: TrackInputMode,
 		sessionRepository: any SessionRepositoryProtocol,
@@ -175,6 +187,49 @@ final class RecordingSheetViewModel {
 			inlineErrorMessage = "保存に失敗しました。もう一度お試しください"
 			return false
 		}
+	}
+
+	// MARK: - 曲名サジェスト（もしかして）
+
+	/// 入力中の曲名から、歌ったことがある曲を「もしかして」として探す。
+	func updateTrackSuggestions(for query: String) async {
+		let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+		guard canShowTrackSuggestions, !trimmed.isEmpty else {
+			trackSuggestionState = .hidden
+			return
+		}
+
+		do {
+			try await Task.sleep(for: suggestionDebounce)
+			let found = try await trackRepository.searchLocal(query: trimmed)
+			try Task.checkCancellation()
+			// キャンセルが届く前に入力が置き換わった（候補をタップした等）なら古い結果は捨てる
+			guard canShowTrackSuggestions, trackState.normalizedManualName == trimmed else { return }
+
+			// 記録を全部消した曲（打ち間違いで作った曲など）は Track だけ残るので候補から除く
+			let candidates = found
+				.filter { $0.singCount > 0 }
+				.compactMap(TrackSuggestion.init(track:))
+			if candidates.contains(where: { $0.name == trimmed }) {
+				// 既存の曲名と完全一致なら、そのまま既存の曲につながるので出さない
+				trackSuggestionState = .hidden
+			} else if candidates.isEmpty {
+				trackSuggestionState = .noMatch
+			} else {
+				trackSuggestionState = .suggestions(Array(candidates.prefix(Self.maxTrackSuggestions)))
+			}
+		} catch is CancellationError {
+			return
+		} catch {
+			guard !Task.isCancelled else { return }
+			// 補助機能なので入力は妨げない。「候補なし」とは区別して何も出さない
+			trackSuggestionState = .hidden
+		}
+	}
+
+	func applyTrackSuggestion(_ suggestion: TrackSuggestion) {
+		trackSuggestionState = .hidden
+		trackState.manualName = suggestion.name
 	}
 
 	/// ``SingingSession`` の仕様（0〜100・小数第二位）に合わせ、Slider の `Double` 表現誤差を抑える。
