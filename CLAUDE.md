@@ -85,7 +85,7 @@ viewModel.save()                // ✅
 
 **SwiftData `#Predicate` + enum**: `#Predicate { $0.intent == .shout }` crashes on iOS 17.0–17.2. All intent-filtered fetches use `fetchAll` then `filter` in memory. See `SwiftDataSessionRepository.fetchByIntent`.
 
-**NavigationStack + `.sheet` co-existence bug (iOS 17.0)**: Using both in the same View corrupts `NavigationStack` state after sheet dismiss. The Songs tab uses **NavigationStack root-only + `.sheet(item:)` exclusively**; nothing is pushed via `navigationDestination`. See `docs/v1_navigation_songs_recording.md`.
+**NavigationStack + `.sheet` co-existence bug (iOS 17.0)**: Using both in the same View corrupts `NavigationStack` state after sheet dismiss. The recording sheet therefore lives **once on `RootView`** (`.sheet(item: $recordingSheetItem)` on the `TabView`), not inside any tab's `NavigationStack`; the Songs tab's stack is root-only. After a save, `RootView` bumps `historyReloadTick` so the History list reloads even when the sheet was opened on the History tab. See `docs/v1_navigation_songs_recording.md`.
 
 ---
 

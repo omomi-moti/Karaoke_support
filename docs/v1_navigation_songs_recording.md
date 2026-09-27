@@ -1,63 +1,60 @@
-# 選曲タブ × 歌唱記録のナビゲーション（I-013）
+# 歌唱記録シートのナビゲーション（I-013 / iOS 26 タブバー移行）
 
 ## 方針
 
-- **単一の `NavigationStack`** を選曲タブ内に持つ（`SongsRootView`）。ここでは **セグメント（インテント / Spotify）とルートコンテンツ**のみを載せる。`RootView` の選曲タブ側では **外側に `NavigationStack` を重ねない**（二重スタック回避）。
-- **歌唱記録 UI** は **`NavigationStack` の push では出さない**。`@State private var presentedRecordingRoute: SongsRecordingRoute?` と **`.sheet(item: $presentedRecordingRoute)`** で `RecordingSheetContainerView` をモーダル表示する（`presentation: .sheet`）。
-- **理由（UX）**: push で `NavigationPath` を空にして pop すると、必ず一度 **下のルート（インテント一覧）が露出**する。保存後に履歴タブへ切り替えるときの「一瞬チラつき」を避けるため、**シートの dismiss** で閉じる。
+- **記録シートは `RootView` に 1 つだけ**置く。`TabView` に `.sheet(item: $recordingSheetItem)` を付け、`RecordingSheetContainerView` をモーダル表示する（`presentation: .sheet`）。選曲・履歴・検索のどのタブから開いても同じシートを使う。
+- **歌唱記録 UI は `NavigationStack` の push では出さない**。push で `NavigationPath` を空にして pop すると、必ず一度 **下のルートが露出**する。保存後に履歴タブへ切り替えるときの「一瞬チラつき」を避けるため、**シートの dismiss** で閉じる。
+- 各タブの `NavigationStack` はタブ内に独立して持つ（選曲は `SongsRootView`、履歴は `HistoryListContainerView`、設定・検索は `RootView` の `Tab` 内）。記録シートはどのタブのスタックにも積まない。
+- 選曲タブは **インテント（`IntentTabContainerView`）のみ**を表示する。V1 にあった「インテント / Spotify」のセグメントは撤去した（Spotify 視聴履歴の配置は V2 の I-026 で再検討）。
 
-## ルート型 `SongsRecordingRoute`
+## シートの開き方
 
-`Hashable`（将来の `NavigationPath` 利用にも備える）に加え、**`.sheet(item:)`** 用に **`Identifiable`** を実装し、`id` を定義する。
+`RootView` 内の `RecordingSheetItem`（`id: UUID` + `seed: RecordingSessionSeed`）で表示する。開くたびに新しい `id` を採番するため、同じ曲を続けて選んでもシートは作り直される。
 
-| ルート | 意味 |
-|--------|------|
-| `manualRecording` | ツールバー「記録を追加」→ 手動入力から Intent・スコアへ |
-| `recording(SelectedTrack)` | ランキング等で確定済みの曲から同じ記録 UI へ（V2 の検索・Spotify 履歴も同型） |
+| 起点 | 呼び出し | `seed` |
+|------|----------|--------|
+| 選曲・履歴タブ右下の ＋ ボタン | `presentManualRecording()` | `.mode(.manual)` |
+| 空状態の「手動で曲名を入力して歌う」（選曲・履歴） | `EnvironmentValues.navigateToManualRecording` → `presentManualRecording()` | `.mode(.manual)` |
+| タイムマシン／マイアンセムのランキング行 | `SongsRootView(onSelectTrack:)` → `presentRecording(_:)` | `.selectedTrack(SelectedTrack)` |
+| 検索タブ（`Tab(role: .search)`）の結果行 | `SearchContainerView(onSelectTrack:)` → `presentRecording(_:)` | `.selectedTrack(SelectedTrack)` |
 
-### `Identifiable.id` の注意（`.sheet(item:)`）
-
-SwiftUI は **`id` が変わったか**でシートの同一性を判断する。現状は `recording` の `id` を **`recording|\(spotifyTrackId)|\(userEnteredName)` 風に連結**しており、**区切り文字と内容の組み合わせで理論上衝突**し得る（例: `spotifyTrackId` が `a|b` で名前が空 vs `a` と `b`）。**実害は稀**だが、再表示がおかしい報告があれば **`String(reflecting:)`、安定ハッシュ、または表示用とは別の UUID** などに変更する。
+`navigateToManualRecording` は以前は「選曲タブへ切替 + tick で `SongsRootView` にシートを開かせる」方式だったが、シートを `RootView` に集約したため **その場で開く**だけになった。
 
 ## 保存成功時
 
-1. `RecordingSheetContentView.attemptSave()` 成功時に `onSavedMoveToHistory()`（親で `selectedTab = .history`）。
-2. `SongsRootView.handleRecordingSaved()` で **`presentedRecordingRoute = nil`**（シートを閉じる）。
+1. `RecordingSheetContentView.attemptSave()` 成功時に `onSavedMoveToHistory()` を呼ぶ。
+2. `RootView` で **`recordingSheetItem = nil`**（シート解除）、**`historyReloadTick += 1`**、`selectedTab = .history`（アニメーションなし）。
 3. `RecordingSheetContentView` は `presentation == .sheet` のとき **`dismiss()`** も呼ぶ（二重の閉じ方だが問題にならない）。
 
-## 履歴からの「手動で記録」
+### `historyReloadTick` が必要な理由
 
-`EnvironmentValues.navigateToManualRecording` で **`RootView` が選曲タブ選択 + `manualRecordingNavigationTick` を増加**し、`SongsRootView` の `onChange` で **`presentedRecordingRoute = .manualRecording`**（旧 `NavigationPath` に積む方式から変更）。
+履歴一覧は値型スナップショットを表示しており、再読み込みは `HistoryListView` の `.task(id:)` だけが担う。以前は記録シートが選曲タブにしかなく、保存後のタブ切替で履歴が「表示される」ことで `.task` が動いていた。**履歴タブ上でシートを開いて保存すると、タブ切替も再表示も起きない**ため、保存回数を `EnvironmentValues.historyReloadTick` で渡し、`.task(id: ReloadKey(filter:tick:))` に含めて再読み込みさせる。
 
 ## 遷移図（テキスト）
 
 ```
-[選曲ルート（NavigationStack のルートのみ）]
-    │
-    ├─(+) 記録を追加 ──► presentedRecordingRoute = .manualRecording
-    │                              │
-    │                              ▼
-    │                    .sheet ──► RecordingSheetContainerView(seed: .mode(.manual), presentation: .sheet)
-    │
-    └─(ランキング等) presentedRecordingRoute = .recording(SelectedTrack)
-                                           │
-                                           ▼
-                                 .sheet ──► RecordingSheetContainerView(seed: .selectedTrack, presentation: .sheet)
-                                           │
-                                           ▼
+[選曲タブ] ──(＋ / 空状態)────────┐
+[選曲タブ] ──(ランキング行)───────┤
+[履歴タブ] ──(＋ / 空状態)────────┤──► RootView.recordingSheetItem
+[検索タブ] ──(検索結果行)─────────┘            │
+                                               ▼
+                         .sheet ──► RecordingSheetContainerView(seed:, presentation: .sheet)
+                                               │
+                                               ▼
                                  Intent / スコア / メモ / 保存
-                                           │
-                                           ▼ 成功
-                                 履歴タブ + シート解除（presentedRecordingRoute = nil）
+                                               │
+                                               ▼ 成功
+                        シート解除 + historyReloadTick += 1 + 履歴タブへ
 ```
 
 ## 関連コード
 
-- `Sources/Presentation/Songs/SongsRootView.swift` — `NavigationStack`（ルート）+ `.sheet(item:)`。記録は push しない
-- `Sources/Presentation/Songs/SongsRecordingRoute.swift` — ルート列挙（`Identifiable`）
-- `Sources/Presentation/Recording/Sheet/RecordingSheetContainerView.swift` — `presentation: .sheet`（選曲タブから開くとき）。履歴タブの編集は **別経路**で `NavigationStack` + `presentation: .navigationStack` のまま
+- `Sources/Presentation/Root/RootView.swift` — `TabView`（iOS 26 `Tab` API）+ 記録シート + ＋ボタン + `historyReloadTick`
+- `Sources/Presentation/Songs/SongsRootView.swift` — 選曲タブの `NavigationStack`（ルートのみ）。記録は `onSelectTrack` で `RootView` に委譲
+- `Sources/Presentation/Search/SearchContainerView.swift` — 検索タブ本体（`.searchable`）。選択は `onSelectTrack` で `RootView` に委譲
+- `Sources/App/Environment/HistoryReloadEnvironment.swift` — `historyReloadTick`
+- `Sources/Presentation/Recording/Sheet/RecordingSheetContainerView.swift` — `presentation: .sheet`（`RootView` から開くとき）。履歴タブの編集は **別経路**で `NavigationStack` + `presentation: .navigationStack` のまま
 - `Sources/Presentation/Recording/Sheet/RecordingSheetContentView.swift` — 保存成功時の `onSavedMoveToHistory` / `.sheet` 時の `dismiss()`
-- `Sources/Presentation/Root/RootView.swift` — `onSavedMoveToHistory` で `selectedTab = .history`
 
 ## 履歴タブのナビゲーション（I-014-C / I-019）
 
