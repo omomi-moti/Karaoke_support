@@ -35,7 +35,7 @@ struct IntentTabInsightView: View {
 					VStack(alignment: .leading, spacing: 12) {
 						headerSection
 						TimeMachineInsightCardView(onTapLookBack: { showTimeMachineSheet = true })
-						MyAnthemInsightCardView(onTapListen: { showMyAnthemSheet = true })
+						MyAnthemInsightCardView(onTapSelect: { showMyAnthemSheet = true })
 						IntentTabMonthlyStatsRowView(
 							monthSessionCount: viewModel.monthSessionCount,
 							averageScore: viewModel.averageScoreThisMonth

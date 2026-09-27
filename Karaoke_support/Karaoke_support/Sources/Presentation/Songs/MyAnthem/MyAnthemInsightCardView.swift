@@ -2,7 +2,7 @@ import SwiftUI
 
 /// マイアンセム（Intent 別ランキング）への導線カード（I-017）。
 struct MyAnthemInsightCardView: View {
-	let onTapListen: () -> Void
+	let onTapSelect: () -> Void
 
 	var body: some View {
 		ZStack(alignment: .bottomTrailing) {
@@ -46,7 +46,7 @@ struct MyAnthemInsightCardView: View {
 						.font(.caption)
 						.foregroundStyle(Color.white.opacity(0.75))
 					Spacer()
-					Button(action: onTapListen) {
+					Button(action: onTapSelect) {
 						HStack(spacing: 6) {
 							Text("選ぶ")
 								.font(.subheadline.weight(.semibold))
@@ -79,7 +79,7 @@ struct MyAnthemInsightCardView: View {
 }
 
 #Preview {
-	MyAnthemInsightCardView(onTapListen: {})
+	MyAnthemInsightCardView(onTapSelect: {})
 		.padding()
 		.background(IntentTabInsightStyle.pageBackground)
 }
