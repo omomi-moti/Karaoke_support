@@ -48,7 +48,7 @@ struct MyAnthemInsightCardView: View {
 					Spacer()
 					Button(action: onTapListen) {
 						HStack(spacing: 6) {
-							Text("聴く")
+							Text("選ぶ")
 								.font(.subheadline.weight(.semibold))
 							Image(systemName: "chevron.right")
 								.font(.caption.weight(.semibold))
