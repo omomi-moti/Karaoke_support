@@ -47,7 +47,7 @@ struct RootView: View {
                 }
             }
         }
-        .modifier(MinimizeOnScroll())
+        .tabBarMinimizeBehavior(.onScrollDown)
         .sheet(item: $recordingSheetItem) { item in
             RecordingSheetContainerView(
                 seed: item.seed,
@@ -90,34 +90,11 @@ private struct AddRecordingButton: ViewModifier {
                         .font(.system(size: 20, weight: .semibold))
                         .frame(width: 48, height: 48)
                 }
-                .modifier(FloatingButtonStyle())
+                .buttonStyle(.glassProminent)
+                .buttonBorderShape(.circle)
                 .accessibilityLabel("手動で記録")
                 .padding(16)
             }
-    }
-}
-
-private struct MinimizeOnScroll: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(iOS 26, *) {
-            content.tabBarMinimizeBehavior(.onScrollDown)
-        } else {
-            content
-        }
-    }
-}
-
-private struct FloatingButtonStyle: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(iOS 26, *) {
-            content
-                .buttonStyle(.glassProminent)
-                .buttonBorderShape(.circle)
-        } else {
-            content
-                .buttonStyle(.borderedProminent)
-                .buttonBorderShape(.circle)
-        }
     }
 }
 
