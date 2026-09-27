@@ -206,15 +206,19 @@ final class RecordingSheetViewModel {
 			// キャンセルが届く前に入力が置き換わった（候補をタップした等）なら古い結果は捨てる
 			guard canShowTrackSuggestions, trackState.normalizedManualName == trimmed else { return }
 
+			// 既存の曲名と完全一致なら、そのまま保存すれば既存の曲につながるので出さない。
+			// getOrCreate と同じ条件（Spotify ID なし・曲名が完全一致）で、歌唱回数 0 の曲も含めて判定する
+			if found.contains(where: { $0.spotifyTrackId == nil && $0.userEnteredName == trimmed }) {
+				trackSuggestionState = .hidden
+				return
+			}
+
 			// 記録を全部消した曲（打ち間違いで作った曲など）は Track だけ残るので候補から除く。
 			// 前方一致の曲が回数順で 6 件目以降にあっても上位に入るよう、件数を絞る前に並べ替える
 			let candidates = TrackSuggestionRanker
 				.rank(found.filter { $0.singCount > 0 }, query: trimmed)
 				.compactMap(TrackSuggestion.init(track:))
-			if candidates.contains(where: { $0.name == trimmed }) {
-				// 既存の曲名と完全一致なら、そのまま既存の曲につながるので出さない
-				trackSuggestionState = .hidden
-			} else if candidates.isEmpty {
+			if candidates.isEmpty {
 				trackSuggestionState = .noMatch
 			} else {
 				trackSuggestionState = .suggestions(Array(candidates.prefix(Self.maxTrackSuggestions)))

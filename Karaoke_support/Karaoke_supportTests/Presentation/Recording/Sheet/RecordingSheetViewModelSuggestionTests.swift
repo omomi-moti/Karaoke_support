@@ -226,6 +226,17 @@ struct RecordingSheetViewModelSuggestionTests {
 		#expect(vm.trackSuggestionState == .hidden)
 	}
 
+	@Test("歌唱回数 0 の曲と完全一致なら、候補から除いた曲でも既存の曲につながるので何も出さない")
+	func exactMatchWithZeroSingCountTrackHides() async {
+		let stub = SuggestionTrackRepositoryStub()
+		stub.tracksToReturn = [makeTrack("Lemon", singCount: 0)]
+		let vm = makeViewModel(trackRepository: stub)
+
+		await type("Lemon", into: vm)
+
+		#expect(vm.trackSuggestionState == .hidden)
+	}
+
 	@Test("Spotify ID を持つ曲は、押しても手入力の保存で既存の曲につながらないので候補に出さない")
 	func tracksWithSpotifyIdAreExcluded() async {
 		let stub = SuggestionTrackRepositoryStub()
