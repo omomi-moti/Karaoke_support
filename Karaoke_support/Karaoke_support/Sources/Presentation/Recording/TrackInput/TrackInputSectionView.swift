@@ -56,6 +56,7 @@ struct TrackInputSectionView: View {
 			Text("候補はありません")
 				.font(.footnote)
 				.foregroundStyle(.secondary)
+				.transition(.opacity)
 		case .suggestions(let items):
 			VStack(alignment: .leading, spacing: 4) {
 				Text("もしかして")
@@ -70,7 +71,7 @@ struct TrackInputSectionView: View {
 							Text(item.name)
 								.lineLimit(1)
 							Spacer()
-							Text("\(item.singCount)回")
+							Text("\(item.singCount)回歌唱")
 								.font(.footnote)
 								.foregroundStyle(.secondary)
 						}
@@ -87,6 +88,7 @@ struct TrackInputSectionView: View {
 					.accessibilityLabel("\(item.name)、\(item.singCount)回歌唱")
 				}
 			}
+			.transition(.opacity)
 		}
 	}
 }

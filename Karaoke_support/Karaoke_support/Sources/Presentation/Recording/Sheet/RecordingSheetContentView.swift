@@ -75,6 +75,8 @@ struct RecordingSheetContentView: View {
                 }
                 .padding(.horizontal)
                 .padding(.top, 10)
+                // 「もしかして」欄の出入りで下のセクションが跳ねないように
+                .animation(.easeInOut(duration: 0.2), value: viewModel.trackSuggestionState)
             }
 
             if viewModel.isSaving {
