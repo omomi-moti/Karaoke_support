@@ -206,9 +206,10 @@ final class RecordingSheetViewModel {
 			// キャンセルが届く前に入力が置き換わった（候補をタップした等）なら古い結果は捨てる
 			guard canShowTrackSuggestions, trackState.normalizedManualName == trimmed else { return }
 
-			// 記録を全部消した曲（打ち間違いで作った曲など）は Track だけ残るので候補から除く
-			let candidates = found
-				.filter { $0.singCount > 0 }
+			// 記録を全部消した曲（打ち間違いで作った曲など）は Track だけ残るので候補から除く。
+			// 前方一致の曲が回数順で 6 件目以降にあっても上位に入るよう、件数を絞る前に並べ替える
+			let candidates = TrackSuggestionRanker
+				.rank(found.filter { $0.singCount > 0 }, query: trimmed)
 				.compactMap(TrackSuggestion.init(track:))
 			if candidates.contains(where: { $0.name == trimmed }) {
 				// 既存の曲名と完全一致なら、そのまま既存の曲につながるので出さない

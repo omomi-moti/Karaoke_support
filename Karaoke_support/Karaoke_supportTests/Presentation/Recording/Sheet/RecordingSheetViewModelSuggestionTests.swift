@@ -146,8 +146,8 @@ struct RecordingSheetViewModelSuggestionTests {
 		#expect(suggestedNames(vm) == ["Lemon"])
 	}
 
-	@Test("候補は最大 5 件で、Repository の返した順（歌唱回数降順）を保つ")
-	func suggestionsAreLimitedAndKeepOrder() async {
+	@Test("候補は最大 5 件で、同じ段の中では歌唱回数の多い順")
+	func suggestionsAreLimitedAndSortedBySingCount() async {
 		let stub = SuggestionTrackRepositoryStub()
 		stub.tracksToReturn = (1 ... 7).reversed().map { makeTrack("曲\($0)", singCount: $0) }
 		let vm = makeViewModel(trackRepository: stub)
@@ -160,6 +160,24 @@ struct RecordingSheetViewModelSuggestionTests {
 		}
 		#expect(items.count == RecordingSheetViewModel.maxTrackSuggestions)
 		#expect(items.map(\.singCount) == [7, 6, 5, 4, 3])
+	}
+
+	@Test("5 件に絞る前に並べ替えるので、回数順で 6 件目以降の前方一致の曲も先頭に来る")
+	func rankingHappensBeforeLimiting() async {
+		let stub = SuggestionTrackRepositoryStub()
+		// searchLocal は歌唱回数の多い順に返す。部分一致の 6 曲のあとに、前方一致の曲が来る
+		stub.tracksToReturn = (5 ... 10).reversed().map { makeTrack("ole\($0)", singCount: $0) }
+			+ [makeTrack("lemon", singCount: 1)]
+		let vm = makeViewModel(trackRepository: stub)
+
+		await type("le", into: vm)
+
+		guard case .suggestions(let items) = vm.trackSuggestionState else {
+			Issue.record("候補が出ていない: \(vm.trackSuggestionState)")
+			return
+		}
+		#expect(items.count == RecordingSheetViewModel.maxTrackSuggestions)
+		#expect(items.first?.name == "lemon")
 	}
 
 	@Test("歌唱回数 0 の曲（記録を全部消した曲）は候補に出さない")
