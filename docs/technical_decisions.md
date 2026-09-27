@@ -20,7 +20,7 @@ V1 では `userEnteredName`（ユーザー生成データ＝永続化可）で�
 
 仕様上は Intent 選択画面・歌唱記録入力画面が別画面（S-004/S-005）だったが、**UX 改善のため 1 枚の Recording Sheet に統合**し、**曲名入力 → スコア → Intent → 歌唱日時 → メモ → 保存**を途切れなく完結できるようにした。
 
-`NavigationStack` の push で歌唱記録を出すと、保存後に `NavigationPath` を空にして pop する際にルートビュー（インテント一覧）が一瞬露出する「チラつき」が発生する。`.sheet(item:)` によるモーダル表示に切り替えることで、保存後は `presentedRecordingRoute = nil`（シート解除）+ `selectedTab = .history` のみで遷移が完結する。
+`NavigationStack` の push で歌唱記録を出すと、保存後に `NavigationPath` を空にして pop する際にルートビュー（インテント一覧）が一瞬露出する「チラつき」が発生する。`.sheet(item:)` によるモーダル表示に切り替えることで、保存後は シート解除 + `selectedTab = .history` のみで遷移が完結する。iOS 26 タブバー移行後は、記録シートを `RootView` に 1 つだけ置き、選曲・履歴・検索のどのタブからも同じシートを開く（`recordingSheetItem = nil` で解除）。
 
 ### 4. History の値型スナップショットパターン
 

@@ -17,7 +17,7 @@
 |------|------|------|
 | **DI 注入方法** | `@Environment` + カスタム EnvironmentKey | 憲法の「環境に注入」に準拠。Repository ごとに Key を切ることで、V2 で TrackMetadataService 等を追加する際に Key を追加するだけで済む。Protocol 型の注入も EnvironmentKey で対応可能。 |
 | **TabView + NavigationStack** | 各タブごとに独立した NavigationStack | iOS 17+ のベストプラクティス。TabView 内側に NavigationStack を配置することで、タブ切り替え時もタブバーが表示され続ける。各タブのナビ履歴が独立し、V2 で検索タブ等を追加しても影響が局所化される。 |
-| **選曲結果の受け渡し** | `SelectedTrack` を `SongsRecordingRoute.recording` に包み、`.sheet(item:)` で記録シートを表示 | 型安全で、V2 の検索・Spotify 履歴からの選曲も同じ型で扱える。`SongsRecordingRoute` は `Hashable`（将来の `NavigationPath` 利用にも備える）かつ **`Identifiable`**（`.sheet(item:)` 用）。 |
+| **選曲結果の受け渡し** | `SelectedTrack` を `RecordingSessionSeed.selectedTrack` に包み、`RootView` の `.sheet(item:)` で記録シートを表示 | 型安全で、検索・ランキング・V2 の Spotify 履歴からの選曲も同じ型で扱える。シートは `RootView` に 1 つだけ置き、どのタブからも `onSelectTrack` で開く（iOS 26 タブバー移行で `SongsRecordingRoute` から変更）。 |
 | **エラー表示** | 共通コンポーネント（メッセージ + 再試行ボタン） | I-009（保存失敗）と I-030（API エラー）で同じ UI を再利用。文言・挙動の統一と V2 での拡張を容易にする。 |
 
 ---
@@ -118,7 +118,7 @@ Phase 2: I-017 → I-018
 - **Labels**: `priority:must`, `type:feat`, `phase:1-MVP`
 - **Tasks**:
   - [x] TabView で選曲画面（2タブ）、History、設定の3タブを構成する。各タブ内に独立した NavigationStack を配置する（タブバーが常に表示され、各タブのナビ履歴が独立する構成）
-  - [x] タブA: インテント、タブB: Spotify視聴履歴のセグメント/タブUIを配置する。V1 ではタブB・設定は `EmptyPlaceholderView` 等の共通プレースホルダーを使用し、V2 で同型の View に差し替える
+  - [x] タブA: インテント、タブB: Spotify視聴履歴のセグメント/タブUIを配置する。V1 ではタブB・設定は `EmptyPlaceholderView` 等の共通プレースホルダーを使用し、V2 で同型の View に差し替える → **iOS 26 タブバー移行でセグメントは撤去**し、選曲タブはインテントのみ表示。Spotify 視聴履歴の配置は **I-026 で再検討**
   - [x] History 画面への遷移をタブバーに追加する
   - [x] 設定画面への遷移をタブバーに追加する
 
@@ -204,10 +204,10 @@ Phase 2: I-017 → I-018
 - **依存**: I-004, I-008, I-009, I-010, I-011, I-012
 - **Labels**: `priority:must`, `type:feat`, `phase:1-MVP`
 - **Tasks**:
-  - [x] 選曲結果の受け渡し型 `SelectedTrack` を定義する。`spotifyTrackId: String?` と `userEnteredName: String?` を持ち、少なくとも片方が非空であること。Hashable。記録画面へは `SongsRecordingRoute.recording(SelectedTrack)` として **`.sheet(item:)`** で渡す。V2 で検索・Spotify 履歴からの選曲も同じ型で扱う
+  - [x] 選曲結果の受け渡し型 `SelectedTrack` を定義する。`spotifyTrackId: String?` と `userEnteredName: String?` を持ち、少なくとも片方が非空であること。Hashable。記録画面へは `RecordingSessionSeed.selectedTrack(SelectedTrack)` として `RootView` の **`.sheet(item:)`** で渡す。検索・V2 の Spotify 履歴からの選曲も同じ型で扱う
   - [x] 曲選択（手動入力 or ランキングタップ）→ Intent選択 → 歌唱記録入力 → 保存の一連フローを接続する
   - [x] RecordingViewModel で TrackRepository.getOrCreate で Track を取得/作成し、SessionRepository.saveNewRecordingSession で SingingSession を保存する
-  - [x] ナビゲーション方針: 選曲タブ内は **NavigationStack（ルートのみ）+ `.sheet(item: SongsRecordingRoute?)`** で記録を表示（push ではない）。保存成功時は `selectedTab = .history` と **`presentedRecordingRoute = nil`**（シート解除）。遷移図は [`v1_navigation_songs_recording.md`](./v1_navigation_songs_recording.md)
+  - [x] ナビゲーション方針: 各タブは NavigationStack（ルートのみ）、記録は **`RootView` の `.sheet(item: $recordingSheetItem)`** で表示（push ではない）。保存成功時は **`recordingSheetItem = nil`**（シート解除）・`historyReloadTick += 1`（履歴の再読み込み）・`selectedTab = .history`。遷移図は [`v1_navigation_songs_recording.md`](./v1_navigation_songs_recording.md)
   - [x] フロー全体のナビゲーションと状態遷移を確認する
 - **参照**: 遷移図・関連ファイル一覧は [`v1_navigation_songs_recording.md`](./v1_navigation_songs_recording.md)
 
@@ -292,7 +292,7 @@ Phase 2: I-017 → I-018
 - **Labels**: `priority:must`, `type:feat`, `phase:1-MVP`
 - **Tasks**:
   - [x] 歌唱データ0件時に「まず1曲歌ってみよう！」メッセージを表示する → **履歴「すべて」かつ 0 件時に ``SingingEmptyStateView``（文言は ``SingingEmptyStateCopy``）**
-  - [x] 「手動で曲名を入力して歌う」への導線を NavigationLink または Button で配置する。タップで手動曲名入力画面へ遷移 → **同一 View 内の Button。``navigateToManualRecording``（App Environment）で選曲タブへ切替え + ``manualRecordingNavigationTick`` により ``SongsRootView`` が `presentedRecordingRoute = .manualRecording` で記録シートを開く**
+  - [x] 「手動で曲名を入力して歌う」への導線を NavigationLink または Button で配置する。タップで手動曲名入力画面へ遷移 → **同一 View 内の Button。``navigateToManualRecording``（App Environment）で `RootView` がその場で記録シート（`.mode(.manual)`）を開く**（iOS 26 タブバー移行でタブ切替 + tick 方式から変更）
   - [x] Empty State 用の再利用可能な View コンポーネントとして実装する。I-017 のインテントタブがデータ0件時にこれを表示する → **`SingingEmptyStateView` / `SingingEmptyStateCopy`**
 
 ---
@@ -322,7 +322,7 @@ Phase 2: I-017 → I-018
   - [x] fetchTimeMachineRanking() で過去1ヶ月のランキングを取得する → **I-017 / `IntentTabViewModel`・`TimeMachineRankingSheetView`**
   - [x] 歌った回数降順でリスト表示する → **I-017 / `fetchTimeMachineRanking` と `fetchAll` の並び順に準拠したシート一覧**
   - [x] V1 では曲名を一貫表示する → **`InsightTrackRowTitle`（I-017 のランキング行）**
-  - [x] ランキング内の曲をタップすると `SelectedTrack` を組み立て、`SongsRecordingRoute.recording` 経由で **記録シート**を開く → **I-017 / `SongsRootView` の `onSelectTrack`**
+  - [x] ランキング内の曲をタップすると `SelectedTrack` を組み立て、`onSelectTrack` 経由で `RootView` の **記録シート**を開く → **I-017 / `SongsRootView` の `onSelectTrack`**
 
 ---
 
