@@ -9,9 +9,12 @@ struct TrackSuggestion: Identifiable, Hashable, Sendable {
 
 	var id: UUID { trackId }
 
-	/// 手入力の曲名を持たない Track（Spotify 由来）は入力欄に入れられないので `nil`。
+	/// 手入力の曲として保存できない Track は `nil`。
+	///
+	/// 候補を押すと曲名だけが入力欄に入り、保存時は `getOrCreate(spotifyTrackId: nil, userEnteredName:)` で照合される。
+	/// この照合は Spotify ID を持たない Track しか探さないため、Spotify ID を持つ Track を候補にすると別の Track が作られる。
 	init?(track: Track) {
-		guard let name = track.userEnteredName, !name.isEmpty else { return nil }
+		guard track.spotifyTrackId == nil, let name = track.userEnteredName, !name.isEmpty else { return nil }
 		self.trackId = track.id
 		self.name = name
 		self.singCount = track.singCount

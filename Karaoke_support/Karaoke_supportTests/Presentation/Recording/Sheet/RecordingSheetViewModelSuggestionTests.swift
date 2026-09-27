@@ -226,6 +226,31 @@ struct RecordingSheetViewModelSuggestionTests {
 		#expect(vm.trackSuggestionState == .hidden)
 	}
 
+	@Test("Spotify ID を持つ曲は、押しても手入力の保存で既存の曲につながらないので候補に出さない")
+	func tracksWithSpotifyIdAreExcluded() async {
+		let stub = SuggestionTrackRepositoryStub()
+		stub.tracksToReturn = [
+			Track(spotifyTrackId: "spotify-lemon", userEnteredName: "Lemon", singCount: 5),
+			makeTrack("Lemonade", singCount: 1),
+		]
+		let vm = makeViewModel(trackRepository: stub)
+
+		await type("Lem", into: vm)
+
+		#expect(suggestedNames(vm) == ["Lemonade"])
+	}
+
+	@Test("Spotify ID を持つ曲と曲名が完全一致しても、既存の曲にはつながらないので非表示にしない")
+	func exactMatchWithSpotifyTrackDoesNotHide() async {
+		let stub = SuggestionTrackRepositoryStub()
+		stub.tracksToReturn = [Track(spotifyTrackId: "spotify-lemon", userEnteredName: "Lemon", singCount: 5)]
+		let vm = makeViewModel(trackRepository: stub)
+
+		await type("Lemon", into: vm)
+
+		#expect(vm.trackSuggestionState == .noMatch)
+	}
+
 	@Test("「候補はありません」のあと入力を空にすると、すぐ非表示になる")
 	func clearingInputAfterNoMatchHides() async {
 		let stub = SuggestionTrackRepositoryStub()
