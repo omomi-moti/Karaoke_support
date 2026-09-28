@@ -41,9 +41,9 @@ UI 層のみの制御は「ボタン tap → 非活性化」の間にタッチ�
 
 ### 6. テストにおける DI の活用
 
-ユニットテスト（14 ファイル）では Repository Protocol の DI が実際に機能している:
+ユニットテスト（19 ファイル）では Repository Protocol の DI が実際に機能している:
 
-- `SwiftDataSessionRepository*Tests`（4 ファイル）: in-memory `ModelContainer` で SwiftData の実インスタンスを生成し、冪等性・削除・更新・Intent フィルターをテスト
+- `SwiftDataSessionRepository*Tests`（5 ファイル）: in-memory `ModelContainer` で SwiftData の実インスタンスを生成し、冪等性・削除・更新・Intent フィルターをテスト
 - `HistoryViewModel*Tests`（3 ファイル）: Mock Repository を ViewModel init に注入し、ページネーション・ソート・loadGeneration の競合を検証
 - `RecordingSheetViewModelEditSaveTests`: 新規作成と編集の分岐を Protocol 差し替えで検証
 
