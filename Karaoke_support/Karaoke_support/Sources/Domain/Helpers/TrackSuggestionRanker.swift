@@ -29,15 +29,21 @@ enum TrackSuggestionRanker {
 
 	/// 段 → 歌唱回数の多い順 → `updatedAt` の新しい順 → 曲名 の順で並べる。
 	///
-	/// 最後の曲名は、条件がすべて同じ曲の並びを毎回同じにするため（`sorted` は同順位の並びを保証しない）。
-	/// `updatedAt` は記録の保存だけでなく編集・削除でも更新されるため、「最後に歌った日時」の近似である。
+	/// 2 曲を比べるとき上から順に見て、違いが見つかった時点で決める。
+	/// 上の条件ほど「今打っている文字に合っているか」、下に行くほど「どちらでもよいときの決め手」になる。
 	static func rank(_ tracks: [Track], query: String) -> [Track] {
 		tracks
 			.map { (track: $0, tier: tier(of: $0.userEnteredName ?? "", for: query)) }
 			.sorted { a, b in
+				// 1. 段: 今打っている文字に合っているかが最優先。回数を先に見ると、「a」と打ったときに
+				//    途中に a を含むだけのよく歌う曲が、a で始まる曲より上に来てしまう
 				if a.tier != b.tier { return a.tier < b.tier }
+				// 2. 歌唱回数: 同じ段なら打った文字への合い方は同じなので、よく歌う曲ほどまた歌う可能性が高い
 				if a.track.singCount != b.track.singCount { return a.track.singCount > b.track.singCount }
+				// 3. updatedAt: 回数も同じなら最近触った曲を上にする。記録の保存だけでなく編集・削除でも
+				//    更新される「最後に歌った日時」の近似なので、重みの低いこの位置に置く
 				if a.track.updatedAt != b.track.updatedAt { return a.track.updatedAt > b.track.updatedAt }
+				// 4. 曲名: 使いやすさではなく、毎回同じ並びにするための保険（`sorted` は同順位の並びを保証しない）
 				return (a.track.userEnteredName ?? "") < (b.track.userEnteredName ?? "")
 			}
 			.map(\.track)
