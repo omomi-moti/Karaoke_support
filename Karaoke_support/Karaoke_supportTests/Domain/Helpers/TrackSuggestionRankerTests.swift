@@ -49,6 +49,23 @@ struct TrackSuggestionRankerTests {
 		#expect(TrackSuggestionRanker.tier(of: "Banana Anthem", for: "an") == .wordPrefix)
 	}
 
+	@Test(
+		"アポストロフィは単語の途中に入る文字なので、その直後は単語の先頭とみなさない",
+		arguments: [
+			("Rock'n'Roll", "n"),
+			("Don't Stop", "t"),
+			("Don’t Stop", "t"),  // 右シングル引用符（’）
+		]
+	)
+	func apostropheIsNotWordBoundary(name: String, query: String) {
+		#expect(TrackSuggestionRanker.tier(of: name, for: query) == .contains)
+	}
+
+	@Test("アポストロフィの後ろに空白があれば、その先は単語の先頭一致のまま")
+	func wordAfterApostropheAndSpaceIsWordPrefix() {
+		#expect(TrackSuggestionRanker.tier(of: "Rock'n' Roll", for: "roll") == .wordPrefix)
+	}
+
 	@Test("単語の途中でしか一致しなければ部分一致")
 	func containsMatch() {
 		#expect(TrackSuggestionRanker.tier(of: "lemon", for: "mon") == .contains)
@@ -85,6 +102,18 @@ struct TrackSuggestionRankerTests {
 		]
 
 		#expect(rankedNames(tracks, query: "a") == ["Ado", "Hello Again", "Banana"])
+	}
+
+	@Test("アポストロフィの直後で一致した曲が、回数の多い部分一致の曲より上に来ない")
+	func apostropheMatchDoesNotOutrankMoreSungContains() {
+		// シミュレータで再現した並び: n → nnnn / Rock'n'Roll(1回) / lemon(4回)
+		let tracks = [
+			makeTrack("Rock'n'Roll", singCount: 1),
+			makeTrack("lemon", singCount: 4),
+			makeTrack("nnnn", singCount: 1),
+		]
+
+		#expect(rankedNames(tracks, query: "n") == ["nnnn", "lemon", "Rock'n'Roll"])
 	}
 
 	@Test("同じ段の中では歌唱回数の多い順")
