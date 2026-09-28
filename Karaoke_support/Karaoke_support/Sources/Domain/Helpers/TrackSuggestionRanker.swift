@@ -55,12 +55,18 @@ enum TrackSuggestionRanker {
 	/// 直前が空白・記号（括弧やハイフンなど）なら単語の先頭とみなす。
 	///
 	/// `enumerateSubstrings(.byWords)` は日本語を形態素で区切り、区切り位置が予想しづらいため使わない。
-	/// 記号の判定は Unicode の分類（`isPunctuation` / `isSymbol`）に任せるが、アポストロフィは分類上は句読点でも
-	/// 「Don't」「Rock'n'Roll」のように単語の途中に入る文字なので、区切りから外す。
+	/// 記号の判定は Unicode の分類（`isPunctuation` / `isSymbol`）に任せる。
+	/// アポストロフィだけは Unicode の単語の区切り規則に合わせ、文字・数字にはさまれているとき（Don't、Rock'n'Roll）は
+	/// 単語の途中、先頭や空白の後ろにあるとき（'Round、Take ’Em）は区切りとみなす。
 	private static func isWordStart(_ index: String.Index, in name: String) -> Bool {
 		guard index > name.startIndex else { return true }
-		let previous = name[name.index(before: index)]
-		if apostrophes.contains(previous) { return false }
+		let previousIndex = name.index(before: index)
+		let previous = name[previousIndex]
+		if apostrophes.contains(previous) {
+			guard previousIndex > name.startIndex else { return true }
+			let beforeApostrophe = name[name.index(before: previousIndex)]
+			return !(beforeApostrophe.isLetter || beforeApostrophe.isNumber)
+		}
 		return previous.isWhitespace || previous.isPunctuation || previous.isSymbol
 	}
 

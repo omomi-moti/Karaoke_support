@@ -24,61 +24,38 @@ struct TrackSuggestionRankerTests {
 
 	// MARK: 段の判定
 
-	@Test("先頭から一致すれば前方一致")
-	func prefixMatch() {
-		#expect(TrackSuggestionRanker.tier(of: "lemon", for: "le") == .prefix)
-	}
-
-	@Test("大文字小文字・全角半角が違っても前方一致", arguments: ["LEMON", "ＬＥＭＯＮ", "Lemon"])
-	func prefixMatchIgnoresCaseAndWidth(name: String) {
-		#expect(TrackSuggestionRanker.tier(of: name, for: "le") == .prefix)
-	}
-
-	@Test("直前が記号の位置で一致すれば単語の先頭一致")
-	func wordPrefixAfterSymbol() {
-		#expect(TrackSuggestionRanker.tier(of: "Lemon (Live)", for: "live") == .wordPrefix)
-	}
-
-	@Test("直前が空白の位置で一致すれば単語の先頭一致")
-	func wordPrefixAfterSpace() {
-		#expect(TrackSuggestionRanker.tier(of: "Hello Again", for: "ag") == .wordPrefix)
-	}
-
-	@Test("1 回目の一致が単語の途中でも、後ろに単語の先頭での一致があれば単語の先頭一致")
-	func laterWordStartOccurrenceWins() {
-		#expect(TrackSuggestionRanker.tier(of: "Banana Anthem", for: "an") == .wordPrefix)
-	}
-
+	/// 段の判定を決めたケースの一覧。ルールを変えたときに、どのケースの結果が変わったかがここで分かるようにする。
+	/// 単語の区切りは Unicode の単語の区切り規則に合わせている（docs/design/track_matching.md）。
 	@Test(
-		"アポストロフィは単語の途中に入る文字なので、その直後は単語の先頭とみなさない",
+		"段の判定",
 		arguments: [
-			("Rock'n'Roll", "n"),
-			("Don't Stop", "t"),
-			("Don’t Stop", "t"),  // 右シングル引用符（’）
+			// 前方一致（大文字小文字・全角半角は区別しない）
+			("lemon", "le", TrackMatchTier.prefix),
+			("LEMON", "le", .prefix),
+			("ＬＥＭＯＮ", "le", .prefix),
+			("打上花火", "打上", .prefix),
+			// 直前が空白・記号なら単語の先頭一致
+			("Lemon (Live)", "live", .wordPrefix),
+			("Hello Again", "ag", .wordPrefix),
+			("Banana Anthem", "an", .wordPrefix),  // 1 回目の一致は単語の途中、後ろの Anthem で単語の先頭
+			// アポストロフィが文字・数字にはさまれていれば単語の途中
+			("Don't Stop", "t", .contains),
+			("Don’t Stop", "t", .contains),  // 右シングル引用符（’）
+			("Rock'n'Roll", "n", .contains),
+			("90's Love", "s", .contains),
+			("L'amour", "amour", .contains),  // 文字だけでは英語の短縮形と見分けられないため、単語の途中として扱う仕様
+			("O'Brien", "brien", .contains),
+			// 先頭や空白の後ろのアポストロフィ（省略）の後ろは単語の先頭一致
+			("'Round Midnight", "round", .wordPrefix),
+			("Take ’Em All", "em", .wordPrefix),
+			("Rock'n' Roll", "roll", .wordPrefix),
+			// どれでもなければ部分一致
+			("lemon", "mon", .contains),
+			("打上花火", "花火", .contains),  // 空白のない日本語は途中で一致すれば部分一致
 		]
 	)
-	func apostropheIsNotWordBoundary(name: String, query: String) {
-		#expect(TrackSuggestionRanker.tier(of: name, for: query) == .contains)
-	}
-
-	@Test("アポストロフィの後ろに空白があれば、その先は単語の先頭一致のまま")
-	func wordAfterApostropheAndSpaceIsWordPrefix() {
-		#expect(TrackSuggestionRanker.tier(of: "Rock'n' Roll", for: "roll") == .wordPrefix)
-	}
-
-	@Test("単語の途中でしか一致しなければ部分一致")
-	func containsMatch() {
-		#expect(TrackSuggestionRanker.tier(of: "lemon", for: "mon") == .contains)
-	}
-
-	@Test("空白のない日本語の途中で一致すれば部分一致")
-	func japaneseWithoutSpacesIsContains() {
-		#expect(TrackSuggestionRanker.tier(of: "打上花火", for: "花火") == .contains)
-	}
-
-	@Test("日本語でも先頭から一致すれば前方一致")
-	func japanesePrefix() {
-		#expect(TrackSuggestionRanker.tier(of: "打上花火", for: "打上") == .prefix)
+	func tierCases(name: String, query: String, expected: TrackMatchTier) {
+		#expect(TrackSuggestionRanker.tier(of: name, for: query) == expected)
 	}
 
 	// MARK: 並べ替え
