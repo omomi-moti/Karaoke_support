@@ -4,8 +4,11 @@ import Foundation
 ///
 /// 方針は `docs/design/track_matching.md` を参照。
 enum TrackSuggestionRanker {
-	/// DB 側の `localizedStandardContains` と同じく、大文字小文字・濁点などの違いを区別しない。
-	/// 全角半角の違いも区別しない（DB 側で一致した曲を、並べ替えで取りこぼさないように広めにとる）。
+	/// DB 側の `localizedStandardContains` で一致した曲を、段の判定で取りこぼさないよう、それより広めの条件にしている。
+	///
+	/// - 大文字小文字は区別しない（DB 側と同じ）
+	/// - 全角半角も区別しないが、DB 側は区別するため、全角半角だけが違う曲は絞り込みで落ちてここには届かない（#94 で対応）
+	/// - 日本語の濁点・半濁点（「ガ」と「カ」）は `.diacriticInsensitive` でも区別される（DB 側と同じ）
 	static let compareOptions: String.CompareOptions = [.caseInsensitive, .diacriticInsensitive, .widthInsensitive]
 
 	/// 良い段から順に確認し、当てはまった時点で決める（1 曲が複数の段に当てはまる場合は一番良い段に入れる）。
