@@ -38,5 +38,11 @@
   - `INFOPLIST_KEY_UILaunchScreen_UIColorName` 等のビルド設定は **Info.plist に出力されない**ため使わない。
   - プロジェクトは同期フォルダ（`PBXFileSystemSynchronizedRootGroup`）なので、`Info.plist` はターゲットのメンバーシップから除外している（リソースとしてコピーされると「Multiple commands produce」になる）。
 - **背景色**: `AppLaunchBackground`。値は **`AppBackgroundGradientStart` と同じに保つ**（Asset Catalog に色の参照機能はないため二重管理。どちらかを変えたらもう片方も直す）。ライト用 Appearance を追加するときも両方同時に増やす。
-- **ロゴを出す場合（アイコン確定後）**: Image Set `AppLaunchLogo` を追加し、`UILaunchScreen` に `UIImageName = AppLaunchLogo` を足す。
+- **ロゴ**: Image Set `AppLaunchLogo` を `UIImageName` で中央に表示（**試作。アイコン確定時に差し替え**）。
+  - テーマと喧嘩しないよう **白・不透明度 85%**（`AppForegroundSubtle` と同じ値）の単色。起動画面では色を後から付けられないため、PNG 自体にこの色を焼き込んでいる。
+  - 起動画面の画像は拡大縮小されず**そのままのポイントサイズ**で出るので、96pt 相当（@2x 192px / @3x 288px）で書き出している。大きさを変えるときは画像を作り直す。
+  - 差し替え手順: アイコン原画から白背景を抜いて上記の色・サイズで書き出し、`AppLaunchLogo.imageset` の @2x / @3x を置き換える。ロゴをやめるときは `UIImageName` を消す。
 - **確認手順**: 起動画面は iOS 側のキャッシュが残りやすい。**アプリを削除してから再インストール**し、ライト／ダーク両モードで白いチラつきがないことを確認する。
+  - 起動画面は iOS が画像として作り、アプリのデータ領域の `Library/SplashBoard` にキャッシュする。**シミュレータの再起動では作り直されない**。
+  - それでも古いままなら、シミュレータではデータを消さずにキャッシュだけ消せる:
+    `rm -rf "$(xcrun simctl get_app_container booted com.omomimoti.karaokesupport data)/Library/SplashBoard"` の後にアプリを起動し直す。
