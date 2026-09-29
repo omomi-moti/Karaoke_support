@@ -28,14 +28,18 @@ final class RecordingSheetViewModel {
 	/// 曲名入力欄の下の「もしかして」欄。
 	private(set) var trackSuggestionState: TrackSuggestionState = .hidden
 
-	/// 今出ている候補を検索したときの入力（前後の空白を除いたもの）。
+	/// 今出ている候補（または「候補はありません」）を検索したときの入力（前後の空白を除いたもの）。
 	private var trackSuggestionQuery: String?
 
-	/// 入力が変わってから新しい検索結果が出るまでの間、今出ている候補は前の入力に対する結果なので古い。
-	/// 表示は残し（ちらつき防止）、選べないようにする。
+	/// 入力が変わってから新しい検索結果が出るまでの間、今出ている候補や「候補はありません」は前の入力に対する結果なので古い。
+	/// 表示は残し（ちらつき防止）、薄くして候補は選べないようにする。
 	var isTrackSuggestionStale: Bool {
-		guard case .suggestions = trackSuggestionState else { return false }
-		return trackSuggestionQuery != trackState.normalizedManualName
+		switch trackSuggestionState {
+		case .hidden:
+			return false
+		case .noMatch, .suggestions:
+			return trackSuggestionQuery != trackState.normalizedManualName
+		}
 	}
 
 	/// 入力が止まってから検索するまでの待ち時間。テストでは `.zero` にする。
@@ -228,16 +232,17 @@ final class RecordingSheetViewModel {
 			let candidates = TrackSuggestionRanker
 				.rank(found.filter { $0.singCount > 0 }, query: trimmed)
 				.compactMap(TrackSuggestion.init(track:))
+			trackSuggestionQuery = trimmed
 			if candidates.isEmpty {
 				trackSuggestionState = .noMatch
 			} else {
-				trackSuggestionQuery = trimmed
 				trackSuggestionState = .suggestions(Array(candidates.prefix(Self.maxTrackSuggestions)))
 			}
 		} catch is CancellationError {
 			return
 		} catch {
-			guard !Task.isCancelled else { return }
+			// 成功時と同じく、入力が置き換わった後の古い検索のエラーで今の表示を上書きしない
+			guard !Task.isCancelled, canShowTrackSuggestions, trackState.normalizedManualName == trimmed else { return }
 			// 補助機能なので入力は妨げない。「候補なし」とは区別して何も出さない
 			trackSuggestionState = .hidden
 		}

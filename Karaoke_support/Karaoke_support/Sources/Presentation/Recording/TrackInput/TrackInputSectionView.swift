@@ -4,7 +4,7 @@ struct TrackInputSectionView: View {
 	@Binding var state: TrackInputState
 	let isDisabled: Bool
 	let suggestionState: TrackSuggestionState
-	/// 入力が変わってから新しい検索結果が出るまでの間。候補を薄く表示し、押せなくする。
+	/// 入力が変わってから新しい検索結果が出るまでの間。候補や「候補はありません」を薄く表示し、候補は押せなくする。
 	let isSuggestionStale: Bool
 	let onSelectSuggestion: (TrackSuggestion) -> Void
 
@@ -58,6 +58,8 @@ struct TrackInputSectionView: View {
 			Text("候補はありません")
 				.font(.footnote)
 				.foregroundStyle(.secondary)
+				.opacity(isSuggestionStale ? 0.4 : 1)
+				.animation(.easeInOut(duration: 0.15), value: isSuggestionStale)
 				.transition(.opacity)
 		case .suggestions(let items):
 			VStack(alignment: .leading, spacing: 4) {

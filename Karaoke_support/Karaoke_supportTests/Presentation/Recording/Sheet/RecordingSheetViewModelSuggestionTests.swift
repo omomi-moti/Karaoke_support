@@ -33,16 +33,28 @@ private final class SuggestionTrackRepositoryStub: TrackRepositoryProtocol {
 @MainActor
 private final class GatedTrackRepositoryStub: TrackRepositoryProtocol {
 	var tracksToReturn: [Track] = []
+	/// 止めた検索を再開したときに投げるエラー。`nil` なら `tracksToReturn` を返す。
+	var errorToThrow: Error?
+	/// この回数だけは止めずにすぐ返す（先に候補を出しておくため）。
+	var immediateSearchCount = 0
+	private var searchCount = 0
 	private var resumeSearch: CheckedContinuation<Void, Never>?
 	private var notifyStarted: CheckedContinuation<Void, Never>?
 	private var didStartSearch = false
 
 	func searchLocal(query: String) async throws -> [Track] {
+		searchCount += 1
+		if searchCount <= immediateSearchCount {
+			return tracksToReturn
+		}
 		didStartSearch = true
 		notifyStarted?.resume()
 		notifyStarted = nil
 		await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in
 			resumeSearch = c
+		}
+		if let errorToThrow {
+			throw errorToThrow
 		}
 		return tracksToReturn
 	}
@@ -341,6 +353,42 @@ struct RecordingSheetViewModelSuggestionTests {
 		await vm.updateTrackSuggestions(for: "lemo")
 
 		#expect(vm.isTrackSuggestionStale == false)
+	}
+
+	@Test("「候補はありません」も、入力が変わると新しい結果が出るまで古い扱いになる")
+	func noMatchBecomesStaleWhenInputChanges() async {
+		let stub = SuggestionTrackRepositoryStub()
+		let vm = makeViewModel(trackRepository: stub)
+		await type("ま", into: vm)
+		#expect(vm.trackSuggestionState == .noMatch)
+		#expect(vm.isTrackSuggestionStale == false)
+
+		vm.trackState.manualName = "まり"
+
+		#expect(vm.trackSuggestionState == .noMatch)
+		#expect(vm.isTrackSuggestionStale)
+	}
+
+	@Test("検索中に入力が置き換わったら、その検索のエラーで今の表示を上書きしない")
+	func errorForReplacedInputDoesNotOverwrite() async {
+		struct StubError: Error {}
+		let stub = GatedTrackRepositoryStub()
+		stub.tracksToReturn = [makeTrack("Lemon", singCount: 1)]
+		stub.immediateSearchCount = 1
+		let vm = makeViewModel(trackRepository: stub)
+		await type("Le", into: vm)
+		#expect(suggestedNames(vm) == ["Lemon"])
+
+		stub.errorToThrow = StubError()
+		vm.trackState.manualName = "Lem"
+		let search = Task { await vm.updateTrackSuggestions(for: "Lem") }
+		await stub.waitUntilSearchStarted()
+		// `.task` のキャンセルが届く前に、さらに入力が変わった状況
+		vm.trackState.manualName = "Lemo"
+		stub.finishSearch()
+		await search.value
+
+		#expect(suggestedNames(vm) == ["Lemon"])
 	}
 
 	@Test("古い候補は押しても適用されない")
