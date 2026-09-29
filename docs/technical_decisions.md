@@ -41,11 +41,17 @@ UI 層のみの制御は「ボタン tap → 非活性化」の間にタッチ�
 
 ### 6. テストにおける DI の活用
 
-ユニットテスト（14 ファイル）では Repository Protocol の DI が実際に機能している:
+ユニットテスト（19 ファイル）では Repository Protocol の DI が実際に機能している:
 
-- `SwiftDataSessionRepository*Tests`（4 ファイル）: in-memory `ModelContainer` で SwiftData の実インスタンスを生成し、冪等性・削除・更新・Intent フィルターをテスト
+- `SwiftDataSessionRepository*Tests`（5 ファイル）: in-memory `ModelContainer` で SwiftData の実インスタンスを生成し、冪等性・削除・更新・Intent フィルターをテスト
 - `HistoryViewModel*Tests`（3 ファイル）: Mock Repository を ViewModel init に注入し、ページネーション・ソート・loadGeneration の競合を検証
 - `RecordingSheetViewModelEditSaveTests`: 新規作成と編集の分岐を Protocol 差し替えで検証
+
+### 7. 曲名サジェストの一致の段分け
+
+記録シートの曲名入力では、歌ったことがある曲を「もしかして」として出す。部分一致で探して歌唱回数順に並べるだけだと、「a」と打ったときに途中に a を含むだけの曲が上に来てしまう。そこで **一致した場所で段を分け（前方一致 > 単語の先頭一致 > 部分一致）、同じ段の中を歌唱回数順に並べる**ようにした（`TrackSuggestionRanker`）。
+
+DB での絞り込み（`searchLocal` の部分一致）と並べ方を分け、並べ方は Domain 層の純粋な関数にしてテストしやすくした。また **同じ曲かどうかの判定（完全一致）と候補の並べ方を混ぜない** ことを原則にしている。詳細は [design/track_matching.md](design/track_matching.md)。
 
 ---
 
