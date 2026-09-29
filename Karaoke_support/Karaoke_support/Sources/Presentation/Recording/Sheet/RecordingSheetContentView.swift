@@ -41,6 +41,7 @@ struct RecordingSheetContentView: View {
                         state: $viewModel.trackState,
                         isDisabled: trackSectionDisabled,
                         suggestionState: trackSectionDisabled ? .hidden : viewModel.trackSuggestionState,
+                        isSuggestionStale: viewModel.isTrackSuggestionStale,
                         onSelectSuggestion: viewModel.applyTrackSuggestion
                     )
                     .task(id: viewModel.trackState.manualName) {

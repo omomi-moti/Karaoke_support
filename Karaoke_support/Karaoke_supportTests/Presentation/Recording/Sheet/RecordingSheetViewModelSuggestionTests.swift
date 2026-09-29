@@ -290,6 +290,76 @@ struct RecordingSheetViewModelSuggestionTests {
 		#expect(vm.inlineErrorMessage == nil)
 	}
 
+	// MARK: 古い候補（入力が変わってから新しい結果が出るまで）
+
+	@Test("候補を出した入力のままなら、候補は古い扱いにならない")
+	func suggestionsForCurrentInputAreNotStale() async {
+		let stub = SuggestionTrackRepositoryStub()
+		stub.tracksToReturn = [makeTrack("Lemon", singCount: 4)]
+		let vm = makeViewModel(trackRepository: stub)
+
+		await type("lem", into: vm)
+
+		#expect(vm.isTrackSuggestionStale == false)
+	}
+
+	@Test("入力が変わると、新しい結果が出るまで候補は古い扱いになる")
+	func suggestionsBecomeStaleWhenInputChanges() async {
+		let stub = SuggestionTrackRepositoryStub()
+		stub.tracksToReturn = [makeTrack("Lemon", singCount: 4)]
+		let vm = makeViewModel(trackRepository: stub)
+		await type("lem", into: vm)
+
+		// `.task(id:)` の待ち時間中（まだ新しい検索結果が出ていない）
+		vm.trackState.manualName = "lemx"
+
+		#expect(suggestedNames(vm) == ["Lemon"])
+		#expect(vm.isTrackSuggestionStale)
+	}
+
+	@Test("前後の空白だけが変わっても、候補は古い扱いにならない")
+	func whitespaceOnlyChangeDoesNotMakeStale() async {
+		let stub = SuggestionTrackRepositoryStub()
+		stub.tracksToReturn = [makeTrack("Lemon", singCount: 4)]
+		let vm = makeViewModel(trackRepository: stub)
+		await type("lem", into: vm)
+
+		vm.trackState.manualName = "lem "
+
+		#expect(vm.isTrackSuggestionStale == false)
+	}
+
+	@Test("新しい検索結果が出れば、古い扱いは解ける")
+	func newResultClearsStale() async {
+		let stub = SuggestionTrackRepositoryStub()
+		stub.tracksToReturn = [makeTrack("Lemon", singCount: 4)]
+		let vm = makeViewModel(trackRepository: stub)
+		await type("lem", into: vm)
+		vm.trackState.manualName = "lemo"
+		#expect(vm.isTrackSuggestionStale)
+
+		await vm.updateTrackSuggestions(for: "lemo")
+
+		#expect(vm.isTrackSuggestionStale == false)
+	}
+
+	@Test("古い候補は押しても適用されない")
+	func staleSuggestionIsNotApplied() async throws {
+		let stub = SuggestionTrackRepositoryStub()
+		stub.tracksToReturn = [makeTrack("Lemon", singCount: 4)]
+		let vm = makeViewModel(trackRepository: stub)
+		await type("lem", into: vm)
+		guard case .suggestions(let items) = vm.trackSuggestionState else {
+			Issue.record("候補が出ていない: \(vm.trackSuggestionState)")
+			return
+		}
+		vm.trackState.manualName = "lemx"
+
+		vm.applyTrackSuggestion(try #require(items.first))
+
+		#expect(vm.trackState.manualName == "lemx")
+	}
+
 	// MARK: 候補の適用・保存
 
 	@Test("候補を押すと入力欄が置き換わり、手入力のまま候補が消える")

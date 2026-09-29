@@ -28,6 +28,16 @@ final class RecordingSheetViewModel {
 	/// 曲名入力欄の下の「もしかして」欄。
 	private(set) var trackSuggestionState: TrackSuggestionState = .hidden
 
+	/// 今出ている候補を検索したときの入力（前後の空白を除いたもの）。
+	private var trackSuggestionQuery: String?
+
+	/// 入力が変わってから新しい検索結果が出るまでの間、今出ている候補は前の入力に対する結果なので古い。
+	/// 表示は残し（ちらつき防止）、選べないようにする。
+	var isTrackSuggestionStale: Bool {
+		guard case .suggestions = trackSuggestionState else { return false }
+		return trackSuggestionQuery != trackState.normalizedManualName
+	}
+
 	/// 入力が止まってから検索するまでの待ち時間。テストでは `.zero` にする。
 	@ObservationIgnored var suggestionDebounce: Duration = .milliseconds(300)
 
@@ -221,6 +231,7 @@ final class RecordingSheetViewModel {
 			if candidates.isEmpty {
 				trackSuggestionState = .noMatch
 			} else {
+				trackSuggestionQuery = trimmed
 				trackSuggestionState = .suggestions(Array(candidates.prefix(Self.maxTrackSuggestions)))
 			}
 		} catch is CancellationError {
@@ -233,6 +244,8 @@ final class RecordingSheetViewModel {
 	}
 
 	func applyTrackSuggestion(_ suggestion: TrackSuggestion) {
+		// View で押せなくしているが、前の入力に対する候補で入力欄を書き換えないよう ViewModel でも弾く
+		guard !isTrackSuggestionStale else { return }
 		trackSuggestionState = .hidden
 		trackState.manualName = suggestion.name
 	}

@@ -4,6 +4,8 @@ struct TrackInputSectionView: View {
 	@Binding var state: TrackInputState
 	let isDisabled: Bool
 	let suggestionState: TrackSuggestionState
+	/// 入力が変わってから新しい検索結果が出るまでの間。候補を薄く表示し、押せなくする。
+	let isSuggestionStale: Bool
 	let onSelectSuggestion: (TrackSuggestion) -> Void
 
 	var body: some View {
@@ -88,6 +90,9 @@ struct TrackInputSectionView: View {
 					.accessibilityLabel("\(item.name)、\(item.singCount)回歌唱")
 				}
 			}
+			.opacity(isSuggestionStale ? 0.4 : 1)
+			.disabled(isSuggestionStale)
+			.animation(.easeInOut(duration: 0.15), value: isSuggestionStale)
 			.transition(.opacity)
 		}
 	}
@@ -99,6 +104,7 @@ struct TrackInputSectionView: View {
 		state: $state,
 		isDisabled: false,
 		suggestionState: .hidden,
+		isSuggestionStale: false,
 		onSelectSuggestion: { _ in }
 	)
 	.padding()
@@ -114,7 +120,21 @@ struct TrackInputSectionView: View {
 		state: $state,
 		isDisabled: false,
 		suggestionState: .suggestions(suggestions),
+		isSuggestionStale: false,
 		onSelectSuggestion: { state.manualName = $0.name }
+	)
+	.padding()
+}
+
+#Preview("もしかして（入力が変わった直後）") {
+	@Previewable @State var state = TrackInputState(mode: .manual, manualName: "lemonx")
+	let suggestions = [Track(userEnteredName: "Lemon", singCount: 12)].compactMap(TrackSuggestion.init(track:))
+	return TrackInputSectionView(
+		state: $state,
+		isDisabled: false,
+		suggestionState: .suggestions(suggestions),
+		isSuggestionStale: true,
+		onSelectSuggestion: { _ in }
 	)
 	.padding()
 }
@@ -125,6 +145,7 @@ struct TrackInputSectionView: View {
 		state: $state,
 		isDisabled: false,
 		suggestionState: .noMatch,
+		isSuggestionStale: false,
 		onSelectSuggestion: { _ in }
 	)
 	.padding()
