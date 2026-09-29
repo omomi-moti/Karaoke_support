@@ -25,7 +25,7 @@ struct TrackSuggestionRankerTests {
 	// MARK: 段の判定
 
 	/// 段の判定を決めたケースの一覧。ルールを変えたときに、どのケースの結果が変わったかがここで分かるようにする。
-	/// 単語の区切りは Unicode の単語の区切り規則に合わせている（docs/design/track_matching.md）。
+	/// アポストロフィの扱いは、文字の場合は Unicode の単語の区切り規則と同じ。数字の場合（90's）は独自の判断（docs/design/track_matching.md）。
 	@Test(
 		"段の判定",
 		arguments: [

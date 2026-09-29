@@ -56,8 +56,10 @@ enum TrackSuggestionRanker {
 	///
 	/// `enumerateSubstrings(.byWords)` は日本語を形態素で区切り、区切り位置が予想しづらいため使わない。
 	/// 記号の判定は Unicode の分類（`isPunctuation` / `isSymbol`）に任せる。
-	/// アポストロフィだけは Unicode の単語の区切り規則に合わせ、文字・数字にはさまれているとき（Don't、Rock'n'Roll）は
-	/// 単語の途中、先頭や空白の後ろにあるとき（'Round、Take ’Em）は区切りとみなす。
+	/// アポストロフィだけは、文字・数字にはさまれているとき（Don't、Rock'n'Roll、90's）は単語の途中、
+	/// 先頭や空白の後ろにあるとき（'Round、Take ’Em）は区切りとみなす。
+	/// 文字の場合は Unicode の単語の区切り規則と同じ。数字も含めるのは曲名向けの独自の判断で、
+	/// Unicode の規則では「90's」は「90」と「s」に分かれる。
 	private static func isWordStart(_ index: String.Index, in name: String) -> Bool {
 		guard index > name.startIndex else { return true }
 		let previousIndex = name.index(before: index)
