@@ -39,8 +39,14 @@ struct RecordingSheetContentView: View {
 
                     TrackInputSectionView(
                         state: $viewModel.trackState,
-                        isDisabled: trackSectionDisabled
+                        isDisabled: trackSectionDisabled,
+                        suggestionState: trackSectionDisabled ? .hidden : viewModel.trackSuggestionState,
+                        isSuggestionStale: viewModel.isTrackSuggestionStale,
+                        onSelectSuggestion: viewModel.applyTrackSuggestion
                     )
+                    .task(id: viewModel.trackState.manualName) {
+                        await viewModel.updateTrackSuggestions(for: viewModel.trackState.manualName)
+                    }
                     RecordingSheetScoreSection(
                         score: $viewModel.draft.score,
                         isDisabled: isRetrying
@@ -70,6 +76,8 @@ struct RecordingSheetContentView: View {
                 }
                 .padding(.horizontal)
                 .padding(.top, 10)
+                // 「もしかして」欄の出入りで下のセクションが跳ねないように
+                .animation(.easeInOut(duration: 0.2), value: viewModel.trackSuggestionState)
             }
 
             if viewModel.isSaving {

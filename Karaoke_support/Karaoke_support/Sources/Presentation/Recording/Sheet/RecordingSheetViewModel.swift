@@ -23,6 +23,32 @@ final class RecordingSheetViewModel {
 
 	var isTrackInputLockedForEdit: Bool { editingSessionId != nil }
 
+	static let maxTrackSuggestions = 5
+
+	/// 曲名入力欄の下の「もしかして」欄。
+	private(set) var trackSuggestionState: TrackSuggestionState = .hidden
+
+	/// 今出ている候補（または「候補はありません」）を検索したときの入力（前後の空白を除いたもの）。
+	private var trackSuggestionQuery: String?
+
+	/// 入力が変わってから新しい検索結果が出るまでの間、今出ている候補や「候補はありません」は前の入力に対する結果なので古い。
+	/// 表示は残し（ちらつき防止）、薄くして候補は選べないようにする。
+	var isTrackSuggestionStale: Bool {
+		switch trackSuggestionState {
+		case .hidden:
+			return false
+		case .noMatch, .suggestions:
+			return trackSuggestionQuery != trackState.normalizedManualName
+		}
+	}
+
+	/// 入力が止まってから検索するまでの待ち時間。テストでは `.zero` にする。
+	@ObservationIgnored var suggestionDebounce: Duration = .milliseconds(300)
+
+	private var canShowTrackSuggestions: Bool {
+		trackState.isEditable && !isTrackInputLockedForEdit
+	}
+
 	init(
 		trackMode: TrackInputMode,
 		sessionRepository: any SessionRepositoryProtocol,
@@ -175,6 +201,58 @@ final class RecordingSheetViewModel {
 			inlineErrorMessage = "保存に失敗しました。もう一度お試しください"
 			return false
 		}
+	}
+
+	// MARK: - 曲名サジェスト（もしかして）
+
+	/// 入力中の曲名から、歌ったことがある曲を「もしかして」として探す。
+	func updateTrackSuggestions(for query: String) async {
+		let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+		guard canShowTrackSuggestions, !trimmed.isEmpty else {
+			trackSuggestionState = .hidden
+			return
+		}
+
+		do {
+			try await Task.sleep(for: suggestionDebounce)
+			let found = try await trackRepository.searchLocal(query: trimmed)
+			try Task.checkCancellation()
+			// キャンセルが届く前に入力が置き換わった（候補をタップした等）なら古い結果は捨てる
+			guard canShowTrackSuggestions, trackState.normalizedManualName == trimmed else { return }
+
+			// 既存の曲名と完全一致なら、そのまま保存すれば既存の曲につながるので出さない。
+			// getOrCreate と同じ条件（Spotify ID なし・曲名が完全一致）で、歌唱回数 0 の曲も含めて判定する
+			if found.contains(where: { $0.spotifyTrackId == nil && $0.userEnteredName == trimmed }) {
+				trackSuggestionState = .hidden
+				return
+			}
+
+			// 記録を全部消した曲（打ち間違いで作った曲など）は Track だけ残るので候補から除く。
+			// 前方一致の曲が回数順で 6 件目以降にあっても上位に入るよう、件数を絞る前に並べ替える
+			let candidates = TrackSuggestionRanker
+				.rank(found.filter { $0.singCount > 0 }, query: trimmed)
+				.compactMap(TrackSuggestion.init(track:))
+			trackSuggestionQuery = trimmed
+			if candidates.isEmpty {
+				trackSuggestionState = .noMatch
+			} else {
+				trackSuggestionState = .suggestions(Array(candidates.prefix(Self.maxTrackSuggestions)))
+			}
+		} catch is CancellationError {
+			return
+		} catch {
+			// 成功時と同じく、入力が置き換わった後の古い検索のエラーで今の表示を上書きしない
+			guard !Task.isCancelled, canShowTrackSuggestions, trackState.normalizedManualName == trimmed else { return }
+			// 補助機能なので入力は妨げない。「候補なし」とは区別して何も出さない
+			trackSuggestionState = .hidden
+		}
+	}
+
+	func applyTrackSuggestion(_ suggestion: TrackSuggestion) {
+		// View で押せなくしているが、前の入力に対する候補で入力欄を書き換えないよう ViewModel でも弾く
+		guard !isTrackSuggestionStale else { return }
+		trackSuggestionState = .hidden
+		trackState.manualName = suggestion.name
 	}
 
 	/// ``SingingSession`` の仕様（0〜100・小数第二位）に合わせ、Slider の `Double` 表現誤差を抑える。
