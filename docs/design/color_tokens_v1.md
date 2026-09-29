@@ -28,3 +28,15 @@
   - 対象: 履歴（`HistoryListView`）、選曲タブ（`SongsRootView`）、検索シート（`SearchContainerView`）、設定タブ（`SettingsRootView`）、歌唱記録シート（`RecordingSheetContentView` / `RecordingSheetContainerView`）
 - **例外**: インサイトのランキングシート（`TimeMachineRankingSheetView` / `MyAnthemRankingSheetView`）は `IntentTabInsightStyle.rankingSheetBackground`（紫系の単色）を使う。インサイト系の世界観を独立させる意図的な差別化であり、標準グラデーションへの統一対象ではない。
 - **新規画面を追加する場合**: 上記「標準」に該当する一般画面・シートであれば `appBackgroundGradient()` を使う。インサイト系のような独自ブランディングが必要な場合のみ専用の背景トークンを検討する。
+
+---
+
+## 起動画面（Launch Screen）
+
+- **方針**: Apple HIG に従い「最初の画面とほぼ同じ見た目の、何もない画面」。ロゴを大きく出すスプラッシュは作らない。
+- **定義場所**: `Karaoke_support/Info.plist` の `UILaunchScreen` 辞書が唯一の定義（`GENERATE_INFOPLIST_FILE = YES` の生成キーとビルド時にマージされる）。
+  - `INFOPLIST_KEY_UILaunchScreen_UIColorName` 等のビルド設定は **Info.plist に出力されない**ため使わない。
+  - プロジェクトは同期フォルダ（`PBXFileSystemSynchronizedRootGroup`）なので、`Info.plist` はターゲットのメンバーシップから除外している（リソースとしてコピーされると「Multiple commands produce」になる）。
+- **背景色**: `AppLaunchBackground`。値は **`AppBackgroundGradientStart` と同じに保つ**（Asset Catalog に色の参照機能はないため二重管理。どちらかを変えたらもう片方も直す）。ライト用 Appearance を追加するときも両方同時に増やす。
+- **ロゴを出す場合（アイコン確定後）**: Image Set `AppLaunchLogo` を追加し、`UILaunchScreen` に `UIImageName = AppLaunchLogo` を足す。
+- **確認手順**: 起動画面は iOS 側のキャッシュが残りやすい。**アプリを削除してから再インストール**し、ライト／ダーク両モードで白いチラつきがないことを確認する。
