@@ -40,7 +40,7 @@ struct IntentTabMonthlyStatsRowView: View {
 		.padding(.horizontal, 12)
 		.background(
 			RoundedRectangle(cornerRadius: 24, style: .continuous)
-				.fill(Color(red: 0.08, green: 0.09, blue: 0.14))
+				.fill(IntentTabInsightStyle.statsCardBackground)
 				.overlay(
 					RoundedRectangle(cornerRadius: 24, style: .continuous)
 						.strokeBorder(AppColor.borderSubtle.opacity(0.6), lineWidth: 1)

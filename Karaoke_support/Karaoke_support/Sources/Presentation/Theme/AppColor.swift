@@ -4,7 +4,7 @@ import SwiftUI
 ///
 /// アセットカタログの **Swift シンボル生成**（`ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS`）により **`Color(.app…)`** で参照し、リネーム・タイポをコンパイル時に検出する。
 ///
-/// V1 はダーク寄せ UI 前提。**ライトモードは未対応**（`docs/design/color_tokens_v1.md`）。将来は各 Set に Appearance を追加する。
+/// 各 Set は **Any（ライト）と Dark の 2 色**を持ち、システムの外観に追従する（`docs/design/color_tokens_v1.md`）。
 enum AppColor {
 	static let backgroundGradientStart = Color(.appBackgroundGradientStart)
 	static let backgroundGradientEnd = Color(.appBackgroundGradientEnd)

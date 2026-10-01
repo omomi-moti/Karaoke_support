@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 画面共通のダークグラデーション背景（I-R007）。
+/// 画面共通のグラデーション背景（I-R007）。
 struct AppBackgroundGradientView: View {
 	var body: some View {
 		LinearGradient(

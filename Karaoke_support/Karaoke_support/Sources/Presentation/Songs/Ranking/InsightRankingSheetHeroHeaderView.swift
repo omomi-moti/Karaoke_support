@@ -50,6 +50,8 @@ struct InsightRankingSheetHeroHeaderView: View {
 					)
 				)
 		)
+		// 背景は固定色のグラデーションなので、中の文字色トークンは常にダーク側で解決する。
+		.environment(\.colorScheme, .dark)
 	}
 }
 
