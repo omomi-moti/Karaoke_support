@@ -15,7 +15,7 @@ struct IntentTabMonthlyStatsRowView: View {
 			)
 			statBubble(
 				icon: "star.circle.fill",
-				iconTint: Color.cyan.opacity(0.9),
+				iconTint: IntentTabInsightStyle.statsScoreIcon,
 				value: averageScore.map { String(format: "%.1f", $0) } ?? "—",
 				label: "平均スコア"
 			)
@@ -52,5 +52,5 @@ struct IntentTabMonthlyStatsRowView: View {
 #Preview {
 	IntentTabMonthlyStatsRowView(monthSessionCount: 24, averageScore: 92.4)
 		.padding()
-		.background(IntentTabInsightStyle.pageBackground)
+		.appBackgroundGradient()
 }

@@ -1,6 +1,8 @@
 import SwiftUI
 
-/// アプリ共通のセマンティック色（`Assets.xcassets` の Color Set と 1:1）。
+/// アプリ共通のセマンティック色（`Assets.xcassets` の Color Set に対応）。
+///
+/// 画面固有の Color Set（インサイト系の `AppInsight*`）は `IntentTabInsightStyle` から、起動画面用の `AppLaunchBackground` は `Info.plist` から参照する。
 ///
 /// アセットカタログの **Swift シンボル生成**（`ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS`）により **`Color(.app…)`** で参照し、リネーム・タイポをコンパイル時に検出する。
 ///

@@ -17,8 +17,10 @@
 | `AppSemanticError` | エラーメッセージ文言 |
 | `AppInsightSheetBackground` / `AppInsightSheetRowBackground` | インサイトのランキングシート背景・行の面（`IntentTabInsightStyle` 経由） |
 | `AppInsightStatsCardBackground` | インテントタブの今月の統計チップ（`IntentTabInsightStyle` 経由） |
+| `AppInsightStatsScoreIcon` | 統計チップの平均スコアアイコン（`IntentTabInsightStyle` 経由） |
+| `AppInsightRankSilver` / `AppInsightRankBronze` | ランキング 2 位・3 位の王冠（`IntentTabInsightStyle` 経由） |
 
-**コントラスト:** 主要な「文字 × 背景」の組み合わせはデザインチェック推奨。**WCAG AA を目安にするか**はチームで合意。自動ツールでの網羅検証は V1 の必須にはしない。
+**コントラスト:** 主要な「文字 × 背景」の組み合わせはデザインチェック推奨。ライト用の値は、小さい文字に使う `AppTextTertiary` / `AppAccentScore` を白〜`#F5F5F8` の背景で 4.5:1 以上になるように決めている。**WCAG AA を目安にするか**はチームで合意。自動ツールでの網羅検証は V1 の必須にはしない。
 
 **拡張:** 新規画面は可能な限り **リテラル `Color(red:...)` を増やさず**、不足分のみトークンを追加する。
 
