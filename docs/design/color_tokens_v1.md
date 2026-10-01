@@ -28,3 +28,21 @@
   - 対象: 履歴（`HistoryListView`）、選曲タブ（`SongsRootView`）、検索シート（`SearchContainerView`）、設定タブ（`SettingsRootView`）、歌唱記録シート（`RecordingSheetContentView` / `RecordingSheetContainerView`）
 - **例外**: インサイトのランキングシート（`TimeMachineRankingSheetView` / `MyAnthemRankingSheetView`）は `IntentTabInsightStyle.rankingSheetBackground`（紫系の単色）を使う。インサイト系の世界観を独立させる意図的な差別化であり、標準グラデーションへの統一対象ではない。
 - **新規画面を追加する場合**: 上記「標準」に該当する一般画面・シートであれば `appBackgroundGradient()` を使う。インサイト系のような独自ブランディングが必要な場合のみ専用の背景トークンを検討する。
+
+---
+
+## 起動画面（Launch Screen）
+
+- **方針**: Apple HIG に従い「最初の画面とほぼ同じ見た目の、何もない画面」。ロゴを大きく出すスプラッシュは作らない。
+- **定義場所**: `Karaoke_support/Info.plist` の `UILaunchScreen` 辞書が唯一の定義（`GENERATE_INFOPLIST_FILE = YES` の生成キーとビルド時にマージされる）。
+  - `INFOPLIST_KEY_UILaunchScreen_UIColorName` 等のビルド設定は **Info.plist に出力されない**ため使わない。
+  - プロジェクトは同期フォルダ（`PBXFileSystemSynchronizedRootGroup`）なので、`Info.plist` はターゲットのメンバーシップから除外している（リソースとしてコピーされると「Multiple commands produce」になる）。
+- **背景色**: `AppLaunchBackground`。値は **`AppBackgroundGradientStart` と同じに保つ**（Asset Catalog に色の参照機能はないため二重管理。どちらかを変えたらもう片方も直す）。ライト用 Appearance を追加するときも両方同時に増やす。
+- **ロゴ**: Image Set `AppLaunchLogo` を `UIImageName` で中央に表示（**試作。アイコン確定時に差し替え**）。
+  - テーマと喧嘩しないよう **白・不透明度 85%**（`AppForegroundSubtle` と同じ値）の単色。起動画面では色を後から付けられないため、PNG 自体にこの色を焼き込んでいる。
+  - 起動画面の画像は拡大縮小されず**そのままのポイントサイズ**で出るので、96pt 相当（@2x 192px / @3x 288px）で書き出している。大きさを変えるときは画像を作り直す。
+  - 差し替え手順: アイコン原画から白背景を抜いて上記の色・サイズで書き出し、`AppLaunchLogo.imageset` の @2x / @3x を置き換える。ロゴをやめるときは `UIImageName` を消す。
+- **確認手順**: 起動画面は iOS 側のキャッシュが残りやすい。**アプリを削除してから再インストール**し、ライト／ダーク両モードで白いチラつきがないことを確認する。
+  - 起動画面は iOS が画像として作り、アプリのデータ領域の `Library/SplashBoard` にキャッシュする。**シミュレータの再起動では作り直されない**。
+  - それでも古いままなら、シミュレータではデータを消さずにキャッシュだけ消せる:
+    `rm -rf "$(xcrun simctl get_app_container booted com.omomimoti.karaokesupport data)/Library/SplashBoard"` の後にアプリを起動し直す。
