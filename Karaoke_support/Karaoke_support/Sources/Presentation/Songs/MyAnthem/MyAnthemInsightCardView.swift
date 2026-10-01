@@ -81,5 +81,5 @@ struct MyAnthemInsightCardView: View {
 #Preview {
 	MyAnthemInsightCardView(onTapSelect: {})
 		.padding()
-		.background(IntentTabInsightStyle.pageBackground)
+		.appBackgroundGradient()
 }

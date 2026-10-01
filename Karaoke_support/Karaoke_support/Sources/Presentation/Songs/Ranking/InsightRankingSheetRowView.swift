@@ -74,21 +74,21 @@ struct InsightRankingSheetRowView: View {
 		case 2:
 			Image(systemName: "crown.fill")
 				.font(.title3)
-				.foregroundStyle(.white.opacity(0.9))
+				.foregroundStyle(IntentTabInsightStyle.rankSilver)
 				.frame(width: size, height: size)
-				.background(Circle().fill(Color.white.opacity(0.12)))
+				.background(Circle().fill(Color.primary.opacity(0.12)))
 		case 3:
 			Image(systemName: "crown.fill")
 				.font(.title3)
-				.foregroundStyle(Color(red: 1, green: 0.72, blue: 0.42))
+				.foregroundStyle(IntentTabInsightStyle.rankBronze)
 				.frame(width: size, height: size)
-				.background(Circle().fill(Color.white.opacity(0.08)))
+				.background(Circle().fill(Color.primary.opacity(0.08)))
 		default:
 			Image(systemName: "music.note")
 				.font(.title3.weight(.medium))
 				.foregroundStyle(AppColor.textSecondary)
 				.frame(width: size, height: size)
-				.background(Circle().fill(Color.white.opacity(0.06)))
+				.background(Circle().fill(Color.primary.opacity(0.06)))
 		}
 	}
 }
