@@ -107,7 +107,7 @@ struct RecordingSheetContentView: View {
             .padding(.vertical, 16)
         }
         .buttonStyle(.borderedProminent)
-        .tint(.pink)
+        .tint(AppColor.accentScore)
         .disabled(viewModel.isSaving)
         .padding(.horizontal)
         .padding(.top, 8)

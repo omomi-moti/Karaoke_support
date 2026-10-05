@@ -85,5 +85,5 @@ struct TimeMachineInsightCardView: View {
 #Preview {
 	TimeMachineInsightCardView(onTapLookBack: {})
 		.padding()
-		.background(IntentTabInsightStyle.pageBackground)
+		.appBackgroundGradient()
 }
