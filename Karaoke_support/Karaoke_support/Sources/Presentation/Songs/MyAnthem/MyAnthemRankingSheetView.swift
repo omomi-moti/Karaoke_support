@@ -57,7 +57,6 @@ struct MyAnthemRankingSheetView: View {
 			.navigationTitle("マイアンセム")
 			.navigationBarTitleDisplayMode(.inline)
 			.toolbarBackground(IntentTabInsightStyle.rankingSheetBackground, for: .navigationBar)
-			.toolbarColorScheme(.dark, for: .navigationBar)
 			.toolbar {
 				ToolbarItem(placement: .cancellationAction) {
 					Button("閉じる") { dismiss() }

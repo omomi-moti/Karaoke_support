@@ -47,7 +47,6 @@ struct IntentTabInsightView: View {
 			}
 		}
 		.frame(maxWidth: .infinity, maxHeight: .infinity)
-		.background(IntentTabInsightStyle.pageBackground)
 		.sheet(isPresented: $showTimeMachineSheet) {
 			TimeMachineRankingSheetView(rankings: viewModel.timeMachineRanking, onSelectTrack: onSelectTrack)
 		}
