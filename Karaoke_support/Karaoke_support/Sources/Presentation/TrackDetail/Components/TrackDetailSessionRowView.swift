@@ -15,10 +15,10 @@ struct TrackDetailSessionRowView: View {
 			.frame(maxWidth: .infinity, alignment: .leading)
 
 			VStack(alignment: .trailing, spacing: 2) {
-				Text(point.score, format: .number.precision(.fractionLength(1)))
+				Text(ScoreFormat.text(point.score))
 					.font(.system(size: 26, weight: .bold, design: .rounded))
 					.monospacedDigit()
-					.foregroundStyle(AppColor.textPrimary)
+					.foregroundStyle(point.score == nil ? AppColor.textTertiary : AppColor.textPrimary)
 					.minimumScaleFactor(0.7)
 					.lineLimit(1)
 				Text("SCORE")
@@ -26,7 +26,7 @@ struct TrackDetailSessionRowView: View {
 					.foregroundStyle(AppColor.textTertiary)
 			}
 			.accessibilityElement(children: .combine)
-			.accessibilityLabel("スコア \(point.score.formatted(.number.precision(.fractionLength(1))))")
+			.accessibilityLabel(ScoreFormat.accessibilityLabel(point.score))
 		}
 		.padding(16)
 		.background(

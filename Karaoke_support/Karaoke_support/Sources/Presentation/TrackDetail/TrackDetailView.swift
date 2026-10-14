@@ -32,11 +32,14 @@ struct TrackDetailView: View {
 						.disabled(viewModel.isLoading)
 					} else if let summary = viewModel.summary {
 						latestScoreBlock(summary)
-						TrackScoreTrendChartView(
-							points: viewModel.chartPoints,
-							averageScore: summary.averageScore,
-							isTruncated: viewModel.isChartTruncated
-						)
+						// 点数ありの記録が 1 件も無ければグラフは出さない
+						if let averageScore = summary.averageScore {
+							TrackScoreTrendChartView(
+								points: viewModel.chartPoints,
+								averageScore: averageScore,
+								isTruncated: viewModel.isChartTruncated
+							)
+						}
 						sessionList
 					} else {
 						emptyState
@@ -82,12 +85,16 @@ struct TrackDetailView: View {
 				.foregroundStyle(AppColor.textSecondary)
 
 			HStack(alignment: .firstTextBaseline, spacing: 12) {
-				Text(summary.latestScore, format: .number.precision(.fractionLength(1)))
+				Text(ScoreFormat.text(summary.latestScore))
 					.font(.system(size: 44, weight: .bold, design: .rounded))
 					.monospacedDigit()
-					.foregroundStyle(AppColor.textPrimary)
+					.foregroundStyle(summary.latestScore == nil ? AppColor.textTertiary : AppColor.textPrimary)
 
-				if let delta = summary.deltaFromPrevious {
+				if summary.latestScore == nil {
+					Text("点数の記録はまだありません")
+						.font(.subheadline)
+						.foregroundStyle(AppColor.textSecondary)
+				} else if let delta = summary.deltaFromPrevious {
 					Text("前回比 \(delta, format: .number.precision(.fractionLength(1)).sign(strategy: .always()))")
 						.font(.subheadline.weight(.semibold))
 						.monospacedDigit()
@@ -107,8 +114,8 @@ struct TrackDetailView: View {
 	}
 
 	private func supplementaryStatsText(_ summary: TrackScoreSummary) -> String {
-		let average = summary.averageScore.formatted(.number.precision(.fractionLength(1)))
-		let best = summary.bestScore.formatted(.number.precision(.fractionLength(1)))
+		let average = ScoreFormat.text(summary.averageScore)
+		let best = ScoreFormat.text(summary.bestScore)
 		return "\(summary.count)回 ・ 平均 \(average) ・ ベスト \(best)"
 	}
 

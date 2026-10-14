@@ -85,7 +85,7 @@ final class RecordingSheetViewModel {
 		self.trackRepository = trackRepository
 		self.trackState = TrackInputState(trackForEditingSession: editingSession.track)
 		self.draft = RecordingDraft(
-			score: editingSession.score,
+			score: editingSession.score.map(ScoreDigitInput.init(score:)) ?? ScoreDigitInput(),
 			intent: editingSession.intent,
 			memo: editingSession.memo ?? "",
 			performedAt: editingSession.performedAt
@@ -163,7 +163,8 @@ final class RecordingSheetViewModel {
 				spotifyTrackId: selectedTrack.spotifyTrackId,
 				userEnteredName: selectedTrack.userEnteredName
 			)
-			let score = Self.normalizedScoreForPersistence(draft.score)
+			// 点数の入力は任意。未入力なら nil で保存する
+			let score = draft.score.value
 
 			if let editId = editingSessionId {
 				let session = SingingSession(
@@ -253,11 +254,5 @@ final class RecordingSheetViewModel {
 		guard !isTrackSuggestionStale else { return }
 		trackSuggestionState = .hidden
 		trackState.manualName = suggestion.name
-	}
-
-	/// ``SingingSession`` の仕様（0〜100・小数第二位）に合わせ、Slider の `Double` 表現誤差を抑える。
-	private static func normalizedScoreForPersistence(_ raw: Double) -> Double {
-		let rounded = (raw * 100).rounded() / 100
-		return min(100, max(0, rounded))
 	}
 }

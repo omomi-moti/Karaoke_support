@@ -151,6 +151,25 @@ struct TrackDetailViewModelTests {
 		#expect(vm.chartPoints.last?.order == 60)
 	}
 
+	@Test("グラフには点数ありの記録だけを渡し、回数は点数なしも数える")
+	func chartPointsExcludeMissingScores() async {
+		let track = Track(userEnteredName: "点数なし混在")
+		let stub = TrackDetailSessionRepositoryStub()
+		stub.sessionsToReturn = [
+			SingingSession(track: track, intent: .shout, performedAt: Date(timeIntervalSince1970: 100), score: 80),
+			SingingSession(track: track, intent: .emo, performedAt: Date(timeIntervalSince1970: 200), score: nil),
+			SingingSession(track: track, intent: .shout, performedAt: Date(timeIntervalSince1970: 300), score: 90),
+		]
+		let vm = TrackDetailViewModel(sessionRepository: stub, trackId: track.id, trackTitle: "点数なし混在")
+
+		await vm.load()
+
+		#expect(vm.points.count == 3)
+		#expect(vm.summary?.count == 3)
+		#expect(vm.chartPoints.map(\.order) == [1, 3])
+		#expect(vm.isChartTruncated == false)
+	}
+
 	@Test("走行中に呼ばれた2本目のロードは無視される")
 	func reentrantLoadIsIgnoredWhileInFlight() async {
 		let track = Track(userEnteredName: "再入")

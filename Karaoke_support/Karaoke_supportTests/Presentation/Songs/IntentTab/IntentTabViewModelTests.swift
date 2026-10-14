@@ -286,6 +286,40 @@ final class IntentTabViewModelTests: XCTestCase {
 		XCTAssertEqual(average, 60, accuracy: 0.001)
 	}
 
+	/// 概要: 点数なしの記録は今月の件数には数えるが、平均点からは除くこと
+	/// 前提(Given): 今月の 3 件（score=80・score=nil・score=40）
+	/// 実行(When): vm.load() を呼ぶ
+	/// 検証(Then): monthSessionCount=3、averageScoreThisMonth=(80+40)/2=60 になる
+	func testLoad_computeMonthStats_excludesMissingScoresFromAverage() async throws {
+		let cal = Calendar.current
+		let now = Date()
+		guard
+			let monthStart = cal.date(from: cal.dateComponents([.year, .month], from: now)),
+			let inMonth = cal.date(byAdding: .day, value: 1, to: monthStart)
+		else {
+			XCTFail("Failed to calculate dates for month statistics")
+			return
+		}
+
+		let track = Track(userEnteredName: "点数なし統計")
+		let sessionStub = IntentTabSessionRepositoryStub()
+		sessionStub.sessions = [
+			SingingSession(track: track, intent: .shout, performedAt: inMonth, score: 80),
+			SingingSession(track: track, intent: .emo, performedAt: inMonth.addingTimeInterval(60), score: nil),
+			SingingSession(track: track, intent: .practice, performedAt: inMonth.addingTimeInterval(120), score: 40),
+		]
+
+		let vm = IntentTabViewModel(
+			insightRepository: InsightRepositorySpy(),
+			sessionRepository: sessionStub
+		)
+		await vm.load()
+
+		XCTAssertEqual(vm.monthSessionCount, 3)
+		let average = try XCTUnwrap(vm.averageScoreThisMonth)
+		XCTAssertEqual(average, 60, accuracy: 0.001)
+	}
+
 	/// 概要: 月次統計の集計が fetchAll のページングを使って 600 件すべてを集計できること
 	/// 前提(Given): 全件が今月内・score=50 の SingingSession が 600 件
 	/// 実行(When): vm.load() を呼ぶ

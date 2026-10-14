@@ -13,8 +13,8 @@ final class SingingSession {
 	/// ドメインでは enum を使用し、永続化時は RawValue(String) で扱う。
 	var intent: Intent
 	var performedAt: Date
-	/// 0〜100。小数第二位まで有効。桁数・丸めは ViewModel で制御する。
-	var score: Double
+	/// 0〜100（小数第3位まで）。`nil` は点数を記録していない（点数の入力は任意）。
+	var score: Double?
 	var memo: String?
 
 	init(
@@ -22,10 +22,10 @@ final class SingingSession {
 		track: Track,
 		intent: Intent,
 		performedAt: Date = .now,
-		score: Double,
+		score: Double?,
 		memo: String? = nil
 	) {
-		precondition(score >= 0 && score <= 100, "SingingSession score must be in 0...100.")
+		precondition(score.map { (0...100).contains($0) } ?? true, "SingingSession score must be in 0...100.")
 		self.id = id
 		self.track = track
 		self.intent = intent

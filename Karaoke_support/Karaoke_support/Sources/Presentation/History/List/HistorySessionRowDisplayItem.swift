@@ -10,7 +10,8 @@ struct HistorySessionRowDisplayItem: Identifiable, Equatable {
 	let intent: Intent
 	let trackPrimaryTitle: String
 	let performedAt: Date
-	let score: Double
+	/// 点数なしの記録は `nil`。
+	let score: Double?
 
 	init(
 		id: UUID,
@@ -18,7 +19,7 @@ struct HistorySessionRowDisplayItem: Identifiable, Equatable {
 		intent: Intent,
 		trackPrimaryTitle: String,
 		performedAt: Date,
-		score: Double
+		score: Double?
 	) {
 		self.id = id
 		self.trackId = trackId

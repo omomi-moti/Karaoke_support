@@ -119,8 +119,11 @@ final class IntentTabViewModel {
 				let t = session.performedAt
 				if t >= monthStart, t < nextMonthStart {
 					countInMonth += 1
-					scoreSum += session.score
-					scoreCount += 1
+					// 平均は点数ありの記録だけで求める
+					if let score = session.score {
+						scoreSum += score
+						scoreCount += 1
+					}
 				}
 			}
 			if batch.count < pageSize { break }

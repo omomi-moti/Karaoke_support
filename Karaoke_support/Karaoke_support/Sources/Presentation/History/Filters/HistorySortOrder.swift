@@ -45,14 +45,30 @@ enum HistorySortOrder: String, CaseIterable, Hashable, Sendable {
 				if lhs.performedAt != rhs.performedAt { return lhs.performedAt < rhs.performedAt }
 				return lhs.id.uuidString < rhs.id.uuidString
 			case .scoreDescending:
-				if lhs.score != rhs.score { return lhs.score > rhs.score }
+				if lhs.score != rhs.score { return Self.isOrderedWithMissingLast(lhs.score, rhs.score, by: >) }
 				if lhs.performedAt != rhs.performedAt { return lhs.performedAt > rhs.performedAt }
 				return lhs.id.uuidString < rhs.id.uuidString
 			case .scoreAscending:
-				if lhs.score != rhs.score { return lhs.score < rhs.score }
+				if lhs.score != rhs.score { return Self.isOrderedWithMissingLast(lhs.score, rhs.score, by: <) }
 				if lhs.performedAt != rhs.performedAt { return lhs.performedAt > rhs.performedAt }
 				return lhs.id.uuidString < rhs.id.uuidString
 			}
+		}
+	}
+
+	/// 点数なしは、高い順・低い順のどちらでも末尾に置く。
+	private static func isOrderedWithMissingLast(
+		_ lhs: Double?,
+		_ rhs: Double?,
+		by areInIncreasingOrder: (Double, Double) -> Bool
+	) -> Bool {
+		switch (lhs, rhs) {
+		case let (lhs?, rhs?):
+			return areInIncreasingOrder(lhs, rhs)
+		case (.some, nil):
+			return true
+		case (nil, _):
+			return false
 		}
 	}
 }
