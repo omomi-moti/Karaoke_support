@@ -17,7 +17,7 @@ struct RecordingSheetScoreSection: View {
 
 	var body: some View {
 		VStack(spacing: 12) {
-			Text("カラオケスコア（オプション）")
+			Text("カラオケスコア")
 				.font(.subheadline.bold())
 				.frame(maxWidth: .infinity)
 
