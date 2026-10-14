@@ -1,6 +1,6 @@
 # V1 Issue 一覧（タスク統合版）
 
-> **アーカイブ（2026-10-14）**: このファイルは更新していない。タスクと仕様の変更は [GitHub Issues](https://github.com/omomi-moti/Karaoke_support/issues)、設計判断は [ADR](../adr.md) を正とする（[ADR 0010](../adr.md#0010-タスクは-github-issues判断は-adr-を正とし旧-issue-一覧は-archive-に残す)）。コード中の `I-0xx` 番号の意味を調べるために残している。
+> **アーカイブ（2026-10-14）**: このファイルは更新していない。タスクと仕様の変更は [GitHub Issues](https://github.com/omomi-moti/Karaoke_support/issues)、設計判断は [ADR](../adr/README.md) を正とする（[ADR 0010](../adr/0010-issues-and-adr-as-source-of-truth.md)）。コード中の `I-0xx` 番号の意味を調べるために残している。
 
 **Version**: 1.1  
 **Created**: 2026-03-14  

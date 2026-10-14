@@ -107,7 +107,7 @@ xcodebuild test \
 |------|---------|
 | docs の目次（どれが正か） | [`docs/README.md`](docs/README.md) |
 | プロダクト概要・Intent設計 | [`docs/product_overview.md`](docs/product_overview.md) |
-| 技術判断の記録（ADR） | [`docs/adr.md`](docs/adr.md) |
+| 技術判断の記録（ADR） | [`docs/adr/`](docs/adr/README.md) |
 | アーキテクチャ・データフロー | [`docs/architecture.md`](docs/architecture.md) |
 | 開発プロセス（Spec駆動・AI活用） | [`docs/development_process.md`](docs/development_process.md) |
 | V1 Issue一覧・完了チェック（アーカイブ） | [`docs/archive/v1_issues.md`](docs/archive/v1_issues.md) |

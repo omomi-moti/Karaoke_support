@@ -1,6 +1,6 @@
 # docs の目次
 
-どの文書を見ればよいかの案内。タスクと仕様の変更は [GitHub Issues](https://github.com/omomi-moti/Karaoke_support/issues)、設計の判断は [ADR](adr.md) を正とする（[ADR 0010](adr.md#0010-タスクは-github-issues判断は-adr-を正とし旧-issue-一覧は-archive-に残す)）。最上位のルールは [憲法](../.specify/memory/constitution.md)。
+どの文書を見ればよいかの案内。タスクと仕様の変更は [GitHub Issues](https://github.com/omomi-moti/Karaoke_support/issues)、設計の判断は [ADR](adr/README.md) を正とする（[ADR 0010](adr/0010-issues-and-adr-as-source-of-truth.md)）。最上位のルールは [憲法](../.specify/memory/constitution.md)。
 
 ## まず読むもの
 
@@ -8,7 +8,7 @@
 |---|---|---|
 | [product_overview.md](product_overview.md) | 何を作っているか・なぜ作るか | |
 | [architecture.md](architecture.md) | レイヤー構成（MVVM + Repository）と保存フロー | |
-| [adr.md](adr.md) | 技術判断の記録（ADR）。何を比べてなぜ選んだか | 設計判断の正 |
+| [adr/](adr/README.md) | 技術判断の記録（ADR）。1 件 1 ファイルで、何を比べてなぜ選んだか | 設計判断の正 |
 | [GitHub Issues](https://github.com/omomi-moti/Karaoke_support/issues) | タスクと仕様の変更 | タスク・仕様の正 |
 
 ## 設計
@@ -48,5 +48,5 @@
 
 ## 書き足すとき
 
-- 設計の判断を決めた・変えたときは [adr.md](adr.md) に ADR を 1 件足す（承認済みの本文は書き換えない）
+- 設計の判断を決めた・変えたときは [adr/](adr/README.md) に ADR を 1 ファイル足し、一覧に 1 行足す（承認済みの本文は書き換えない）
 - タスクや仕様の変更は [GitHub Issues](https://github.com/omomi-moti/Karaoke_support/issues) に書く
