@@ -21,13 +21,17 @@ private final class ScoreTestTrackRepositoryStub: TrackRepositoryProtocol {
 private final class ScoreTestSessionRepositorySpy: SessionRepositoryProtocol {
 	private(set) var savedScores: [Double?] = []
 	private(set) var updatedScores: [Double?] = []
+	private(set) var savedPerformedAts: [Date] = []
+	private(set) var updatedPerformedAts: [Date] = []
 
 	func saveNewRecordingSession(_ session: SingingSession) async throws {
 		savedScores.append(session.score)
+		savedPerformedAts.append(session.performedAt)
 	}
 
 	func updateRecordingSession(_ session: SingingSession) async throws {
 		updatedScores.append(session.score)
+		updatedPerformedAts.append(session.performedAt)
 	}
 
 	func deleteRecordingSession(uuid: UUID) async throws {}
@@ -42,7 +46,7 @@ private final class ScoreTestSessionRepositorySpy: SessionRepositoryProtocol {
 
 // MARK: - Tests
 
-@Suite("RecordingSheetViewModel 点数入力")
+@Suite("RecordingSheetViewModel 点数入力・歌唱日時")
 @MainActor
 struct RecordingSheetViewModelScoreTests {
 
@@ -139,5 +143,38 @@ struct RecordingSheetViewModelScoreTests {
 
 		#expect(ok)
 		#expect(spy.updatedScores == [nil])
+	}
+
+	// MARK: 歌唱日時
+
+	@Test("新規記録の歌唱日時は、シートを開いた時刻ではなく保存した時刻になる")
+	func newRecordingUsesSaveTimeAsPerformedAt() async {
+		let spy = ScoreTestSessionRepositorySpy()
+		let vm = makeNewRecordingViewModel(sessionRepository: spy)
+		let saveTime = Date(timeIntervalSince1970: 1_800_000_000)
+		vm.now = { saveTime }
+
+		let ok = await vm.save()
+
+		#expect(ok)
+		#expect(spy.savedPerformedAts == [saveTime])
+	}
+
+	@Test("編集では元の歌唱日時（または直した日時）のまま保存し、保存時刻で上書きしない")
+	func editingKeepsPerformedAt() async {
+		let spy = ScoreTestSessionRepositorySpy()
+		let original = Date(timeIntervalSince1970: 1_700_000_000)
+		let session = SingingSession(track: Track(userEnteredName: "Lemon"), intent: .emo, performedAt: original, score: 80)
+		let vm = RecordingSheetViewModel(
+			editingSession: session,
+			sessionRepository: spy,
+			trackRepository: ScoreTestTrackRepositoryStub()
+		)
+		vm.now = { Date(timeIntervalSince1970: 1_800_000_000) }
+
+		let ok = await vm.save()
+
+		#expect(ok)
+		#expect(spy.updatedPerformedAts == [original])
 	}
 }

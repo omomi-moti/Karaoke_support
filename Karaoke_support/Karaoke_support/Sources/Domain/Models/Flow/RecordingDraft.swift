@@ -6,7 +6,8 @@ struct RecordingDraft: Equatable, Sendable {
 	var score = ScoreDigitInput()
 	var intent: Intent = .shout
 	var memo: String = ""
-	/// 歌唱日時（新規・編集とも保存時に ``SingingSession/performedAt`` に反映）。
+	/// 歌唱日時。編集時のみ画面で直せて、保存時に ``SingingSession/performedAt`` に反映する。
+	/// 新規記録では使わず、保存した時刻を歌唱日時にする（``RecordingSheetViewModel/save()``）。
 	var performedAt: Date = Date()
 
 	var normalizedMemo: String? {

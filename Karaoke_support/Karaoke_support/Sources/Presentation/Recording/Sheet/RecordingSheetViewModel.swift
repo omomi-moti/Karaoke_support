@@ -45,6 +45,9 @@ final class RecordingSheetViewModel {
 	/// 入力が止まってから検索するまでの待ち時間。テストでは `.zero` にする。
 	@ObservationIgnored var suggestionDebounce: Duration = .milliseconds(300)
 
+	/// 新規記録の歌唱日時に使う現在時刻。テストでは固定の時刻を返す。
+	@ObservationIgnored var now: () -> Date = Date.init
+
 	private var canShowTrackSuggestions: Bool {
 		trackState.isEditable && !isTrackInputLockedForEdit
 	}
@@ -191,7 +194,8 @@ final class RecordingSheetViewModel {
 				id: sessionId,
 				track: track,
 				intent: draft.intent,
-				performedAt: draft.performedAt,
+				// 新規記録は日時欄を出さないので、保存した時刻を歌唱日時にする
+				performedAt: now(),
 				score: score,
 				memo: draft.normalizedMemo
 			)
