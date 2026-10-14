@@ -28,27 +28,27 @@ Hitokara Log は、歌唱の意図を **Intent（🔥 Shout / 🌙 Emo / 🎤 Pr
 |----------|------|
 | 言語 | Swift 5.9+ |
 | UI | SwiftUI |
-| ローカル DB | SwiftData（iOS 17+） |
+| ローカル DB | SwiftData |
 | 状態管理 | `@Observable`（Observation framework） |
 | 非同期処理 | Swift Concurrency（async/await） |
 | アーキテクチャ | MVVM + Repository、手動 DI（`@Environment`） |
-| テスト | XCTest（14 ユニットテスト + 1 UI テスト） |
-| 最低対応 OS | iOS 17.0 |
+| テスト | XCTest・Swift Testing（ユニットテスト + UI テスト） |
+| 最低対応 OS | iOS 26.0 |
 
 ---
 
 ## クイックスタート
 
-**前提**: Xcode 15.0+ / macOS Sonoma+ / iOS 17.0+ シミュレータ
+**前提**: Xcode 26.0+ / iOS 26.0+ シミュレータ
 
 ```bash
 git clone https://github.com/omomi-moti/Karaoke_support.git
 cd Karaoke_support
 open Karaoke_support/Karaoke_support.xcodeproj
-# Cmd + R でビルド & 実行（iPhone シミュレータ iOS 17+）
+# Cmd + R でビルド & 実行（iPhone シミュレータ iOS 26+）
 ```
 
-起動後: 選曲タブ → ツールバー「記録を追加」→ 曲名入力 → スコア → Intent → 保存
+起動後: 右下の「＋」ボタン → 曲名入力 → スコア → Intent → 保存
 
 
 ---
@@ -93,11 +93,12 @@ xcodebuild test \
 
 | テスト対象 | 内容 |
 |-----------|------|
-| Repository（4ファイル） | 冪等性・削除・更新・Intent フィルター |
-| HistoryViewModel（3ファイル） | ページネーション・ソート・非同期競合 |
+| Repository（SwiftData） | 冪等性・削除・更新・取得（Intent 別・曲別） |
+| HistoryViewModel・並び順 | ページネーション・ソート・非同期競合 |
 | IntentTabViewModel | インサイト取得・並行制御・月次統計 |
-| RecordingSheetViewModel | 新規/編集の分岐 |
-| Domain ヘルパー | 曲名表示・Empty State文言 |
+| RecordingSheetViewModel | 新規／編集の分岐・曲名の候補（もしかして） |
+| TrackDetailViewModel・統計 | 曲ごとの点数推移・直近スコアと前回比 |
+| Domain ヘルパー・共通 | 曲名表示・曲名候補の並べ方・ランキングの曲名・Empty State 文言 |
 
 ---
 

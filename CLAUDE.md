@@ -115,7 +115,7 @@ The deployment target was raised to iOS 26 on 2026-09-23, so the iOS 17 bugs bel
   - `docs/i-d{番号}-{内容}`
   - `chore/i-c{番号}-{内容}`
 - **Commit prefix**: `feat:` / `fix:` / `refactor:` / `docs:` / `test:` / `chore:`
-- **Merge**: squash merge into `main` via PR. No direct pushes to `main`.
+- **Merge**: squash merge via PR into the current integration branch `develop/ios26-redesign` (not directly into `main`). No direct pushes to `main`.
 
 ---
 
@@ -136,8 +136,9 @@ Karaoke_supportTests/
 ├── Domain/              # Helper and model unit tests
 └── Presentation/
     ├── History/         # HistoryViewModel pagination, sort, loadGeneration
-    ├── Recording/       # RecordingSheetViewModel save/edit
+    ├── Recording/       # RecordingSheetViewModel save/edit, track suggestions
     ├── Songs/           # IntentTabViewModel
+    ├── TrackDetail/     # TrackDetailViewModel, score summary
     └── Common/
 ```
 
