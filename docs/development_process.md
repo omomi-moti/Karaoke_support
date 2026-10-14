@@ -10,7 +10,7 @@ V1 は **「コア体験が成立するかを検証する最小構成」** と�
 | 体験が完結するか | ローカルだけで完結（オフラインでも動作） | 外部 API が前提の機能 |
 | 本質か付加価値か | 記録と振り返りの本質 | 体験の質を高める拡張 |
 
-**V1 の完了条件・チェックリスト**: [`v1_issues.md`](v1_issues.md)（末尾の V1 完了判定チェックリスト）を参照。
+**V1 の完了条件・チェックリスト**: [`archive/v1_issues.md`](archive/v1_issues.md)（末尾の V1 完了判定チェックリスト。アーカイブ）を参照。
 
 ---
 
@@ -79,4 +79,4 @@ Phase 0〜2（V1 スコープ）は全 Issue 実装済み。代表的なもの�
 | I-014/015 | History + Infinite Scroll | 値型スナップショット・loadGeneration・20 件ページング | 3 ファイル |
 | I-017/018 | インテントタブ + タイムマシン | IntentTabViewModel・月次ランキング集計 | `IntentTabViewModelTests` |
 
-全対応は [`v1_issues.md`](v1_issues.md) を参照。
+全対応は [`archive/v1_issues.md`](archive/v1_issues.md)（アーカイブ）を参照。

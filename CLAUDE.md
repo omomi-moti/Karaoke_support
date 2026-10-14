@@ -124,7 +124,7 @@ The deployment target was raised to iOS 26 on 2026-09-23, so the iOS 17 bugs bel
 - **Spotify metadata must never be persisted** (SwiftData, UserDefaults, disk). In-memory TTL cache only (≤ 24h, reset on restart). V2 design; not yet implemented.
 - **SSOT is local SwiftData**. API responses are never rendered directly in Views.
 - **`userEnteredName`** is user-generated data (persistable). `spotifyTrackId` is Spotify metadata (identifier only, persistable as a key). Artwork/title/artist from Spotify API are NOT persistable.
-- The authoritative spec for V1 scope is `docs/v1_issues.md`.
+- Tasks and spec changes are tracked in GitHub Issues; design decisions are recorded in `docs/adr.md`. The old issue lists (`docs/archive/v1_issues.md` etc.) are archived and only used to look up the `I-0xx` numbers that appear in code comments.
 
 ---
 
@@ -148,7 +148,6 @@ Tests that touch SwiftData use a real `ModelContainer(isStoredInMemoryOnly: true
 ## Related Files
 
 - @.cursorrules — 詳細なコーディング規約・命名規則
-- @docs/v1_issues.md — V1スコープのSingle Source of Truth
 - docs/adr.md — 技術判断の記録（ADR）。設計判断を決めた・変えたときは 1 件足す（承認済みの本文は書き換えず、新しい番号で置き換える）
 - docs/README.md — docs の目次と、どの文書が正か
 - @.specify/memory/constitution.md — プロジェクト最上位ルール

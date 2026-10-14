@@ -181,7 +181,7 @@ flowchart TD
 - **`SessionRepositoryProtocol.fetchAll(limit:offset:)`** のドキュメントコメントで **日時降順**取得が契約として明記されており、本番の **`SwiftDataSessionRepository`** は `SortDescriptor` でこれを満たす。
 - **将来の最適化案（未実装）**: その **日時降順契約**を前提に、**`performedAt < monthStart` が出たら以降のページ取得を打ち切る**など、過去データが多い場合の短絡が可能。導入する場合は **すべての実装・モック・テスト用スタブが同契約を満たすこと**（並びがバラバラだと打ち切りは誤集計になる）。より根本的には **`SessionRepository` に期間指定集計**を追加する方法がある。優先度は **体感・計測で問題が出るまで P2〜P3** 程度でよいことが多い。
 
-**本節は V1 の前提と V2 の検討余地のメモである。** 確定仕様はリリース計画に合わせて `docs/v1_issues.md` または後続 Issue で更新する。
+**本節は V1 の前提と V2 の検討余地のメモである。** 確定仕様は GitHub Issues で決める（[ADR 0010](adr.md#0010-タスクは-github-issues判断は-adr-を正とし旧-issue-一覧は-archive-に残す)）。
 
 ---
 
