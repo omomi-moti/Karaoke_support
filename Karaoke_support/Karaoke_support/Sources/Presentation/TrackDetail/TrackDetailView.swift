@@ -95,7 +95,7 @@ struct TrackDetailView: View {
 						.font(.subheadline)
 						.foregroundStyle(AppColor.textSecondary)
 				} else if let delta = summary.deltaFromPrevious {
-					Text("前回比 \(delta, format: .number.precision(.fractionLength(1)).sign(strategy: .always()))")
+					Text("前回比 \(ScoreFormat.signedText(delta))")
 						.font(.subheadline.weight(.semibold))
 						.monospacedDigit()
 						.foregroundStyle(AppColor.textSecondary)
@@ -114,7 +114,7 @@ struct TrackDetailView: View {
 	}
 
 	private func supplementaryStatsText(_ summary: TrackScoreSummary) -> String {
-		let average = ScoreFormat.text(summary.averageScore)
+		let average = ScoreFormat.averageText(summary.averageScore)
 		let best = ScoreFormat.text(summary.bestScore)
 		return "\(summary.count)回 ・ 平均 \(average) ・ ベスト \(best)"
 	}

@@ -88,7 +88,7 @@ struct TrackScoreTrendChartView: View {
 				.foregroundStyle(AppColor.borderSubtle)
 				.annotation(position: .top, alignment: .leading) {
 					if selectedPoint == nil {
-						Text("平均 \(averageScore, format: .number.precision(.fractionLength(1)))")
+						Text("平均 \(ScoreFormat.averageText(averageScore))")
 							.font(.caption2.weight(.semibold))
 							.foregroundStyle(AppColor.textTertiary)
 					}
