@@ -13,19 +13,19 @@ This is an Xcode project with no external package manager. All builds and tests 
 xcodebuild build \
   -project Karaoke_support/Karaoke_support.xcodeproj \
   -scheme Karaoke_support \
-  -destination 'platform=iOS Simulator,name=iPhone 16'
+  -destination 'platform=iOS Simulator,name=iPhone 17'
 
 # Run all unit tests
 xcodebuild test \
   -project Karaoke_support/Karaoke_support.xcodeproj \
   -scheme Karaoke_support \
-  -destination 'platform=iOS Simulator,name=iPhone 16'
+  -destination 'platform=iOS Simulator,name=iPhone 17'
 
 # Run a single test class
 xcodebuild test \
   -project Karaoke_support/Karaoke_support.xcodeproj \
   -scheme Karaoke_support \
-  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
   -only-testing:Karaoke_supportTests/HistoryViewModelPaginationTests
 ```
 
@@ -35,7 +35,7 @@ There is no linter configured. Swift compiler warnings serve as the lint signal.
 
 ## Architecture
 
-**Stack**: SwiftUI + SwiftData (iOS 17+), `@Observable`, Swift Concurrency, no external dependencies.
+**Stack**: SwiftUI + SwiftData (iOS 26+), `@Observable`, Swift Concurrency, no external dependencies.
 
 **Pattern**: MVVM + Repository, manual DI via `@Environment`.
 
@@ -81,11 +81,13 @@ viewModel.save()                // ✅
 
 ---
 
-## Known iOS 17 Constraints
+## Patterns Originating from iOS 17 Constraints
 
-**SwiftData `#Predicate` + enum**: `#Predicate { $0.intent == .shout }` crashes on iOS 17.0–17.2. All intent-filtered fetches use `fetchAll` then `filter` in memory. See `SwiftDataSessionRepository.fetchByIntent`.
+The deployment target was raised to iOS 26 on 2026-09-23, so the iOS 17 bugs below no longer apply. The code still follows these patterns; don't change them without adding an ADR to `docs/adr.md`.
 
-**NavigationStack + `.sheet` co-existence bug (iOS 17.0)**: Using both in the same View corrupts `NavigationStack` state after sheet dismiss. The recording sheet therefore lives **once on `RootView`** (`.sheet(item: $recordingSheetItem)` on the `TabView`), not inside any tab's `NavigationStack`; the Songs tab's stack is root-only. After a save, `RootView` bumps `historyReloadTick` so the History list reloads even when the sheet was opened on the History tab. See `docs/v1_navigation_songs_recording.md`.
+**SwiftData `#Predicate` + enum** (ADR 0007, review candidate): `#Predicate { $0.intent == .shout }` crashed on iOS 17.0–17.2, so all intent-filtered fetches use `fetchAll` then `filter` in memory. See `SwiftDataSessionRepository.fetchByIntent`. Whether to move filtering back into the predicate on iOS 26 is undecided.
+
+**Single recording sheet on `RootView`** (ADR 0008): Originally adopted because using `NavigationStack` and `.sheet` in the same View corrupted navigation state after sheet dismiss on iOS 17.0. It is kept for its other benefits (no flicker on save, one sheet reachable from every tab). The recording sheet lives **once on `RootView`** (`.sheet(item: $recordingSheetItem)` on the `TabView`), not inside any tab's `NavigationStack`; the Songs tab's stack is root-only. After a save, `RootView` bumps `historyReloadTick` so the History list reloads even when the sheet was opened on the History tab. See `docs/v1_navigation_songs_recording.md`.
 
 ---
 
@@ -147,4 +149,6 @@ Tests that touch SwiftData use a real `ModelContainer(isStoredInMemoryOnly: true
 
 - @.cursorrules — 詳細なコーディング規約・命名規則
 - @docs/v1_issues.md — V1スコープのSingle Source of Truth
+- docs/adr.md — 技術判断の記録（ADR）。設計判断を決めた・変えたときは 1 件足す（承認済みの本文は書き換えず、新しい番号で置き換える）
+- docs/README.md — docs の目次と、どの文書が正か
 - @.specify/memory/constitution.md — プロジェクト最上位ルール

@@ -88,7 +88,7 @@ Sources/
 xcodebuild test \
   -project Karaoke_support/Karaoke_support.xcodeproj \
   -scheme Karaoke_support \
-  -destination 'platform=iOS Simulator,name=iPhone 16'
+  -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
 | テスト対象 | 内容 |
@@ -105,8 +105,9 @@ xcodebuild test \
 
 | 内容 | ファイル |
 |------|---------|
+| docs の目次（どれが正か） | [`docs/README.md`](docs/README.md) |
 | プロダクト概要・Intent設計 | [`docs/product_overview.md`](docs/product_overview.md) |
-| 技術的な工夫・解決策 | [`docs/technical_decisions.md`](docs/technical_decisions.md) |
+| 技術判断の記録（ADR） | [`docs/adr.md`](docs/adr.md) |
 | アーキテクチャ・データフロー | [`docs/architecture.md`](docs/architecture.md) |
 | 開発プロセス（Spec駆動・AI活用） | [`docs/development_process.md`](docs/development_process.md) |
 | V1 Issue一覧・完了チェック | [`docs/v1_issues.md`](docs/v1_issues.md) |
