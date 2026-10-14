@@ -1,5 +1,7 @@
 # V1 Issue 一覧（タスク統合版）
 
+> **アーカイブ（2026-10-14）**: このファイルは更新していない。タスクと仕様の変更は [GitHub Issues](https://github.com/omomi-moti/Karaoke_support/issues)、設計判断は [ADR](../adr/README.md) を正とする（[ADR 0010](../adr/0010-issues-and-adr-as-source-of-truth.md)）。コード中の `I-0xx` 番号の意味を調べるために残している。
+
 **Version**: 1.1  
 **Created**: 2026-03-14  
 **Updated**: 2026-03-25（I-014 追記・I-013 シート表示・I-018 / I-017 整理・I-017 ユニットテストの記述を反映）  
@@ -171,7 +173,7 @@ Phase 2: I-017 → I-018
   - [x] 保存ボタンを配置し、RecordingSheetViewModel 経由で TrackRepository.getOrCreate で Track を取得/作成し、SessionRepository.saveNewRecordingSession で歌唱記録を保存する
   - [x] 保存成功時は `selectedTab = .history` で履歴タブへ切り替える
   - [x] 保存失敗時は共通エラー表示コンポーネント（メッセージ「保存に失敗しました。もう一度お試しください」+ 再試行ボタン）を使用する（インライン表示）
-- **手動QA**: 記録保存フローの確認手順は [`manual_qa_I008_I009_record_save.md`](./manual_qa_I008_I009_record_save.md) を参照
+- **手動QA**: 記録保存フローの確認手順は [`manual_qa_I008_I009_record_save.md`](../manual_qa_I008_I009_record_save.md) を参照
 
 ---
 
@@ -196,7 +198,7 @@ Phase 2: I-017 → I-018
   - [x] 冪等性が保証されることを確認する（`Karaoke_supportTests/Data/SwiftData/I011SessionIdempotencyTests.swift`）
 - **MVP 仕様メモ（冪等の意味）**:
   - **同一 Idempotency Key（`SingingSession.id`）の再送**は、データ層では **既存なら insert・`singCount` 加算を行わず成功扱い**（＝**同一キーの再送は無視**）。
-  - **V1 / MVP** では、保存失敗後の **再試行は「同じ入力内容でのやり直し」を推奨**とする。失敗後に曲名・スコア・Intent 等を変えてから再試行した場合、**既に同一キーで保存済み**だと **画面上の変更が DB に反映されないのに成功に見える**可能性がある（境界仕様）。詳細は [`manual_qa_I008_I009_record_save.md`](./manual_qa_I008_I009_record_save.md) の任意シナリオを参照。
+  - **V1 / MVP** では、保存失敗後の **再試行は「同じ入力内容でのやり直し」を推奨**とする。失敗後に曲名・スコア・Intent 等を変えてから再試行した場合、**既に同一キーで保存済み**だと **画面上の変更が DB に反映されないのに成功に見える**可能性がある（境界仕様）。詳細は [`manual_qa_I008_I009_record_save.md`](../manual_qa_I008_I009_record_save.md) の任意シナリオを参照。
 
 ---
 
@@ -207,9 +209,9 @@ Phase 2: I-017 → I-018
   - [x] 選曲結果の受け渡し型 `SelectedTrack` を定義する。`spotifyTrackId: String?` と `userEnteredName: String?` を持ち、少なくとも片方が非空であること。Hashable。記録画面へは `RecordingSessionSeed.selectedTrack(SelectedTrack)` として `RootView` の **`.sheet(item:)`** で渡す。検索・V2 の Spotify 履歴からの選曲も同じ型で扱う
   - [x] 曲選択（手動入力 or ランキングタップ）→ Intent選択 → 歌唱記録入力 → 保存の一連フローを接続する
   - [x] RecordingViewModel で TrackRepository.getOrCreate で Track を取得/作成し、SessionRepository.saveNewRecordingSession で SingingSession を保存する
-  - [x] ナビゲーション方針: 各タブは NavigationStack（ルートのみ）、記録は **`RootView` の `.sheet(item: $recordingSheetItem)`** で表示（push ではない）。保存成功時は **`recordingSheetItem = nil`**（シート解除）・`historyReloadTick += 1`（履歴の再読み込み）・`selectedTab = .history`。遷移図は [`v1_navigation_songs_recording.md`](./v1_navigation_songs_recording.md)
+  - [x] ナビゲーション方針: 各タブは NavigationStack（ルートのみ）、記録は **`RootView` の `.sheet(item: $recordingSheetItem)`** で表示（push ではない）。保存成功時は **`recordingSheetItem = nil`**（シート解除）・`historyReloadTick += 1`（履歴の再読み込み）・`selectedTab = .history`。遷移図は [`v1_navigation_songs_recording.md`](../v1_navigation_songs_recording.md)
   - [x] フロー全体のナビゲーションと状態遷移を確認する
-- **参照**: 遷移図・関連ファイル一覧は [`v1_navigation_songs_recording.md`](./v1_navigation_songs_recording.md)
+- **参照**: 遷移図・関連ファイル一覧は [`v1_navigation_songs_recording.md`](../v1_navigation_songs_recording.md)
 
 ---
 
@@ -310,7 +312,7 @@ Phase 2: I-017 → I-018
 - **ユニットテスト**（`Karaoke_supportTests` — `Domain` / `Data` / `Presentation` にミラー配置）:
   - **`IntentTabViewModelTests`**: `load()` の成功（`Preview*` Repository）・セッション 0 件で Insight 未呼び出し・タイムマシン／先頭 `fetchAll` 失敗時のエラーメッセージ・**並行 `load()` で最新試行のみ Insight を取得**（`loadGeneration`）・**`computeMonthStats`**（今月のみカウント・600 件でページング・翌月境界除外）。スタブは `SessionRepositoryProtocol` の **日時降順**に合わせて `performedAt` でソート。
   - **`InsightTrackRowTitleTests`**: `InsightTrackRowTitle.text` の優先順位（手入力名 / Spotify ID / 「曲名未設定」）・`InsightTrackCountRanking` / `InsightTrackScoreRanking` の **`makeSelectedTrack()`**（同一メタデータの一致・空白トリム・両方空で `nil` 等）。
-- **任意フォロー**: タイムマシン／マイアンセムの2シートを **`enum` + `.sheet(item:)` 一本化**し、両 `Bool` が同時に true になり得ることを防ぐ案 → [`v1_navigation_songs_recording.md`](./v1_navigation_songs_recording.md)「インテントタブのランキングシート」
+- **任意フォロー**: タイムマシン／マイアンセムの2シートを **`enum` + `.sheet(item:)` 一本化**し、両 `Bool` が同時に true になり得ることを防ぐ案 → [`v1_navigation_songs_recording.md`](../v1_navigation_songs_recording.md)「インテントタブのランキングシート」
 
 ---
 
