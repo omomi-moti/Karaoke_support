@@ -93,12 +93,12 @@ xcodebuild test \
 
 | テスト対象 | 内容 |
 |-----------|------|
-| Repository（SwiftData） | 冪等性・削除・更新・取得（Intent 別・曲別） |
+| Repository（SwiftData） | 冪等性・削除・更新・取得（Intent 別・曲別）・点数なしの記録の集計 |
 | HistoryViewModel・並び順 | ページネーション・ソート・非同期競合 |
 | IntentTabViewModel | インサイト取得・並行制御・月次統計 |
-| RecordingSheetViewModel | 新規／編集の分岐・曲名の候補（もしかして） |
+| RecordingSheetViewModel | 新規／編集の分岐・曲名の候補（もしかして）・点数入力・歌唱日時 |
 | TrackDetailViewModel・統計 | 曲ごとの点数推移・直近スコアと前回比 |
-| Domain ヘルパー・共通 | 曲名表示・曲名候補の並べ方・ランキングの曲名・Empty State 文言 |
+| Domain ヘルパー・共通 | 曲名表示・曲名候補の並べ方・ランキングの曲名・点数の右詰め入力と表示・Empty State 文言 |
 
 ---
 

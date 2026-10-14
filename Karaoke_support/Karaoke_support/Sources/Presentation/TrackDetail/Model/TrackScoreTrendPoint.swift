@@ -7,9 +7,10 @@ struct TrackScoreTrendPoint: Identifiable, Equatable {
 	let order: Int
 	let performedAt: Date
 	let intent: Intent
-	let score: Double
+	/// 点数なしの記録は `nil`（グラフには描かない）。
+	let score: Double?
 
-	init(id: UUID, order: Int, performedAt: Date, intent: Intent, score: Double) {
+	init(id: UUID, order: Int, performedAt: Date, intent: Intent, score: Double?) {
 		self.id = id
 		self.order = order
 		self.performedAt = performedAt

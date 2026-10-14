@@ -74,7 +74,8 @@ final class SwiftDataInsightRepository: InsightRepositoryProtocol {
 	// MARK: - Private
 
 	private func buildMyAnthemRanking(intent: Intent, sessions: [SingingSession]) -> MyAnthemRanking {
-		var aggregatesByTrackId: [UUID: (track: Track, count: Int, bestScore: Double)] = [:]
+		// 点数なしの記録は回数には数えるが、最高点には使わない。点数ありが 1 件も無い曲は bestScore が nil
+		var aggregatesByTrackId: [UUID: (track: Track, count: Int, bestScore: Double?)] = [:]
 		for session in sessions {
 			let track = session.track
 			let id = track.id
@@ -82,7 +83,7 @@ final class SwiftDataInsightRepository: InsightRepositoryProtocol {
 				aggregatesByTrackId[id] = (
 					track: existing.track,
 					count: existing.count + 1,
-					bestScore: max(existing.bestScore, session.score)
+					bestScore: [existing.bestScore, session.score].compactMap { $0 }.max()
 				)
 			} else {
 				aggregatesByTrackId[id] = (track: track, count: 1, bestScore: session.score)
@@ -102,7 +103,9 @@ final class SwiftDataInsightRepository: InsightRepositoryProtocol {
 				)
 			}
 
+		// 点数ランキングには点数ありの記録がある曲だけを並べる
 		let byScore = aggregatesByTrackId.values
+			.compactMap { aggregate in aggregate.bestScore.map { (track: aggregate.track, bestScore: $0) } }
 			.sorted { $0.bestScore > $1.bestScore }
 			.map {
 				let track = $0.track

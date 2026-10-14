@@ -21,12 +21,17 @@ final class TrackDetailViewModel {
 	/// `isLoading` は初期値が `true` のため、これを再入判定に流用すると初回ロードが即 return する。
 	private var isLoadInFlight = false
 
+	/// グラフに描くのは点数ありの記録だけ。
+	private var scoredPoints: [TrackScoreTrendPoint] {
+		points.filter { $0.score != nil }
+	}
+
 	var chartPoints: [TrackScoreTrendPoint] {
-		Array(points.suffix(Self.maxChartPoints))
+		Array(scoredPoints.suffix(Self.maxChartPoints))
 	}
 
 	var isChartTruncated: Bool {
-		points.count > Self.maxChartPoints
+		scoredPoints.count > Self.maxChartPoints
 	}
 
 	init(

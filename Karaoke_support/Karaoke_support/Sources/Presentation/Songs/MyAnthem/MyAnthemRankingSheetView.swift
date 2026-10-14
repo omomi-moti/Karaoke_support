@@ -127,7 +127,7 @@ struct MyAnthemRankingSheetView: View {
 						rank: index + 1,
 						title: InsightTrackRowTitle.text(spotifyTrackId: row.spotifyTrackId, userEnteredName: row.userEnteredName),
 						artistLine: nil,
-						rightValue: String(format: "%.1f点", row.bestScore),
+						rightValue: "\(ScoreFormat.text(row.bestScore))点",
 						onTap: {
 							guard let track = row.makeSelectedTrack() else { return }
 							dismiss()

@@ -119,4 +119,37 @@ final class HistorySortOrderTests: XCTestCase {
 		let out = HistorySortOrder.scoreDescending.sorted([older, newer])
 		XCTAssertEqual(out.map(\.performedAt), [newer.performedAt, older.performedAt])
 	}
+
+	/// 概要: 点数なしの記録は、点数が高い順・低い順のどちらでも末尾に並ぶこと
+	/// 前提(Given): score=nil（新しい）・score=90・score=10 の 3 件
+	/// 実行(When): .scoreDescending と .scoreAscending でそれぞれ sorted(_:) を呼ぶ
+	/// 検証(Then): どちらも点数なしが末尾になり、点数ありはそれぞれの順に並ぶ
+	func testMissingScore_IsAlwaysLast() {
+		let missing = HistorySessionRowDisplayItem(
+			id: UUID(),
+			trackId: UUID(),
+			intent: .emo,
+			trackPrimaryTitle: "点数なし",
+			performedAt: Date(timeIntervalSince1970: 300),
+			score: nil
+		)
+		let high = HistorySessionRowDisplayItem(
+			id: idHigh,
+			trackId: UUID(),
+			intent: .emo,
+			trackPrimaryTitle: "高",
+			performedAt: Date(timeIntervalSince1970: 100),
+			score: 90
+		)
+		let low = HistorySessionRowDisplayItem(
+			id: idLow,
+			trackId: UUID(),
+			intent: .emo,
+			trackPrimaryTitle: "低",
+			performedAt: Date(timeIntervalSince1970: 200),
+			score: 10
+		)
+		XCTAssertEqual(HistorySortOrder.scoreDescending.sorted([missing, low, high]).map(\.score), [90, 10, nil])
+		XCTAssertEqual(HistorySortOrder.scoreAscending.sorted([missing, high, low]).map(\.score), [10, 90, nil])
+	}
 }

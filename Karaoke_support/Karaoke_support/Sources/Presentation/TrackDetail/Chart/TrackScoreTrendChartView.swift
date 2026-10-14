@@ -2,6 +2,8 @@ import Charts
 import SwiftUI
 
 /// 点数推移グラフ。線は単色1本、点だけ Intent 色で塗る。
+///
+/// `points` は点数ありの記録だけを渡す（``TrackDetailViewModel/chartPoints``）。点数なしが混ざっても描かずに飛ばす。
 struct TrackScoreTrendChartView: View {
 	let points: [TrackScoreTrendPoint]
 	let averageScore: Double
@@ -48,21 +50,23 @@ struct TrackScoreTrendChartView: View {
 	private var chart: some View {
 		Chart {
 			ForEach(points) { point in
-				LineMark(
-					x: .value("歌唱回数", point.order),
-					y: .value("スコア", point.score)
-				)
-				.foregroundStyle(AppColor.accentScore)
-				.interpolationMethod(.catmullRom)
+				if let score = point.score {
+					LineMark(
+						x: .value("歌唱回数", point.order),
+						y: .value("スコア", score)
+					)
+					.foregroundStyle(AppColor.accentScore)
+					.interpolationMethod(.catmullRom)
 
-				PointMark(
-					x: .value("歌唱回数", point.order),
-					y: .value("スコア", point.score)
-				)
-				.foregroundStyle(IntentPalette.foreground(point.intent))
-				.symbolSize(point.order == selectedOrder ? 160 : 70)
-				.accessibilityLabel(PerformedAtFormat.dateOnly(point.performedAt))
-				.accessibilityValue("\(point.score.formatted(.number.precision(.fractionLength(1))))点")
+					PointMark(
+						x: .value("歌唱回数", point.order),
+						y: .value("スコア", score)
+					)
+					.foregroundStyle(IntentPalette.foreground(point.intent))
+					.symbolSize(point.order == selectedOrder ? 160 : 70)
+					.accessibilityLabel(PerformedAtFormat.dateOnly(point.performedAt))
+					.accessibilityValue("\(ScoreFormat.text(score))点")
+				}
 			}
 
 			if let selectedPoint {
@@ -84,7 +88,7 @@ struct TrackScoreTrendChartView: View {
 				.foregroundStyle(AppColor.borderSubtle)
 				.annotation(position: .top, alignment: .leading) {
 					if selectedPoint == nil {
-						Text("平均 \(averageScore, format: .number.precision(.fractionLength(1)))")
+						Text("平均 \(ScoreFormat.averageText(averageScore))")
 							.font(.caption2.weight(.semibold))
 							.foregroundStyle(AppColor.textTertiary)
 					}
@@ -125,7 +129,7 @@ struct TrackScoreTrendChartView: View {
 
 			HStack(spacing: 8) {
 				IntentBadgeView(intent: point.intent)
-				Text(point.score, format: .number.precision(.fractionLength(1)))
+				Text(ScoreFormat.text(point.score))
 					.font(.headline.weight(.bold))
 					.monospacedDigit()
 					.foregroundStyle(AppColor.textPrimary)
@@ -145,7 +149,7 @@ struct TrackScoreTrendChartView: View {
 
 	/// スコアの実レンジに 5 点刻みの余白を足した範囲。0〜100 固定だと変動が上端に潰れて推移が読めない。
 	private var yDomain: ClosedRange<Double> {
-		let scores = points.map(\.score) + [averageScore]
+		let scores = points.compactMap(\.score) + [averageScore]
 		guard let minScore = scores.min(), let maxScore = scores.max() else { return 0 ... 100 }
 		let lower = max(0, (minScore / 5).rounded(.down) * 5 - 5)
 		let upper = min(100, (maxScore / 5).rounded(.up) * 5 + 5)
