@@ -58,4 +58,4 @@ enum Intent: String, Codable, CaseIterable, Sendable {
 }
 ```
 
-`Intent` は `String` RawValue の enum として定義し、SwiftData の永続化時は自動的に RawValue（文字列）で保存される。`CaseIterable` でフィルター UI の選択肢を自動生成し、`Sendable` で Swift Concurrency の安全性を保証している。Intent 別の集計は `InsightRepository` が SwiftData からセッション一覧を取得し、メモリ上で Intent ごとにグルーピング・ソートする設計（DB 側の Predicate による enum 絞り込みは SwiftData の制約で不安定なため回避 — 詳細は [technical_decisions.md](technical_decisions.md) 参照）。
+`Intent` は `String` RawValue の enum として定義し、SwiftData の永続化時は自動的に RawValue（文字列）で保存される。`CaseIterable` でフィルター UI の選択肢を自動生成し、`Sendable` で Swift Concurrency の安全性を保証している。Intent 別の集計は `InsightRepository` が SwiftData からセッション一覧を取得し、メモリ上で Intent ごとにグルーピング・ソートする設計（DB 側の Predicate による enum 絞り込みは SwiftData の制約で不安定なため回避 — 詳細は [ADR 0007](adr/0007-filter-intent-in-memory.md) 参照）。
