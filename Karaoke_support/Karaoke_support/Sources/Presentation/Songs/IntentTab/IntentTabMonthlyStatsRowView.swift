@@ -16,7 +16,7 @@ struct IntentTabMonthlyStatsRowView: View {
 			statBubble(
 				icon: "star.circle.fill",
 				iconTint: IntentTabInsightStyle.statsScoreIcon,
-				value: averageScore.map { String(format: "%.1f", $0) } ?? "—",
+				value: ScoreFormat.averageText(averageScore),
 				label: "平均スコア"
 			)
 		}
@@ -29,7 +29,10 @@ struct IntentTabMonthlyStatsRowView: View {
 				.foregroundStyle(iconTint)
 			Text(value)
 				.font(.title.weight(.bold))
+				.monospacedDigit()
 				.foregroundStyle(AppColor.textPrimary)
+				.lineLimit(1)
+				.minimumScaleFactor(0.6)
 			Text(label)
 				.font(.caption)
 				.foregroundStyle(AppColor.textSecondary)

@@ -6,12 +6,12 @@ struct RecordingSheetMemoSection: View {
 
 	var body: some View {
 		VStack(alignment: .leading, spacing: 10) {
-			Text("メモ（オプション）")
+			Text("メモ")
 				.font(.subheadline.bold())
 
 			ZStack(alignment: .topLeading) {
 				if memo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-					Text("メモ（オプション）")
+					Text("ひとこと")
 						.foregroundStyle(.tertiary)
 						.padding(.top, 10)
 						.padding(.horizontal, 12)

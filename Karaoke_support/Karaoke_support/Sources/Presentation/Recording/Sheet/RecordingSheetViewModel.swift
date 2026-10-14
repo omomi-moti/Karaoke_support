@@ -45,6 +45,9 @@ final class RecordingSheetViewModel {
 	/// 入力が止まってから検索するまでの待ち時間。テストでは `.zero` にする。
 	@ObservationIgnored var suggestionDebounce: Duration = .milliseconds(300)
 
+	/// 新規記録の歌唱日時に使う現在時刻。テストでは固定の時刻を返す。
+	@ObservationIgnored var now: () -> Date = Date.init
+
 	private var canShowTrackSuggestions: Bool {
 		trackState.isEditable && !isTrackInputLockedForEdit
 	}
@@ -85,7 +88,7 @@ final class RecordingSheetViewModel {
 		self.trackRepository = trackRepository
 		self.trackState = TrackInputState(trackForEditingSession: editingSession.track)
 		self.draft = RecordingDraft(
-			score: editingSession.score,
+			score: editingSession.score.map(ScoreDigitInput.init(score:)) ?? ScoreDigitInput(),
 			intent: editingSession.intent,
 			memo: editingSession.memo ?? "",
 			performedAt: editingSession.performedAt
@@ -163,7 +166,8 @@ final class RecordingSheetViewModel {
 				spotifyTrackId: selectedTrack.spotifyTrackId,
 				userEnteredName: selectedTrack.userEnteredName
 			)
-			let score = Self.normalizedScoreForPersistence(draft.score)
+			// 点数の入力は任意。未入力なら nil で保存する
+			let score = draft.score.value
 
 			if let editId = editingSessionId {
 				let session = SingingSession(
@@ -190,7 +194,8 @@ final class RecordingSheetViewModel {
 				id: sessionId,
 				track: track,
 				intent: draft.intent,
-				performedAt: draft.performedAt,
+				// 新規記録は日時欄を出さないので、保存した時刻を歌唱日時にする
+				performedAt: now(),
 				score: score,
 				memo: draft.normalizedMemo
 			)
@@ -253,11 +258,5 @@ final class RecordingSheetViewModel {
 		guard !isTrackSuggestionStale else { return }
 		trackSuggestionState = .hidden
 		trackState.manualName = suggestion.name
-	}
-
-	/// ``SingingSession`` の仕様（0〜100・小数第二位）に合わせ、Slider の `Double` 表現誤差を抑える。
-	private static func normalizedScoreForPersistence(_ raw: Double) -> Double {
-		let rounded = (raw * 100).rounded() / 100
-		return min(100, max(0, rounded))
 	}
 }

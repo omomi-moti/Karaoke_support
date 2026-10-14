@@ -21,10 +21,10 @@ struct HistorySessionRowView: View {
 			.frame(maxWidth: .infinity, alignment: .leading)
 
 			VStack(alignment: .trailing, spacing: 2) {
-				Text(item.score, format: .number.precision(.fractionLength(1)))
+				Text(ScoreFormat.text(item.score))
 					.font(.system(size: 30, weight: .bold, design: .rounded))
 					.monospacedDigit()
-					.foregroundStyle(AppColor.accentScore)
+					.foregroundStyle(item.score == nil ? AppColor.textTertiary : AppColor.accentScore)
 					.minimumScaleFactor(0.7)
 					.lineLimit(1)
 
@@ -34,7 +34,7 @@ struct HistorySessionRowView: View {
 					.textCase(.uppercase)
 			}
 			.accessibilityElement(children: .combine)
-			.accessibilityLabel("スコア \(item.score.formatted(.number.precision(.fractionLength(1))))")
+			.accessibilityLabel(ScoreFormat.accessibilityLabel(item.score))
 		}
 		.padding(16)
 		.background(

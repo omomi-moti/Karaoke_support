@@ -6,7 +6,7 @@ struct RecordingSheetIntentSection: View {
 
 	var body: some View {
 		VStack(alignment: .leading, spacing: 12) {
-			Text("今日の気分は？")
+			Text("今の気分は？")
 				.font(.subheadline.bold())
 
 			HStack(spacing: 12) {
@@ -21,6 +21,7 @@ struct RecordingSheetIntentSection: View {
 
 	private func intentButton(_ value: Intent, title: String, systemImage: String) -> some View {
 		let isSelected = intent == value
+		let accent = IntentPalette.accent(value)
 
 		return Button {
 			intent = value
@@ -28,6 +29,7 @@ struct RecordingSheetIntentSection: View {
 			VStack(spacing: 10) {
 				Image(systemName: systemImage)
 					.font(.title3.weight(.semibold))
+					.foregroundStyle(isSelected ? accent : .secondary)
 				Text(title)
 					.font(.footnote.weight(.semibold))
 			}
@@ -36,15 +38,17 @@ struct RecordingSheetIntentSection: View {
 			.foregroundStyle(isSelected ? .primary : .secondary)
 			.background(
 				RoundedRectangle(cornerRadius: 18, style: .continuous)
-					.fill(isSelected ? Color.pink.opacity(0.25) : Color.clear)
+					.fill(isSelected ? accent.opacity(0.2) : Color.clear)
 			)
 			.overlay(
 				RoundedRectangle(cornerRadius: 18, style: .continuous)
 					.stroke(
-						isSelected ? Color.pink : Color.secondary.opacity(0.3),
+						isSelected ? accent : Color.secondary.opacity(0.3),
 						lineWidth: isSelected ? 2 : 1
 					)
 			)
+			// 選んだ気分の色で枠をにじませ、ネオンのように光らせる
+			.shadow(color: isSelected ? accent.opacity(0.6) : .clear, radius: 8)
 		}
 		.buttonStyle(.plain)
 		.disabled(isDisabled)
