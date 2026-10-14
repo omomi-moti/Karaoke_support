@@ -17,13 +17,17 @@
 | [0009](0009-tiered-track-suggestions.md) | 曲名の候補は一致した場所で段を分けて並べる | 承認 |
 | [0010](0010-issues-and-adr-as-source-of-truth.md) | タスクは GitHub Issues、判断は ADR を正とし、旧 Issue 一覧は archive に残す | 承認 |
 | [0011](0011-identify-tracks-by-name-and-artist.md) | 手入力の曲は曲名＋歌手名で区別し、新しい曲では歌手名を必須にする | 提案 |
+| [0012](0012-score-three-decimals-optional.md) | 点数は小数第3位までの任意入力にする | 承認 |
+| [0013](0013-score-input-with-system-number-pad.md) | 点数は標準テンキーで右詰めに入力し、入力欄は見えなくする | 承認 |
+| [0014](0014-score-display-without-rounding.md) | 点数は丸めず小数第3位まで表示し、平均は切り捨てる | 承認 |
+| [0015](0015-performed-at-from-save-time.md) | 新規記録の歌唱日時は保存した時刻にし、日時欄は編集のときだけ出す | 承認 |
 
 ## 書き方
 
-ファイル名は `番号-英語の短い名前.md`（例：`0012-score-three-decimals.md`）。番号は 4 桁の連番。
+ファイル名は `番号-英語の短い名前.md`（例：`0012-score-three-decimals-optional.md`）。番号は 4 桁の連番。
 
 ```markdown
-# 0012. 判断を 1 行で
+# 0016. 判断を 1 行で
 
 - 2026-10-14 ／ 承認
 - 背景：何に困って、何を決めたか（1〜2 行）

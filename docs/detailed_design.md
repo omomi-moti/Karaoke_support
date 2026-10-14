@@ -173,8 +173,8 @@ Track(userEnteredName: "夜に駆ける")   // 手動入力の曲
 | `id` | `UUID` | Idempotency Key（二重送信防止の主キー）。UI 層で生成する |
 | `track` | `Track` | 紐づく曲（必須） |
 | `intent` | `Intent` | 歌唱の意図（永続化時は `RawValue: String`） |
-| `performedAt` | `Date` | 歌唱日時 |
-| `score` | `Double` | スコア（0〜100）。桁数・丸めは ViewModel で制御する |
+| `performedAt` | `Date` | 歌唱日時。新規記録では保存した時刻（[ADR 0015](adr/0015-performed-at-from-save-time.md)） |
+| `score` | `Double?` | スコア（0〜100、小数第3位まで）。`nil` は点数なし（[ADR 0012](adr/0012-score-three-decimals-optional.md)） |
 | `memo` | `String?` | メモ（任意） |
 
 **冪等性の保証**: `id` を Idempotency Key として使用し、同一 `id` のセッションが既に存在する場合は insert も `singCount` 加算も行わずに成功扱いとする。UI 層の `isSaving` フラグと合わせた二重構造で重複保存を防止する。
@@ -219,7 +219,7 @@ classDiagram
         +UUID id
         +Intent intent
         +Date performedAt
-        +Double score
+        +Double? score
         +String? memo
     }
 
@@ -353,7 +353,7 @@ erDiagram
         uuid trackId FK
         string intent "shout|emo|practice"
         datetime performedAt
-        double score "0-100"
+        double score "0-100, nullable"
         string memo "nullable"
     }
 
@@ -396,7 +396,7 @@ final class SingingSession {
     /// ドメインでは enum を使用し、永続化時は RawValue(String) で扱う。
     var intent: Intent
     var performedAt: Date
-    var score: Double
+    var score: Double?
     var memo: String?
 }
 ```

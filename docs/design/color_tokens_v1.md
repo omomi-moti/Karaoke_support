@@ -12,6 +12,7 @@
 | `AppBorderSubtle` | カード枠線 |
 | `AppAccentScore` | スコア強調（履歴・録音と揃える場合は同トークンを参照） |
 | `AppBadge*Background` / `AppBadge*Foreground` | Intent ピル（Shout / Emo / Practice） |
+| `AppIntentShoutAccent` / `AppIntentEmoAccent` / `AppIntentPracticeAccent` | 記録シートで選んだ気分ボタンの枠・アイコン・光（Shout はピンク、Emo は黄色、Practice は緑。`IntentPalette.accent` 経由） |
 | `AppFilterChipSelectedBackground` / `AppFilterChipUnselectedBackground` | 履歴フィルターチップ |
 | `AppForegroundSubtle` | チップ非選択時の文字（ダーク: 白 85% / ライト: 黒 75%） |
 | `AppSemanticError` | エラーメッセージ文言 |
@@ -49,4 +50,4 @@
 - **確認手順**: 起動画面は iOS 側のキャッシュが残りやすい。**アプリを削除してから再インストール**し、ライト／ダーク両モードで白いチラつきがないことを確認する。
   - 起動画面は iOS が画像として作り、アプリのデータ領域の `Library/SplashBoard` にキャッシュする。**シミュレータの再起動では作り直されない**。
   - それでも古いままなら、シミュレータではデータを消さずにキャッシュだけ消せる:
-    `rm -rf "$(xcrun simctl get_app_container booted com.omomimoti.karaokesupport data)/Library/SplashBoard"` の後にアプリを起動し直す。
+    `rm -rf "$(xcrun simctl get_app_container booted com.omomimoti.hitokaralog data)/Library/SplashBoard"` の後にアプリを起動し直す。

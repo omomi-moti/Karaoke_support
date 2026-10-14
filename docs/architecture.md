@@ -158,9 +158,9 @@ flowchart TD
 flowchart TD
     A["曲選択<br>ランキングタップ or 手動入力"] --> B[".sheet(item:)<br>記録シート表示"]
     B --> C["曲入力"]
-    C --> D["スコア<br>Slider 0〜100"]
+    C --> D["スコア（任意）<br>標準テンキー・小数第3位まで"]
     D --> E["Intent<br>Shout / Emo / Practice"]
-    E --> F["歌唱日時"]
+    E --> F["歌唱日時<br>編集のときだけ表示"]
     F --> G["メモ（任意）"]
     G --> H["保存<br>二重送信防止 → 冪等保存"]
     H --> I["履歴タブへ自動遷移 + シート解除"]

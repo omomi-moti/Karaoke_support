@@ -136,7 +136,7 @@ Karaoke_supportTests/
 ├── Domain/              # Helper and model unit tests
 └── Presentation/
     ├── History/         # HistoryViewModel pagination, sort, loadGeneration
-    ├── Recording/       # RecordingSheetViewModel save/edit, track suggestions
+    ├── Recording/       # RecordingSheetViewModel save/edit, track suggestions, score input
     ├── Songs/           # IntentTabViewModel
     ├── TrackDetail/     # TrackDetailViewModel, score summary
     └── Common/
