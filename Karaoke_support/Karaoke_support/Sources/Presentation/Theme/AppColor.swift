@@ -25,7 +25,6 @@ enum AppColor {
 	static let intentShoutAccent = Color(.appIntentShoutAccent)
 	static let intentEmoAccent = Color(.appIntentEmoAccent)
 	static let intentPracticeAccent = Color(.appIntentPracticeAccent)
-	static let filterChipSelectedBackground = Color(.appFilterChipSelectedBackground)
 	static let filterChipUnselectedBackground = Color(.appFilterChipUnselectedBackground)
 	static let foregroundSubtle = Color(.appForegroundSubtle)
 	static let semanticError = Color(.appSemanticError)
