@@ -7,9 +7,9 @@ struct HistoryFilterBarView: View {
 	var body: some View {
 		ScrollView(.horizontal, showsIndicators: false) {
 			HStack(spacing: 8) {
-				chip(title: "すべて", tag: .all)
+				chip(title: "すべて", systemImage: nil, tag: .all)
 				ForEach(Intent.allCases, id: \.self) { intent in
-					chip(title: Self.intentChipTitle(intent), tag: .intent(intent))
+					chip(title: IntentLabel.title(intent), systemImage: IntentLabel.systemImage(intent), tag: .intent(intent))
 				}
 			}
 			.padding(.horizontal, 4)
@@ -18,7 +18,7 @@ struct HistoryFilterBarView: View {
 		.scrollClipDisabled()
 	}
 
-	private func chip(title: String, tag: HistoryIntentFilter) -> some View {
+	private func chip(title: String, systemImage: String?, tag: HistoryIntentFilter) -> some View {
 		let isSelected = selection == tag
 		// 気分のチップは記録シートの気分ボタンと同じ色で光らせる。「すべて」は気分の色と混ざらないよう無彩色にする
 		let accent: Color = switch tag {
@@ -32,9 +32,18 @@ struct HistoryFilterBarView: View {
 		return Button {
 			selection = tag
 		} label: {
-			Text(title)
+			HStack(spacing: 4) {
+				// 記録シートの気分ボタンと同じアイコン。選んだときはアイコンだけ気分の色にする
+				if let systemImage {
+					Image(systemName: systemImage)
+						.foregroundStyle(isSelected ? accent : AppColor.foregroundSubtle)
+						.accessibilityHidden(true)
+				}
+				Text(title)
+			}
 				.font(.subheadline.weight(.semibold))
-				.padding(.horizontal, 14)
+				// アイコンの分だけ広がるので、標準の文字サイズで 4 つが横幅に収まるよう左右を 14pt から詰める
+				.padding(.horizontal, 10)
 				.padding(.vertical, 8)
 				.background(
 					Capsule()
@@ -51,14 +60,6 @@ struct HistoryFilterBarView: View {
 		.buttonStyle(.plain)
 		.accessibilityLabel("フィルター \(title)")
 		.accessibilityAddTraits(isSelected ? .isSelected : [])
-	}
-
-	private static func intentChipTitle(_ intent: Intent) -> String {
-		switch intent {
-		case .shout: return "Shout"
-		case .emo: return "Emo"
-		case .practice: return "Practice"
-		}
 	}
 }
 
