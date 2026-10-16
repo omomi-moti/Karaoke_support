@@ -3,6 +3,8 @@ import SwiftUI
 struct TrackInputSectionView: View {
 	@Binding var state: TrackInputState
 	let isDisabled: Bool
+	/// 既存の記録の編集中。曲は差し替えられないので、入力欄ではなく読むだけの表示にする。
+	var isLockedForEdit = false
 	let suggestionState: TrackSuggestionState
 	/// 入力が変わってから新しい検索結果が出るまでの間。候補や「候補はありません」を薄く表示し、候補は押せなくする。
 	let isSuggestionStale: Bool
@@ -13,7 +15,9 @@ struct TrackInputSectionView: View {
 			Text("曲名")
 				.font(.subheadline.bold())
 
-			if state.isEditable {
+			if isLockedForEdit {
+				lockedTrackName
+			} else if state.isEditable {
 				TextField("曲名", text: $state.manualName)
 					.textInputAutocapitalization(.never)
 					.autocorrectionDisabled(true)
@@ -47,6 +51,24 @@ struct TrackInputSectionView: View {
 		}
 		.padding()
 		.background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+	}
+
+	/// 押せない入力欄に見えないよう、枠を付けずに文字だけ出し、変えられないことを添える。
+	private var lockedTrackName: some View {
+		VStack(alignment: .leading, spacing: 4) {
+			HStack {
+				Text(state.displayName.isEmpty ? "曲名" : state.displayName)
+					.font(.body.weight(.semibold))
+				Spacer()
+				Image(systemName: "lock.fill")
+					.foregroundStyle(.secondary)
+					.accessibilityHidden(true)
+			}
+			Text("曲は変更できません")
+				.font(.footnote)
+				.foregroundStyle(.secondary)
+		}
+		.accessibilityElement(children: .combine)
 	}
 
 	@ViewBuilder

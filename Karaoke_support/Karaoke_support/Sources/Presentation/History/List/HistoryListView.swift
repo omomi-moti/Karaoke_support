@@ -62,7 +62,7 @@ struct HistoryListView: View {
 								} label: {
 									Label("編集", systemImage: "pencil")
 								}
-								.tint(.blue)
+								.tint(AppColor.editAccent)
 							}
 							.swipeActions(edge: .trailing, allowsFullSwipe: true) {
 								Button(role: .destructive) {

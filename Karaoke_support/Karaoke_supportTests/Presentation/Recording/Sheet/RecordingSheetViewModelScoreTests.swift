@@ -177,4 +177,22 @@ struct RecordingSheetViewModelScoreTests {
 		#expect(ok)
 		#expect(spy.updatedPerformedAts == [original])
 	}
+
+	@Test("編集中の帯に出す元の歌唱日時は、新規では nil、編集では元の記録の日時になる")
+	func originalPerformedAtForEditingBanner() {
+		let original = Date(timeIntervalSince1970: 1_700_000_000)
+		let session = SingingSession(track: Track(userEnteredName: "Lemon"), intent: .emo, performedAt: original, score: 80)
+		let editing = RecordingSheetViewModel(
+			editingSession: session,
+			sessionRepository: ScoreTestSessionRepositorySpy(),
+			trackRepository: ScoreTestTrackRepositoryStub()
+		)
+		let newRecording = makeNewRecordingViewModel(sessionRepository: ScoreTestSessionRepositorySpy())
+
+		// 日時欄で日時を変えても、帯の日時は変わらない
+		editing.draft.performedAt = Date(timeIntervalSince1970: 1_800_000_000)
+
+		#expect(editing.editingSessionOriginalPerformedAt == original)
+		#expect(newRecording.editingSessionOriginalPerformedAt == nil)
+	}
 }
