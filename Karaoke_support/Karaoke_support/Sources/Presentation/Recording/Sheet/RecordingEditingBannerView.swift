@@ -6,18 +6,38 @@ struct RecordingEditingBannerView: View {
 	let originalPerformedAt: Date
 
 	var body: some View {
-		Label {
-			// 履歴の行と同じ表記にして、どの行を開いたか見比べられるようにする
-			Text("\(PerformedAtFormat.dateTime(originalPerformedAt)) の記録を編集中")
-		} icon: {
+		HStack(spacing: 12) {
+			// 下の入力カードと同じ見た目だと見出しとして読み流されるので、色付きの丸いアイコンと色付きの帯で別物に見せる。
+			// 色は点数・気分のピンクに埋もれないよう、履歴の「編集」スワイプと同じ青にする
 			Image(systemName: "pencil")
+				.font(.subheadline.weight(.bold))
+				.foregroundStyle(.white)
+				.frame(width: 32, height: 32)
+				.background(AppColor.editAccent, in: Circle())
+				.accessibilityHidden(true)
+
+			VStack(alignment: .leading, spacing: 2) {
+				Text("編集中")
+					.font(.subheadline.weight(.bold))
+					.foregroundStyle(AppColor.editAccent)
+				// 履歴の行と同じ表記にして、どの行を開いたか見比べられるようにする
+				Text("\(PerformedAtFormat.dateTime(originalPerformedAt)) の記録")
+					.font(.footnote)
+					.foregroundStyle(AppColor.textSecondary)
+			}
 		}
-		.font(.subheadline.weight(.semibold))
-		.foregroundStyle(AppColor.textPrimary)
 		.frame(maxWidth: .infinity, alignment: .leading)
 		.padding(.vertical, 12)
 		.padding(.horizontal, 16)
-		.background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+		.background(
+			RoundedRectangle(cornerRadius: 16, style: .continuous)
+				.fill(AppColor.editAccent.opacity(0.15))
+		)
+		.overlay(
+			RoundedRectangle(cornerRadius: 16, style: .continuous)
+				.strokeBorder(AppColor.editAccent.opacity(0.6), lineWidth: 1)
+		)
+		.accessibilityElement(children: .combine)
 	}
 }
 
