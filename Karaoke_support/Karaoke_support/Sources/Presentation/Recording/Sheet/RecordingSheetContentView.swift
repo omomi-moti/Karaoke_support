@@ -30,6 +30,10 @@ struct RecordingSheetContentView: View {
                         }
                     }
 
+                    if let originalPerformedAt = viewModel.editingSessionOriginalPerformedAt {
+                        RecordingEditingBannerView(originalPerformedAt: originalPerformedAt)
+                    }
+
                     if !networkMonitor.isOnline {
                         OfflineBannerView(
                             onOpenSettings: openAppSettings,
@@ -40,6 +44,7 @@ struct RecordingSheetContentView: View {
                     TrackInputSectionView(
                         state: $viewModel.trackState,
                         isDisabled: trackSectionDisabled,
+                        isLockedForEdit: viewModel.isTrackInputLockedForEdit,
                         suggestionState: trackSectionDisabled ? .hidden : viewModel.trackSuggestionState,
                         isSuggestionStale: viewModel.isTrackSuggestionStale,
                         onSelectSuggestion: viewModel.applyTrackSuggestion
@@ -94,6 +99,8 @@ struct RecordingSheetContentView: View {
         }
         .safeAreaInset(edge: .bottom) { bottomCTA }
         .interactiveDismissDisabled(viewModel.isSaving)
+        // 履歴から開いた編集画面では、タブの＋ボタン（新規記録）が保存ボタンに重なるので隠す
+        .preference(key: AddRecordingButtonHiddenPreferenceKey.self, value: presentation == .navigationStack)
         .modifier(RecordingNavigationChromeModifier(presentation: presentation, navigationTitle: recordingTitle))
     }
 
@@ -102,8 +109,8 @@ struct RecordingSheetContentView: View {
             Task { await attemptSave() }
         } label: {
             HStack {
-                Image(systemName: "tray.and.arrow.down.fill")
-                Text(viewModel.isSaving ? "保存中..." : "保存する")
+                Image(systemName: saveButtonSystemImage)
+                Text(saveButtonTitle)
                     .font(.headline)
             }
             .frame(maxWidth: .infinity)
@@ -116,6 +123,18 @@ struct RecordingSheetContentView: View {
         .padding(.top, 8)
         .padding(.bottom, 12)
         .background(.ultraThinMaterial)
+    }
+
+    /// 編集では今の記録を書き換えるので、新規の「保存」と区別して「更新」と出す。
+    private var saveButtonTitle: String {
+        if viewModel.isEditingExistingSession {
+            return viewModel.isSaving ? "更新中..." : "更新する"
+        }
+        return viewModel.isSaving ? "保存中..." : "保存する"
+    }
+
+    private var saveButtonSystemImage: String {
+        viewModel.isEditingExistingSession ? "checkmark" : "tray.and.arrow.down.fill"
     }
 
     @MainActor

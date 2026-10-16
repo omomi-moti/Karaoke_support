@@ -13,6 +13,9 @@ final class RecordingSheetViewModel {
 	/// `nil` のとき新規記録、非 `nil` のときその id のセッションを更新（I-014-C）。
 	private(set) var editingSessionId: UUID?
 
+	/// 編集している記録の、編集を始める前の歌唱日時（編集中の帯に出す）。新規記録では `nil`。
+	private(set) var editingSessionOriginalPerformedAt: Date?
+
 	private let sessionRepository: any SessionRepositoryProtocol
 	private let trackRepository: any TrackRepositoryProtocol
 
@@ -84,6 +87,7 @@ final class RecordingSheetViewModel {
 		trackRepository: any TrackRepositoryProtocol
 	) {
 		self.editingSessionId = editingSession.id
+		self.editingSessionOriginalPerformedAt = editingSession.performedAt
 		self.sessionRepository = sessionRepository
 		self.trackRepository = trackRepository
 		self.trackState = TrackInputState(trackForEditingSession: editingSession.track)

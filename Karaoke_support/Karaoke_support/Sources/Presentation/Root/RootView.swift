@@ -82,18 +82,26 @@ struct RootView: View {
 private struct AddRecordingButton: ViewModifier {
     let action: () -> Void
 
+    /// タブの中の画面（記録の編集画面など）が隠すよう求めているとき true。
+    @State private var isHidden = false
+
     func body(content: Content) -> some View {
         content
+            .onPreferenceChange(AddRecordingButtonHiddenPreferenceKey.self) { hidden in
+                isHidden = hidden
+            }
             .overlay(alignment: .bottomTrailing) {
-                Button(action: action) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 20, weight: .semibold))
-                        .frame(width: 48, height: 48)
+                if !isHidden {
+                    Button(action: action) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 20, weight: .semibold))
+                            .frame(width: 48, height: 48)
+                    }
+                    .buttonStyle(.glassProminent)
+                    .buttonBorderShape(.circle)
+                    .accessibilityLabel("手動で記録")
+                    .padding(16)
                 }
-                .buttonStyle(.glassProminent)
-                .buttonBorderShape(.circle)
-                .accessibilityLabel("手動で記録")
-                .padding(16)
             }
     }
 }
