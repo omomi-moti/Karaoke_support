@@ -24,13 +24,15 @@
 | [0016](0016-unify-intent-colors-and-icons.md) | Intent の色とアイコンを、記録シート・履歴・曲詳細でそろえる | 承認 |
 | [0017](0017-chip-glow-without-scroll-clipping.md) | 選んだチップの光は、ScrollView の切り取りを止めて見せる | 承認 |
 | [0018](0018-history-row-navigation-with-button.md) | 履歴の行は NavigationLink ではなく Button で曲詳細を開く | 承認 |
+| [0019](0019-show-edit-mode-in-recording-sheet.md) | 記録の編集中は、帯・「更新する」・読むだけの曲名で新規と見分けられるようにする | 承認 |
+| [0020](0020-hide-add-button-on-edit-screen.md) | 編集画面では＋ボタンを、画面から PreferenceKey で伝えて隠す | 承認 |
 
 ## 書き方
 
 ファイル名は `番号-英語の短い名前.md`（例：`0012-score-three-decimals-optional.md`）。番号は 4 桁の連番。
 
 ```markdown
-# 0019. 判断を 1 行で
+# 0021. 判断を 1 行で
 
 - 2026-10-14 ／ 承認
 - 背景：何に困って、何を決めたか（1〜2 行）

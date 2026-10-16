@@ -16,6 +16,7 @@
 | `AppFilterChipUnselectedBackground` | 履歴フィルターチップの非選択時の塗り。選択時は気分のチップが `AppIntent*Accent`、「すべて」が `AppTextPrimary`（無彩色）を使う |
 | `AppForegroundSubtle` | チップ非選択時の文字（ダーク: 白 85% / ライト: 黒 75%） |
 | `AppSemanticError` | エラーメッセージ文言 |
+| `AppColor.editAccent`（Color Set ではなくシステムの青） | 記録の編集を表す色。履歴の「編集」スワイプと、編集画面の「編集中」の帯で使う。ライト／ダークは OS が出し分ける |
 | `AppInsightSheetBackground` / `AppInsightSheetRowBackground` | インサイトのランキングシート背景・行の面（`IntentTabInsightStyle` 経由） |
 | `AppInsightStatsCardBackground` | インテントタブの今月の統計チップ（`IntentTabInsightStyle` 経由） |
 | `AppInsightStatsScoreIcon` | 統計チップの平均スコアアイコン（`IntentTabInsightStyle` 経由） |
