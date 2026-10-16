@@ -5,21 +5,18 @@ struct IntentBadgeView: View {
 	let intent: Intent
 
 	var body: some View {
-		Text(label)
+		// 記録シートの気分ボタン・履歴の絞り込みチップと同じアイコン（SF Symbols）
+		HStack(spacing: 4) {
+			Image(systemName: IntentLabel.systemImage(intent))
+				.accessibilityHidden(true)
+			Text(IntentLabel.title(intent))
+		}
 			.font(.caption.weight(.semibold))
 			.padding(.horizontal, 10)
 			.padding(.vertical, 5)
 			.background(IntentPalette.background(intent))
 			.foregroundStyle(IntentPalette.foreground(intent))
 			.clipShape(Capsule())
-	}
-
-	private var label: String {
-		switch intent {
-		case .shout: return "🔥 Shout"
-		case .emo: return "🌙 Emo"
-		case .practice: return "🎤 Practice"
-		}
 	}
 }
 

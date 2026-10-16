@@ -43,7 +43,10 @@ struct HistoryListView: View {
 				} else {
 					List {
 						ForEach(viewModel.sessions, id: \.id) { session in
-							NavigationLink(value: HistoryRoute.trackDetail(trackId: session.trackId, title: session.trackPrimaryTitle)) {
+							// List の中の NavigationLink は行の右端に「›」が付くので、Button で画面を積む（編集のスワイプと同じ）
+							Button {
+								navigationPath.append(HistoryRoute.trackDetail(trackId: session.trackId, title: session.trackPrimaryTitle))
+							} label: {
 								HistorySessionRowView(item: session)
 							}
 							.task(id: session.id) {

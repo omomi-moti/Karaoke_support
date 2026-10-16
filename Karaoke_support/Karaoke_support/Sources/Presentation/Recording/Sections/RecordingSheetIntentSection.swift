@@ -10,9 +10,9 @@ struct RecordingSheetIntentSection: View {
 				.font(.subheadline.bold())
 
 			HStack(spacing: 12) {
-				intentButton(.shout, title: "Shout", systemImage: "flame.fill")
-				intentButton(.emo, title: "Emo", systemImage: "moon.fill")
-				intentButton(.practice, title: "Practice", systemImage: "mic.fill")
+				ForEach(Intent.allCases, id: \.self) { value in
+					intentButton(value, title: IntentLabel.title(value), systemImage: IntentLabel.systemImage(value))
+				}
 			}
 		}
 		.padding()

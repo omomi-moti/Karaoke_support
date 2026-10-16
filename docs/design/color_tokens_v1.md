@@ -11,9 +11,9 @@
 | `AppSurfaceCard` | カード塗り |
 | `AppBorderSubtle` | カード枠線 |
 | `AppAccentScore` | スコア強調（履歴・録音と揃える場合は同トークンを参照） |
-| `AppBadge*Background` / `AppBadge*Foreground` | Intent ピル（Shout / Emo / Practice） |
-| `AppIntentShoutAccent` / `AppIntentEmoAccent` / `AppIntentPracticeAccent` | 記録シートで選んだ気分ボタンの枠・アイコン・光（Shout はピンク、Emo は黄色、Practice は緑。`IntentPalette.accent` 経由） |
-| `AppFilterChipSelectedBackground` / `AppFilterChipUnselectedBackground` | 履歴フィルターチップ |
+| `AppBadge*Background` / `AppBadge*Foreground` | Intent ピル（Shout / Emo / Practice）。色味は `AppIntent*Accent` と同じ系統（ピンク／黄色／緑）で、文字が読めるよう背景と文字の 2 色に分けている |
+| `AppIntentShoutAccent` / `AppIntentEmoAccent` / `AppIntentPracticeAccent` | 記録シートの気分ボタンと履歴のフィルターチップで、選んだときの枠・塗り・光（Shout はピンク、Emo は黄色、Practice は緑。`IntentPalette.accent` 経由） |
+| `AppFilterChipUnselectedBackground` | 履歴フィルターチップの非選択時の塗り。選択時は気分のチップが `AppIntent*Accent`、「すべて」が `AppTextPrimary`（無彩色）を使う |
 | `AppForegroundSubtle` | チップ非選択時の文字（ダーク: 白 85% / ライト: 黒 75%） |
 | `AppSemanticError` | エラーメッセージ文言 |
 | `AppInsightSheetBackground` / `AppInsightSheetRowBackground` | インサイトのランキングシート背景・行の面（`IntentTabInsightStyle` 経由） |
