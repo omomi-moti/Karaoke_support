@@ -101,6 +101,7 @@ private struct AddRecordingButton: ViewModifier {
                     .buttonBorderShape(.circle)
                     .accessibilityLabel("手動で記録")
                     .padding(16)
+                    .ignoresSafeArea(.keyboard)
                 }
             }
     }
