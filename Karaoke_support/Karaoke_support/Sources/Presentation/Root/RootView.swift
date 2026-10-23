@@ -19,17 +19,19 @@ struct RootView: View {
     @State private var recordingSheetItem: RecordingSheetItem?
     /// 保存のたびに増やし、履歴一覧に再読み込みさせる（履歴タブ上で保存するとタブ切替による再表示が起きないため）。
     @State private var historyReloadTick = 0
+    /// タブの中身の下の安全領域（タブバー＋ホームインジケーター）。＋ボタンをタブバーの上に置くのに使う。
+    @State private var tabBarInset: CGFloat = 0
 
     var body: some View {
         TabView(selection: $selectedTab) {
             Tab("選曲", systemImage: "music.note.list", value: .songs) {
                 SongsRootView(onSelectTrack: presentRecording)
-                    .modifier(AddRecordingButton(action: presentManualRecording))
+                    .modifier(TabBarInsetReader(inset: $tabBarInset))
             }
 
             Tab("履歴", systemImage: "clock", value: .history) {
                 HistoryRootView()
-                    .modifier(AddRecordingButton(action: presentManualRecording))
+                    .modifier(TabBarInsetReader(inset: $tabBarInset))
             }
 
             Tab("設定", systemImage: "gearshape", value: .settings) {
@@ -48,6 +50,16 @@ struct RootView: View {
             }
         }
         .tabBarMinimizeBehavior(.onScrollDown)
+        .overlay {
+            AddRecordingButton(action: presentManualRecording)
+                .padding(.trailing, 16)
+                .padding(.bottom, tabBarInset + 16)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                .ignoresSafeArea()
+                .opacity(isAddButtonVisible ? 1 : 0)
+                .allowsHitTesting(isAddButtonVisible)
+                .accessibilityHidden(!isAddButtonVisible)
+        }
         .sheet(item: $recordingSheetItem) { item in
             RecordingSheetContainerView(
                 seed: item.seed,
@@ -61,6 +73,12 @@ struct RootView: View {
         .environment(\.navigateToManualRecording, presentManualRecording)
         .environment(\.navigateToEditRecording, presentEditRecording)
         .environment(\.historyReloadTick, historyReloadTick)
+    }
+
+    /// ＋は選曲・履歴タブだけに出す（R2）。外さずに透明にして、同じボタンを居続けさせる（R5）。
+    /// タブバーの高さを測るまでは、位置が決まらないので出さない。
+    private var isAddButtonVisible: Bool {
+        (selectedTab == .songs || selectedTab == .history) && tabBarInset > 0
     }
 
     private func presentManualRecording() {
@@ -84,23 +102,31 @@ struct RootView: View {
     }
 }
 
-private struct AddRecordingButton: ViewModifier {
+private struct AddRecordingButton: View {
     let action: () -> Void
 
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "plus")
+                .font(.system(size: 20, weight: .semibold))
+                .frame(width: 48, height: 48)
+        }
+        .buttonStyle(.glassProminent)
+        .buttonBorderShape(.circle)
+        .accessibilityLabel("手動で記録")
+    }
+}
+
+/// タブの中身の下の安全領域を測って `inset` に入れる。キーボードの分は含めない。
+private struct TabBarInsetReader: ViewModifier {
+    @Binding var inset: CGFloat
+
     func body(content: Content) -> some View {
-        content
-            .overlay(alignment: .bottomTrailing) {
-                Button(action: action) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 20, weight: .semibold))
-                        .frame(width: 48, height: 48)
-                }
-                .buttonStyle(.glassProminent)
-                .buttonBorderShape(.circle)
-                .accessibilityLabel("手動で記録")
-                .padding(16)
+        content.background {
+            Color.clear
                 .ignoresSafeArea(.keyboard)
-            }
+                .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.bottom } action: { inset = $0 }
+        }
     }
 }
 
