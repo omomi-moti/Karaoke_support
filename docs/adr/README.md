@@ -25,8 +25,10 @@
 | [0017](0017-chip-glow-without-scroll-clipping.md) | 選んだチップの光は、ScrollView の切り取りを止めて見せる | 承認 |
 | [0018](0018-history-row-navigation-with-button.md) | 履歴の行は NavigationLink ではなく Button で曲詳細を開く | 承認 |
 | [0019](0019-show-edit-mode-in-recording-sheet.md) | 記録の編集中は、帯・「更新する」・読むだけの曲名で新規と見分けられるようにする | 承認 |
-| [0020](0020-hide-add-button-on-edit-screen.md) | 編集画面では＋ボタンを、画面から PreferenceKey で伝えて隠す | 承認 |
+| [0020](0020-hide-add-button-on-edit-screen.md) | 編集画面では＋ボタンを、画面から PreferenceKey で伝えて隠す | 置き換え済み（→ 0022） |
 | [0021](0021-single-add-button-measured-from-tab-safe-area.md) | ＋ボタンは `RootView` に 1 つだけ置き、タブバーの高さはタブの中身の安全領域から測る | 承認 |
+| [0022](0022-open-edit-in-root-sheet.md) | 記録の編集も `RootView` のシートで開き、＋ボタンを隠す仕組みをなくす | 承認 |
+| [0023](0023-add-button-glass-fixed-color-and-size.md) | ＋ボタンはガラスのまま、ライト・ダーク共通の濃いめのピンクにし、大きさは固定にする | 承認 |
 
 ## 書き方
 

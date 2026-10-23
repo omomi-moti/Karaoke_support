@@ -53,21 +53,19 @@
 - `Sources/Presentation/Songs/SongsRootView.swift` — 選曲タブの `NavigationStack`（ルートのみ）。記録は `onSelectTrack` で `RootView` に委譲
 - `Sources/Presentation/Search/SearchContainerView.swift` — 検索タブ本体（`.searchable`）。選択は `onSelectTrack` で `RootView` に委譲
 - `Sources/App/Environment/HistoryReloadEnvironment.swift` — `historyReloadTick`
-- `Sources/Presentation/Recording/Sheet/RecordingSheetContainerView.swift` — `presentation: .sheet`（`RootView` から開くとき）。履歴タブの編集は **別経路**で `NavigationStack` + `presentation: .navigationStack` のまま
-- `Sources/Presentation/Recording/Sheet/RecordingSheetContentView.swift` — 保存成功時の `onSavedMoveToHistory` / `.sheet` 時の `dismiss()`
+- `Sources/Presentation/Recording/Sheet/RecordingSheetContainerView.swift` — `RootView` の記録シートの中身。新規・曲を選んだとき・履歴からの編集（`seed: .editSession`）のどれもここから開く（ADR 0022）
+- `Sources/Presentation/Recording/Sheet/RecordingSheetContentView.swift` — 保存成功時の `onSavedMoveToHistory` と `dismiss()`
 
 ## 履歴タブのナビゲーション（I-014-C / I-019）
 
-履歴タブは `NavigationStack(path:)` + `navigationDestination(for: HistoryRoute.self)` の 1 経路で、2 つの遷移先を **enum で分岐**する。
+履歴タブは `NavigationStack(path:)` + `navigationDestination(for: HistoryRoute.self)` の 1 経路。遷移先は曲詳細だけで、編集（リードスワイプ「編集」）は Environment の `navigateToEditRecording` で `RootView` の記録シートを開く（ADR 0022）。
 
 | ケース | 起点 | 遷移先 |
 |--------|------|--------|
 | `trackDetail(trackId:title:)` | 行タップ（`NavigationLink(value:)`） | `TrackDetailContainerView`（読み取り専用） |
-| `editSession(sessionId:)` | リードスワイプ「編集」 | `RecordingSheetContainerView(presentation: .navigationStack)` |
 
-- どちらも `UUID` を運ぶため、`navigationDestination(for: UUID.self)` のままだと **行タップで編集が開く**取り違えが型チェックを素通りする。`HistoryRoute` で区別している
 - 曲名は行のスナップショットから `title` としてルートに載せる。曲詳細のヘッダーを追加クエリなしで描画するため
-- 編集の保存成功時のみ `navigationPath.removeLast()` で pop し、`viewModel.load()` で一覧を再同期する
+- 編集の保存後は、新規と同じく `RootView` がシートを閉じて `historyReloadTick` を増やし、一覧を読み込み直す
 
 ## インテントタブのランキングシート（I-017）
 
