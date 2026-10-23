@@ -6,7 +6,6 @@ struct RecordingSheetContainerView: View {
 	@Environment(\.dismiss) private var dismiss
 
 	let seed: RecordingSessionSeed
-	let presentation: RecordingContentPresentation
 	let onSavedMoveToHistory: () -> Void
 
 	/// 親の `body` が再評価されるたびに `RecordingSheetViewModel` を作り直さない（I-011 `pendingSessionIdForSave` の整合）。
@@ -17,21 +16,18 @@ struct RecordingSheetContainerView: View {
 
 	init(
 		seed: RecordingSessionSeed,
-		presentation: RecordingContentPresentation = .sheet,
 		onSavedMoveToHistory: @escaping () -> Void
 	) {
 		self.seed = seed
-		self.presentation = presentation
 		self.onSavedMoveToHistory = onSavedMoveToHistory
 	}
 
 	/// 従来どおり ``TrackInputMode`` から開始。
 	init(
 		trackMode: TrackInputMode,
-		presentation: RecordingContentPresentation = .sheet,
 		onSavedMoveToHistory: @escaping () -> Void
 	) {
-		self.init(seed: .mode(trackMode), presentation: presentation, onSavedMoveToHistory: onSavedMoveToHistory)
+		self.init(seed: .mode(trackMode), onSavedMoveToHistory: onSavedMoveToHistory)
 	}
 
 	var body: some View {
@@ -62,7 +58,6 @@ struct RecordingSheetContainerView: View {
 			} else if let vm = viewModel {
 				RecordingSheetContentView(
 					viewModel: vm,
-					presentation: presentation,
 					onSavedMoveToHistory: onSavedMoveToHistory
 				)
 			} else {

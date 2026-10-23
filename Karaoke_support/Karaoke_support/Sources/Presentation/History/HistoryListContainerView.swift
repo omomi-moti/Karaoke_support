@@ -3,7 +3,7 @@ import SwiftUI
 /// `@Environment` で渡る `sessionRepository` から **初回描画時点で** ``HistoryViewModel`` を生成する。
 /// `HistoryRootView` で `onAppear` まで遅延すると `Color.clear` 1 フレームが出うるため分離する。
 ///
-/// 履歴→曲詳細（行タップ・I-019）と履歴→編集（リードスワイプ・I-014-C）を ``HistoryRoute`` で振り分ける。
+/// 履歴→曲詳細（行タップ・I-019）を ``HistoryRoute`` で開く。編集（リードスワイプ）は `RootView` の記録シートで開く。
 struct HistoryListContainerView: View {
 	private let sessionRepository: any SessionRepositoryProtocol
 	@State private var viewModel: HistoryViewModel
@@ -24,17 +24,6 @@ struct HistoryListContainerView: View {
 							sessionRepository: sessionRepository,
 							trackId: trackId,
 							trackTitle: title
-						)
-					case .editSession(let sessionId):
-						RecordingSheetContainerView(
-							seed: .editSession(sessionId: sessionId),
-							presentation: .navigationStack,
-							onSavedMoveToHistory: {
-								if !navigationPath.isEmpty {
-									navigationPath.removeLast()
-								}
-								Task { await viewModel.load() }
-							}
 						)
 					}
 				}

@@ -59,6 +59,7 @@ struct RootView: View {
             )
         }
         .environment(\.navigateToManualRecording, presentManualRecording)
+        .environment(\.navigateToEditRecording, presentEditRecording)
         .environment(\.historyReloadTick, historyReloadTick)
     }
 
@@ -68,6 +69,10 @@ struct RootView: View {
 
     private func presentRecording(_ selected: SelectedTrack) {
         recordingSheetItem = RecordingSheetItem(seed: .selectedTrack(selected))
+    }
+
+    private func presentEditRecording(_ sessionId: UUID) {
+        recordingSheetItem = RecordingSheetItem(seed: .editSession(sessionId: sessionId))
     }
 
     private func moveToHistory() {
@@ -82,27 +87,19 @@ struct RootView: View {
 private struct AddRecordingButton: ViewModifier {
     let action: () -> Void
 
-    /// タブの中の画面（記録の編集画面など）が隠すよう求めているとき true。
-    @State private var isHidden = false
-
     func body(content: Content) -> some View {
         content
-            .onPreferenceChange(AddRecordingButtonHiddenPreferenceKey.self) { hidden in
-                isHidden = hidden
-            }
             .overlay(alignment: .bottomTrailing) {
-                if !isHidden {
-                    Button(action: action) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 20, weight: .semibold))
-                            .frame(width: 48, height: 48)
-                    }
-                    .buttonStyle(.glassProminent)
-                    .buttonBorderShape(.circle)
-                    .accessibilityLabel("手動で記録")
-                    .padding(16)
-                    .ignoresSafeArea(.keyboard)
+                Button(action: action) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 20, weight: .semibold))
+                        .frame(width: 48, height: 48)
                 }
+                .buttonStyle(.glassProminent)
+                .buttonBorderShape(.circle)
+                .accessibilityLabel("手動で記録")
+                .padding(16)
+                .ignoresSafeArea(.keyboard)
             }
     }
 }
