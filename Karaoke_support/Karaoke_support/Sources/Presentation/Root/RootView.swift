@@ -112,6 +112,7 @@ private struct AddRecordingButton: View {
                 .frame(width: 48, height: 48)
         }
         .buttonStyle(.glassProminent)
+        .tint(AppColor.addButton)
         .buttonBorderShape(.circle)
         .accessibilityLabel("手動で記録")
     }

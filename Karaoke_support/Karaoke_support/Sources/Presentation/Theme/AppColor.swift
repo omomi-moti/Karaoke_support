@@ -28,6 +28,8 @@ enum AppColor {
 	static let filterChipUnselectedBackground = Color(.appFilterChipUnselectedBackground)
 	static let foregroundSubtle = Color(.appForegroundSubtle)
 	static let semanticError = Color(.appSemanticError)
+	/// 新規記録の＋ボタンの色。ライト・ダークで同じ色にして、白い＋との比を 4.5:1 以上にしている
+	static let addButton = Color(.appAddButton)
 	/// 記録の編集を表す色。履歴の「編集」スワイプと編集中の帯で使う。システムの青なので、ライト／ダークは OS が出し分ける
 	static let editAccent = Color.blue
 }
