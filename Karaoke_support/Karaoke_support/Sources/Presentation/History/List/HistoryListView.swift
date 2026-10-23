@@ -5,6 +5,7 @@ struct HistoryListView: View {
 	@Bindable var viewModel: HistoryViewModel
 	@Binding var navigationPath: NavigationPath
 	@Environment(\.navigateToManualRecording) private var navigateToManualRecording
+	@Environment(\.navigateToEditRecording) private var navigateToEditRecording
 	@Environment(\.historyReloadTick) private var historyReloadTick
 
 	var body: some View {
@@ -58,7 +59,7 @@ struct HistoryListView: View {
 							.listRowBackground(Color.clear)
 							.swipeActions(edge: .leading, allowsFullSwipe: true) {
 								Button {
-									navigationPath.append(HistoryRoute.editSession(sessionId: session.id))
+									navigateToEditRecording(session.id)
 								} label: {
 									Label("編集", systemImage: "pencil")
 								}
@@ -87,6 +88,7 @@ struct HistoryListView: View {
 					.animation(nil, value: viewModel.sessions.map(\.id))
 					.listStyle(.plain)
 					.scrollContentBackground(.hidden)
+					.addRecordingButtonClearance()
 					.frame(maxWidth: .infinity, maxHeight: .infinity)
 					.overlay {
 						if viewModel.isLoading {

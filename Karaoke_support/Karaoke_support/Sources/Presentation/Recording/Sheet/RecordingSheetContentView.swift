@@ -8,7 +8,6 @@ struct RecordingSheetContentView: View {
     @Environment(\.networkMonitor) private var networkMonitor
 
     @Bindable var viewModel: RecordingSheetViewModel
-    let presentation: RecordingContentPresentation
     let onSavedMoveToHistory: () -> Void
 
     private var recordingTitle: String {
@@ -24,10 +23,8 @@ struct RecordingSheetContentView: View {
 
             ScrollView {
                 VStack(spacing: 16) {
-                    if presentation == .sheet {
-                        SheetHeaderView(title: recordingTitle, isDisabled: viewModel.isSaving) {
-                            dismiss()
-                        }
+                    SheetHeaderView(title: recordingTitle, isDisabled: viewModel.isSaving) {
+                        dismiss()
                     }
 
                     if let originalPerformedAt = viewModel.editingSessionOriginalPerformedAt {
@@ -99,9 +96,6 @@ struct RecordingSheetContentView: View {
         }
         .safeAreaInset(edge: .bottom) { bottomCTA }
         .interactiveDismissDisabled(viewModel.isSaving)
-        // 履歴から開いた編集画面では、タブの＋ボタン（新規記録）が保存ボタンに重なるので隠す
-        .preference(key: AddRecordingButtonHiddenPreferenceKey.self, value: presentation == .navigationStack)
-        .modifier(RecordingNavigationChromeModifier(presentation: presentation, navigationTitle: recordingTitle))
     }
 
     private var bottomCTA: some View {
@@ -142,9 +136,7 @@ struct RecordingSheetContentView: View {
         let ok = await viewModel.save()
         guard ok else { return }
         onSavedMoveToHistory()
-        if presentation == .sheet {
-            dismiss()
-        }
+        dismiss()
     }
 
     private func openAppSettings() {
@@ -160,25 +152,7 @@ struct RecordingSheetContentView: View {
             sessionRepository: PreviewSessionRepository(),
             trackRepository: PreviewTrackRepository()
         ),
-        presentation: .sheet,
         onSavedMoveToHistory: {}
     )
     .environment(\.networkMonitor, NetworkMonitor(startsMonitoring: false))
-}
-
-// MARK: - Navigation chrome
-
-private struct RecordingNavigationChromeModifier: ViewModifier {
-    let presentation: RecordingContentPresentation
-    let navigationTitle: String
-
-    func body(content: Content) -> some View {
-        if presentation == .navigationStack {
-            content
-                .navigationTitle(navigationTitle)
-                .navigationBarTitleDisplayMode(.inline)
-        } else {
-            content
-        }
-    }
 }
