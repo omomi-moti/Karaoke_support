@@ -44,6 +44,7 @@ struct IntentTabInsightView: View {
 					.padding(.horizontal, 16)
 					.padding(.bottom, 24)
 				}
+				.addRecordingButtonClearance()
 			}
 		}
 		.frame(maxWidth: .infinity, maxHeight: .infinity)

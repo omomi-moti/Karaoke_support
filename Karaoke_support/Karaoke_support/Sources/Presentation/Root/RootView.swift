@@ -52,8 +52,8 @@ struct RootView: View {
         .tabBarMinimizeBehavior(.onScrollDown)
         .overlay {
             AddRecordingButton(action: presentManualRecording)
-                .padding(.trailing, 16)
-                .padding(.bottom, tabBarInset + 16)
+                .padding(.trailing, AddRecordingButtonMetrics.margin)
+                .padding(.bottom, tabBarInset + AddRecordingButtonMetrics.margin)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                 .ignoresSafeArea()
                 .opacity(isAddButtonVisible ? 1 : 0)
@@ -109,7 +109,7 @@ private struct AddRecordingButton: View {
         Button(action: action) {
             Image(systemName: "plus")
                 .font(.system(size: 20, weight: .semibold))
-                .frame(width: 48, height: 48)
+                .frame(width: AddRecordingButtonMetrics.size, height: AddRecordingButtonMetrics.size)
         }
         .buttonStyle(.glassProminent)
         .tint(AppColor.addButton)

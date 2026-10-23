@@ -88,6 +88,7 @@ struct HistoryListView: View {
 					.animation(nil, value: viewModel.sessions.map(\.id))
 					.listStyle(.plain)
 					.scrollContentBackground(.hidden)
+					.addRecordingButtonClearance()
 					.frame(maxWidth: .infinity, maxHeight: .infinity)
 					.overlay {
 						if viewModel.isLoading {
