@@ -14,6 +14,7 @@
 ## 選んだ理由
 - B。＋ボタンの要件「記録・編集の画面の上に＋が見えない・押せない」を、仕組みなしで満たせる
 - 履歴のスワイプからは Environment の `navigateToEditRecording` で `RootView` のシートを開く。`RecordingContentPresentation`、`AddRecordingButtonHiddenPreferenceKey`、`HistoryRoute.editSession` は消した
+- 実機で、数字キーボードを出したまま「更新する」を押しても、戻ったあとの＋はいつもの位置にあることを確かめた（録画 2026-10-23）
 
 ## 見直す条件
 - 下スワイプで閉じたときに入力が消える件を直すとき（確認を出す、下書きを残すなど）
