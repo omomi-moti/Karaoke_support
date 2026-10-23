@@ -26,6 +26,7 @@
 | [0018](0018-history-row-navigation-with-button.md) | 履歴の行は NavigationLink ではなく Button で曲詳細を開く | 承認 |
 | [0019](0019-show-edit-mode-in-recording-sheet.md) | 記録の編集中は、帯・「更新する」・読むだけの曲名で新規と見分けられるようにする | 承認 |
 | [0020](0020-hide-add-button-on-edit-screen.md) | 編集画面では＋ボタンを、画面から PreferenceKey で伝えて隠す | 承認 |
+| [0021](0021-single-add-button-measured-from-tab-safe-area.md) | ＋ボタンは `RootView` に 1 つだけ置き、タブバーの高さはタブの中身の安全領域から測る | 承認 |
 
 ## 書き方
 
