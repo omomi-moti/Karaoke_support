@@ -30,6 +30,7 @@
 | [0022](0022-open-edit-in-root-sheet.md) | 記録の編集も `RootView` のシートで開き、＋ボタンを隠す仕組みをなくす | 承認 |
 | [0023](0023-add-button-glass-fixed-color-and-size.md) | ＋ボタンはガラスのまま、ライト・ダーク共通の濃いめのピンクにし、大きさは固定にする | 承認 |
 | [0027](0027-sendable-repository-protocols-for-environment-keys.md) | Repository の EnvironmentKey は、プロトコルを Sendable にし、初期値をメインアクターの外で作れるようにする | 提案 |
+| [0028](0028-save-returns-saved-recording.md) | 記録シートの `save()` は、成否と保存した記録の要約を 1 つの値（`SavedRecording?`）で返す | 承認 |
 
 ## 書き方
 
