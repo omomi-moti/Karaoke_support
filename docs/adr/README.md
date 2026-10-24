@@ -29,6 +29,7 @@
 | [0021](0021-single-add-button-measured-from-tab-safe-area.md) | ＋ボタンは `RootView` に 1 つだけ置き、タブバーの高さはタブの中身の安全領域から測る | 承認 |
 | [0022](0022-open-edit-in-root-sheet.md) | 記録の編集も `RootView` のシートで開き、＋ボタンを隠す仕組みをなくす | 承認 |
 | [0023](0023-add-button-glass-fixed-color-and-size.md) | ＋ボタンはガラスのまま、ライト・ダーク共通の濃いめのピンクにし、大きさは固定にする | 承認 |
+| [0027](0027-sendable-repository-protocols-for-environment-keys.md) | Repository の EnvironmentKey は、プロトコルを Sendable にし、初期値をメインアクターの外で作れるようにする | 提案 |
 
 ## 書き方
 
