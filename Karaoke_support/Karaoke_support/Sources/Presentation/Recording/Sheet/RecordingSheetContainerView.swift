@@ -80,9 +80,10 @@ struct RecordingSheetContainerView: View {
 				sessionRepository: sessionRepository,
 				trackRepository: trackRepository
 			)
-		case .selectedTrack(let track):
+		case .selectedTrack(let track, let intent):
 			viewModel = RecordingSheetViewModel(
 				selectedTrack: track,
+				intent: intent,
 				sessionRepository: sessionRepository,
 				trackRepository: trackRepository
 			)

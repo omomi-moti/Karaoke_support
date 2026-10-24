@@ -66,9 +66,10 @@ final class RecordingSheetViewModel {
 		self.trackRepository = trackRepository
 	}
 
-	/// 確定済み ``SelectedTrack`` から開始（ランキング・検索など I-013）。
+	/// 確定済み ``SelectedTrack`` から開始（ランキング・検索など I-013）。`intent` を渡すと気分を選んだ状態にする。
 	init(
 		selectedTrack: SelectedTrack,
+		intent: Intent? = nil,
 		sessionRepository: any SessionRepositoryProtocol,
 		trackRepository: any TrackRepositoryProtocol
 	) {
@@ -78,6 +79,9 @@ final class RecordingSheetViewModel {
 		let built = Self.trackInputState(from: selectedTrack)
 		self.trackState = built.state
 		self.inlineErrorMessage = built.initialInlineError
+		if let intent {
+			self.draft.intent = intent
+		}
 	}
 
 	/// 履歴から開いた既存セッションの編集（I-014-C）。曲の差し替えは不可。
