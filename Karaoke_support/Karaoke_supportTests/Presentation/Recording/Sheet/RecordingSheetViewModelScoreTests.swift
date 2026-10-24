@@ -74,7 +74,7 @@ struct RecordingSheetViewModelScoreTests {
 		let spy = ScoreTestSessionRepositorySpy()
 		let vm = makeNewRecordingViewModel(sessionRepository: spy)
 
-		let ok = await vm.save()
+		let ok = await vm.save() != nil
 
 		#expect(ok)
 		#expect(spy.savedScores == [nil])
@@ -86,7 +86,7 @@ struct RecordingSheetViewModelScoreTests {
 		let vm = makeNewRecordingViewModel(sessionRepository: spy)
 		vm.draft.score.applyEditedText("92345")
 
-		let ok = await vm.save()
+		let ok = await vm.save() != nil
 
 		#expect(ok)
 		#expect(spy.savedScores == [92.345])
@@ -104,7 +104,7 @@ struct RecordingSheetViewModelScoreTests {
 		#expect(vm.draft.score.displayText == "88.500")
 
 		vm.draft.score.applyEditedText("88501")
-		let ok = await vm.save()
+		let ok = await vm.save() != nil
 
 		#expect(ok)
 		#expect(spy.updatedScores == [88.501])
@@ -122,7 +122,7 @@ struct RecordingSheetViewModelScoreTests {
 		#expect(vm.draft.score.value == nil)
 
 		vm.draft.score.applyEditedText("90000")
-		let ok = await vm.save()
+		let ok = await vm.save() != nil
 
 		#expect(ok)
 		#expect(spy.updatedScores == [90])
@@ -139,7 +139,7 @@ struct RecordingSheetViewModelScoreTests {
 		)
 
 		vm.draft.score.applyEditedText("")
-		let ok = await vm.save()
+		let ok = await vm.save() != nil
 
 		#expect(ok)
 		#expect(spy.updatedScores == [nil])
@@ -154,7 +154,7 @@ struct RecordingSheetViewModelScoreTests {
 		let saveTime = Date(timeIntervalSince1970: 1_800_000_000)
 		vm.now = { saveTime }
 
-		let ok = await vm.save()
+		let ok = await vm.save() != nil
 
 		#expect(ok)
 		#expect(spy.savedPerformedAts == [saveTime])
@@ -172,7 +172,7 @@ struct RecordingSheetViewModelScoreTests {
 		)
 		vm.now = { Date(timeIntervalSince1970: 1_800_000_000) }
 
-		let ok = await vm.save()
+		let ok = await vm.save() != nil
 
 		#expect(ok)
 		#expect(spy.updatedPerformedAts == [original])

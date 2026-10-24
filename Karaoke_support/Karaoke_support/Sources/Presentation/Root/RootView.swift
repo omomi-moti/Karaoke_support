@@ -63,7 +63,7 @@ struct RootView: View {
         .sheet(item: $recordingSheetItem) { item in
             RecordingSheetContainerView(
                 seed: item.seed,
-                onSavedMoveToHistory: {
+                onSavedMoveToHistory: { _ in
                     recordingSheetItem = nil
                     historyReloadTick += 1
                     moveToHistory()
