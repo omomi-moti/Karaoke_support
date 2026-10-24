@@ -13,7 +13,7 @@
 | [0005](0005-history-value-snapshots.md) | 履歴は値型のスナップショットで持つ | 承認 |
 | [0006](0006-idempotent-save-in-ui-and-data.md) | 保存の冪等性を UI 層とデータ層の両方で守る | 承認 |
 | [0007](0007-filter-intent-in-memory.md) | enum を含む `#Predicate` を使わず、メモリで絞り込む | 承認（見直し候補） |
-| [0008](0008-single-recording-sheet-on-root.md) | 歌唱記録は 1 枚のシートにまとめ、`RootView` に 1 つだけ置く | 承認 |
+| [0008](0008-single-recording-sheet-on-root.md) | 歌唱記録は 1 枚のシートにまとめ、`RootView` に 1 つだけ置く | 置き換え済み（→ 0025） |
 | [0009](0009-tiered-track-suggestions.md) | 曲名の候補は一致した場所で段を分けて並べる | 承認 |
 | [0010](0010-issues-and-adr-as-source-of-truth.md) | タスクは GitHub Issues、判断は ADR を正とし、旧 Issue 一覧は archive に残す | 承認 |
 | [0011](0011-identify-tracks-by-name-and-artist.md) | 手入力の曲は曲名＋歌手名で区別し、新しい曲では歌手名を必須にする | 提案 |
@@ -29,6 +29,9 @@
 | [0021](0021-single-add-button-measured-from-tab-safe-area.md) | ＋ボタンは `RootView` に 1 つだけ置き、タブバーの高さはタブの中身の安全領域から測る | 承認 |
 | [0022](0022-open-edit-in-root-sheet.md) | 記録の編集も `RootView` のシートで開き、＋ボタンを隠す仕組みをなくす | 承認 |
 | [0023](0023-add-button-glass-fixed-color-and-size.md) | ＋ボタンはガラスのまま、ライト・ダーク共通の濃いめのピンクにし、大きさは固定にする | 承認 |
+| [0024](0024-recommend-right-after-save.md) | 次の 1 曲の提案は、記録を保存した直後にシートで出す | 承認 |
+| [0025](0025-switch-root-sheet-after-save.md) | 記録シートと保存直後のシートは、`RootView` の 1 つのシートで切り替え、閉じ終わってから次を出す | 承認 |
+| [0026](0026-next-track-recommendation-weights.md) | 次の 1 曲の提案は端末の中の純粋関数で決め、点数を久しぶり度の 4 倍に重み付けする | 承認 |
 | [0027](0027-sendable-repository-protocols-for-environment-keys.md) | Repository の EnvironmentKey は、プロトコルを Sendable にし、初期値をメインアクターの外で作れるようにする | 提案 |
 | [0028](0028-save-returns-saved-recording.md) | 記録シートの `save()` は、成否と保存した記録の要約を 1 つの値（`SavedRecording?`）で返す | 承認 |
 | [0029](0029-recompute-track-stats-without-cache.md) | 提案に使う曲ごとの集計はキャッシュせず、保存のたびに全部の記録から作り直す | 承認 |
