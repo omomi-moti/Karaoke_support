@@ -115,6 +115,8 @@ struct RootView: View {
         let viewModel = afterSaveRecommendationViewModel()
         Task {
             guard let content = await viewModel.prepare(for: saved) else { return }
+            // 待っている間に別のシートを開いた・開こうとしているなら、そちらを優先する（入力中の記録シートを閉じない）
+            guard sheet == nil, pendingSheet == nil else { return }
             present(.afterSave(content))
         }
     }
@@ -142,7 +144,10 @@ struct RootView: View {
     private func closeSheet(then next: RootSheet.Kind? = nil) {
         pendingSheet = next.map { RootSheet(kind: $0) }
         guard sheet != nil else {
-            presentPendingSheet()
+            // 閉じている途中（カードの二度押しなど）は予約だけして、閉じ終わってから出す
+            if !isDismissingSheet {
+                presentPendingSheet()
+            }
             return
         }
         isDismissingSheet = true
