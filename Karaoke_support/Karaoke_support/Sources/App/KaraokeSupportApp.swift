@@ -7,6 +7,7 @@ struct KaraokeSupportApp: App {
 	private let sessionRepository: any SessionRepositoryProtocol
 	private let trackRepository: any TrackRepositoryProtocol
 	private let insightRepository: any InsightRepositoryProtocol
+	private let trackStatsRepository: any TrackStatsRepositoryProtocol
 	@State private var networkMonitor = NetworkMonitor()
 
 	@MainActor
@@ -23,6 +24,7 @@ struct KaraokeSupportApp: App {
 			self.sessionRepository = SwiftDataSessionRepository(modelContext: context)
 			self.trackRepository = SwiftDataTrackRepository(modelContext: context)
 			self.insightRepository = SwiftDataInsightRepository(modelContext: context)
+			self.trackStatsRepository = SwiftDataTrackStatsRepository(modelContext: context)
 			return
 		}
 
@@ -42,6 +44,7 @@ struct KaraokeSupportApp: App {
 		self.sessionRepository = SwiftDataSessionRepository(modelContext: context)
 		self.trackRepository = SwiftDataTrackRepository(modelContext: context)
 		self.insightRepository = SwiftDataInsightRepository(modelContext: context)
+		self.trackStatsRepository = SwiftDataTrackStatsRepository(modelContext: context)
 	}
 
 	var body: some Scene {
@@ -51,6 +54,7 @@ struct KaraokeSupportApp: App {
 				.environment(\.sessionRepository, sessionRepository)
 				.environment(\.trackRepository, trackRepository)
 				.environment(\.insightRepository, insightRepository)
+				.environment(\.trackStatsRepository, trackStatsRepository)
 		}
 		.modelContainer(modelContainer)
 	}
