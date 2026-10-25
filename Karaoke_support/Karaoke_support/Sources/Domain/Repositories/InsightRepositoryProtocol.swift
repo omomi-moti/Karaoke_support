@@ -18,6 +18,9 @@ protocol InsightRepositoryProtocol: Sendable {
 	///
 	/// - Parameter period: 集計対象期間。デフォルトは 3 ヶ月。
 	func fetchMyAnthemRankings(period: InsightPeriod) async throws -> [MyAnthemRanking]
+
+	/// 入口を記録し始めてから付けた記録の数と、そのうち提案から付けた数（#120）。
+	func fetchRecordSourceCounts() async throws -> RecordSourceCounts
 }
 
 extension InsightRepositoryProtocol {

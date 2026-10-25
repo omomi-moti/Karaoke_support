@@ -45,5 +45,9 @@ final class PreviewInsightRepository: InsightRepositoryProtocol {
 			MyAnthemRanking(intent: .practice, byCount: byCount, byScore: byScore),
 		]
 	}
+
+	func fetchRecordSourceCounts() async throws -> RecordSourceCounts {
+		RecordSourceCounts(suggestion: 3, recorded: 10)
+	}
 }
 
