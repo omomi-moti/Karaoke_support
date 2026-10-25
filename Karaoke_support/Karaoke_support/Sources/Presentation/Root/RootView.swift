@@ -145,13 +145,13 @@ struct RootView: View {
         }
     }
 
-    /// 提案のカードから、その曲と保存した記録の気分を入れて記録シートを開く。
+    /// 提案のカードから、その曲と保存した記録の気分を入れて記録シートを開く。曲を変えずに保存すると、提案からの記録になる（#120）。
     private func recordRecommendation(_ recommendation: TrackRecommendation, intent: Intent) {
         guard let selected = SelectedTrack(
             spotifyTrackId: recommendation.stats.spotifyTrackId,
             userEnteredName: recommendation.stats.userEnteredName
         ) else { return }
-        closeSheet(then: .recording(.selectedTrack(selected, intent: intent)))
+        closeSheet(then: .recording(.selectedTrack(selected, intent: intent, source: .suggestion)))
     }
 
     private func present(_ kind: RootSheet.Kind) {

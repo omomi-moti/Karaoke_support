@@ -6,6 +6,7 @@ import Foundation
 protocol SessionRepositoryProtocol: Sendable {
 	func saveNewRecordingSession(_ session: SingingSession) async throws
     
+	/// 気分・日時・点数・メモを書き換える。曲と `source`（どこから付けた記録か）は変えない。
 	func updateRecordingSession(_ session: SingingSession) async throws
 
 	func deleteRecordingSession(uuid: UUID) async throws

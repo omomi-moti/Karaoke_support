@@ -120,5 +120,14 @@ final class SwiftDataInsightRepository: InsightRepositoryProtocol {
 
 		return MyAnthemRanking(intent: intent, byCount: byCount, byScore: byScore)
 	}
-}
 
+	func fetchRecordSourceCounts() async throws -> RecordSourceCounts {
+		// enum を含む #Predicate は使わず、全部読んでからメモリで数える（ADR 0007）
+		let sessions = try modelContext.fetch(FetchDescriptor<SingingSession>())
+		let recordedSources = sessions.compactMap(\.recordedSource)
+		return RecordSourceCounts(
+			suggestion: recordedSources.filter { $0 == .suggestion }.count,
+			recorded: recordedSources.count
+		)
+	}
+}

@@ -95,6 +95,10 @@ private final class InsightRepositorySpy: InsightRepositoryProtocol {
 		fetchMyAnthemCallCount += 1
 		return []
 	}
+
+	func fetchRecordSourceCounts() async throws -> RecordSourceCounts {
+		RecordSourceCounts(suggestion: 0, recorded: 0)
+	}
 }
 
 @MainActor
@@ -106,6 +110,10 @@ private final class InsightRepositoryThrowingOnTimeMachine: InsightRepositoryPro
 
 	func fetchMyAnthemRankings(period: InsightPeriod) async throws -> [MyAnthemRanking] {
 		[]
+	}
+
+	func fetchRecordSourceCounts() async throws -> RecordSourceCounts {
+		RecordSourceCounts(suggestion: 0, recorded: 0)
 	}
 }
 
