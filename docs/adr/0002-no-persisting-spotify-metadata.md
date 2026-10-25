@@ -19,4 +19,4 @@
 ## 見直す条件
 - Spotify の規約が変わったとき
 
-関連：[constitution.md](../../.specify/memory/constitution.md)（I. Spotify API 規約準拠）
+関連：[constitution.md](../constitution.md)（I. Spotify API 規約準拠）

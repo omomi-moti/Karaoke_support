@@ -1,8 +1,7 @@
 # ヒトカラモバイルiOS Constitution
 
 > **Status: ACTIVE CONSTITUTION**  
-> このファイルはヒトカラモバイルiOS プロジェクトの開発原則と品質基準を定義します。  
-> `/speckit.plan` や `/speckit.analyze` はこの憲法を参照して、仕様やプランを自動チェックします。
+> このファイルはヒトカラモバイルiOS プロジェクトの開発原則と品質基準を定義します。
 
 ---
 
@@ -138,8 +137,5 @@ Sources/
   - 修正理由
   - 影響を受けるドキュメント
   - 必要な移行・採用作業
-  
-- speckit.plan / speckit.analyze は、この憲法に対する準拠性を基準に自動チェック  
-  → 準拠できない項目は「評価不可」として報告
 
-**Version**: 1.1.1 | **Ratified**: 2026-03-13 | **Last Amended**: 2026-03-13
+**Version**: 1.1.2 | **Ratified**: 2026-03-13 | **Last Amended**: 2026-10-25（spec-kit をやめ、`.specify/memory/` から `docs/` に移した）

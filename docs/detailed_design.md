@@ -133,7 +133,7 @@ sequenceDiagram
 
 Domain層のモデルは以下の原則に従って設計されている。
 
-- **SwiftUI / SwiftData に対する依存を最小化する**。`Track` と `SingingSession` は永続化のために `@Model` を使用しているが、これは「Domain層に `@Model` を置くことでマッピング層を不要にし、実装をシンプルに保つ」ための意図的な例外（`.specify/memory/constitution.md` 参照）
+- **SwiftUI / SwiftData に対する依存を最小化する**。`Track` と `SingingSession` は永続化のために `@Model` を使用しているが、これは「Domain層に `@Model` を置くことでマッピング層を不要にし、実装をシンプルに保つ」ための意図的な例外（`docs/constitution.md` 参照）
 - **Spotify メタデータを永続化しない**。Spotify から取得した曲名・アーティスト名・アートワーク等は SwiftData / UserDefaults 等に一切保存しない。永続化するのは識別子（`spotifyTrackId`）とユーザー生成データのみ（詳細は §4 参照）
 - **ユーザーの意図（Intent）をドメイン概念として扱う**。Intent は UI 表示用ラベルではなく、インサイト集計・フィルタリングのキーとして全域で機能するドメイン概念である
 

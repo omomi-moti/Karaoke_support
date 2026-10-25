@@ -1,6 +1,6 @@
 # docs の目次
 
-どの文書を見ればよいかの案内。タスクと仕様の変更は [GitHub Issues](https://github.com/omomi-moti/Karaoke_support/issues)、設計の判断は [ADR](adr/README.md) を正とする（[ADR 0010](adr/0010-issues-and-adr-as-source-of-truth.md)）。最上位のルールは [憲法](../.specify/memory/constitution.md)。
+どの文書を見ればよいかの案内。タスクと仕様の変更は [GitHub Issues](https://github.com/omomi-moti/Karaoke_support/issues)、設計の判断は [ADR](adr/README.md) を正とする（[ADR 0010](adr/0010-issues-and-adr-as-source-of-truth.md)）。最上位のルールは [憲法](constitution.md)。
 
 ## まず読むもの
 
@@ -8,6 +8,7 @@
 |---|---|---|
 | [product_overview.md](product_overview.md) | 何を作っているか・なぜ作るか | |
 | [architecture.md](architecture.md) | レイヤー構成（MVVM + Repository）と保存フロー | |
+| [development_process.md](development_process.md) | 進め方（Issue・ADR・スプリント）と AI の使い方、V1 ／ V2 の切り分け | |
 | [adr/](adr/README.md) | 技術判断の記録（ADR）。1 件 1 ファイルで、何を比べてなぜ選んだか | 設計判断の正 |
 | [GitHub Issues](https://github.com/omomi-moti/Karaoke_support/issues) | タスクと仕様の変更 | タスク・仕様の正 |
 
@@ -26,7 +27,6 @@
 |---|---|
 | [raw_spec.md](raw_spec.md) | 最初の要件（v4.1） |
 | [basic_design.md](basic_design.md) | 基本設計書（2026-03 作成。最低対応 OS など、今の実装と違う記述がある） |
-| [development_process.md](development_process.md) | Spec 駆動の進め方と V1 ／ V2 の切り分け |
 
 ## 記録
 
@@ -45,6 +45,7 @@
 | [archive/v1_issues.md](archive/v1_issues.md) | V1 の Issue（I-001〜I-019）とタスク、V1 完了判定 |
 | [archive/issues.md](archive/issues.md) | 全フェーズの Issue 一覧 |
 | [archive/issues_with_tasks.md](archive/issues_with_tasks.md) | 全フェーズの Issue のタスク分解 |
+| [archive/log/](archive/log/) | 2026-03〜07 の実装ログ（`I-0xx` ごと） |
 
 ## 書き足すとき
 
