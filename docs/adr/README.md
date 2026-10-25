@@ -35,8 +35,9 @@
 | [0027](0027-sendable-repository-protocols-for-environment-keys.md) | Repository の EnvironmentKey は、プロトコルを Sendable にし、初期値をメインアクターの外で作れるようにする | 承認 |
 | [0028](0028-save-returns-saved-recording.md) | 記録シートの `save()` は、成否と保存した記録の要約を 1 つの値（`SavedRecording?`）で返す | 承認 |
 | [0029](0029-recompute-track-stats-without-cache.md) | 提案に使う曲ごとの集計はキャッシュせず、保存のたびに全部の記録から作り直す | 承認 |
-| [0030](0030-delay-after-save-sheet.md) | 保存直後のシートは、保存してから 1 秒たってから出す | 承認 |
+| [0030](0030-delay-after-save-sheet.md) | 保存直後のシートは、保存してから 1 秒たってから出す | 置き換え済み（→ 0032） |
 | [0031](0031-environment-values-by-default-identity.md) | 環境に置くものは、初期値に同一性があるかで書き方を分ける | 承認 |
+| [0032](0032-move-to-history-after-dismiss.md) | 保存したら、記録シートが閉じ終わってから履歴タブへ移り、その 1 秒後に保存直後のシートを出す | 承認 |
 
 ## 書き方
 
