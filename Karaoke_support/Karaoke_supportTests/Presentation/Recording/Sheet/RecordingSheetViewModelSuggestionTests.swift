@@ -440,7 +440,7 @@ struct RecordingSheetViewModelSuggestionTests {
 		}
 		vm.applyTrackSuggestion(try #require(items.first))
 
-		let ok = await vm.save()
+		let ok = await vm.save() != nil
 
 		#expect(ok)
 		#expect(stub.getOrCreateNames == ["Lemon"])

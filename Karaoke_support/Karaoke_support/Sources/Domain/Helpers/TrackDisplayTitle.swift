@@ -4,10 +4,15 @@ import Foundation
 enum TrackDisplayTitle {
 	/// 一覧・行の主タイトル。手動曲名優先、なければ Spotify ID の短縮、いずれもなければ「不明」。
 	static func primary(for track: Track) -> String {
-		if let name = track.userEnteredName, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+		primary(spotifyTrackId: track.spotifyTrackId, userEnteredName: track.userEnteredName)
+	}
+
+	/// ``primary(for:)`` と同じ規則。``Track`` を持たない値型（提案の集計など）から使う。
+	static func primary(spotifyTrackId: String?, userEnteredName: String?) -> String {
+		if let name = userEnteredName, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
 			return name
 		}
-		if let sid = track.spotifyTrackId, !sid.isEmpty {
+		if let sid = spotifyTrackId, !sid.isEmpty {
 			return Self.shortenedSpotifyDisplayId(sid)
 		}
 		return "不明"

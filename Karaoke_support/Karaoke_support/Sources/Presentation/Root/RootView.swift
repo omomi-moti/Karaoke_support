@@ -8,15 +8,30 @@ struct RootView: View {
         case search
     }
 
-    private struct RecordingSheetItem: Identifiable {
+    /// `RootView` に 1 つだけ置くシートの中身。記録シートと保存直後のシートをここで切り替える（ADR 0025）。
+    private struct RootSheet: Identifiable {
+        enum Kind {
+            case recording(RecordingSessionSeed)
+            case afterSave(AfterSaveSheetContent)
+        }
+
         let id = UUID()
-        let seed: RecordingSessionSeed
+        let kind: Kind
     }
 
+    /// 保存してから保存直後のシートを出すまでの時間。記録シートが閉じ、履歴に記録が増えたのが見えてから出すため（ADR 0030）。
+    private static let afterSaveSheetDelay: Duration = .milliseconds(1000)
+
     @Environment(\.trackRepository) private var trackRepository
+    @Environment(\.trackStatsRepository) private var trackStatsRepository
 
     @State private var selectedTab: RootTab = .songs
-    @State private var recordingSheetItem: RecordingSheetItem?
+    @State private var sheet: RootSheet?
+    /// 今のシートが閉じ終わってから出すシート。閉じている途中に次のシートを出すと、SwiftUI が出し損ねることがあるため。
+    @State private var pendingSheet: RootSheet?
+    /// シートを閉じ始めてから、閉じ終わる（`onDismiss`）までの間 `true`。
+    @State private var isDismissingSheet = false
+    @State private var afterSaveViewModel: AfterSaveRecommendationViewModel?
     /// 保存のたびに増やし、履歴一覧に再読み込みさせる（履歴タブ上で保存するとタブ切替による再表示が起きないため）。
     @State private var historyReloadTick = 0
     /// タブの中身の下の安全領域（タブバー＋ホームインジケーター）。＋ボタンをタブバーの上に置くのに使う。
@@ -60,15 +75,17 @@ struct RootView: View {
                 .allowsHitTesting(isAddButtonVisible)
                 .accessibilityHidden(!isAddButtonVisible)
         }
-        .sheet(item: $recordingSheetItem) { item in
-            RecordingSheetContainerView(
-                seed: item.seed,
-                onSavedMoveToHistory: {
-                    recordingSheetItem = nil
-                    historyReloadTick += 1
-                    moveToHistory()
-                }
-            )
+        .sheet(item: $sheet, onDismiss: presentPendingSheet) { sheet in
+            switch sheet.kind {
+            case .recording(let seed):
+                RecordingSheetContainerView(seed: seed, onSavedMoveToHistory: handleSaved)
+            case .afterSave(let content):
+                AfterSaveRecommendationSheetView(
+                    content: content,
+                    onSelect: { recordRecommendation($0, intent: content.saved.intent) },
+                    onLater: { closeSheet() }
+                )
+            }
         }
         .environment(\.navigateToManualRecording, presentManualRecording)
         .environment(\.navigateToEditRecording, presentEditRecording)
@@ -82,15 +99,80 @@ struct RootView: View {
     }
 
     private func presentManualRecording() {
-        recordingSheetItem = RecordingSheetItem(seed: .mode(.manual))
+        present(.recording(.mode(.manual)))
     }
 
     private func presentRecording(_ selected: SelectedTrack) {
-        recordingSheetItem = RecordingSheetItem(seed: .selectedTrack(selected))
+        present(.recording(.selectedTrack(selected)))
     }
 
     private func presentEditRecording(_ sessionId: UUID) {
-        recordingSheetItem = RecordingSheetItem(seed: .editSession(sessionId: sessionId))
+        present(.recording(.editSession(sessionId: sessionId)))
+    }
+
+    /// 保存したら記録シートを閉じて履歴へ移り、候補があれば保存直後のシートを出す（#115）。
+    private func handleSaved(_ saved: SavedRecording) {
+        let showAt = ContinuousClock.now + Self.afterSaveSheetDelay
+        closeSheet()
+        historyReloadTick += 1
+        moveToHistory()
+        let viewModel = afterSaveRecommendationViewModel()
+        Task {
+            guard let content = await viewModel.prepare(for: saved) else { return }
+            // 候補を読むのが早く終わっても、決めた時刻までは出さない
+            try? await Task.sleep(until: showAt, clock: .continuous)
+            // 待っている間に別のシートを開いた・開こうとしているなら、そちらを優先する（入力中の記録シートを閉じない）
+            guard sheet == nil, pendingSheet == nil else { return }
+            present(.afterSave(content))
+        }
+    }
+
+    /// 提案のカードから、その曲と保存した記録の気分を入れて記録シートを開く。
+    private func recordRecommendation(_ recommendation: TrackRecommendation, intent: Intent) {
+        guard let selected = SelectedTrack(
+            spotifyTrackId: recommendation.stats.spotifyTrackId,
+            userEnteredName: recommendation.stats.userEnteredName
+        ) else { return }
+        closeSheet(then: .recording(.selectedTrack(selected, intent: intent)))
+    }
+
+    private func present(_ kind: RootSheet.Kind) {
+        if isDismissingSheet {
+            pendingSheet = RootSheet(kind: kind)
+        } else if sheet != nil {
+            closeSheet(then: kind)
+        } else {
+            sheet = RootSheet(kind: kind)
+        }
+    }
+
+    /// 今のシートを閉じる。`next` を渡すと、閉じ終わってから出す。
+    private func closeSheet(then next: RootSheet.Kind? = nil) {
+        pendingSheet = next.map { RootSheet(kind: $0) }
+        guard sheet != nil else {
+            // 閉じている途中（カードの二度押しなど）は予約だけして、閉じ終わってから出す
+            if !isDismissingSheet {
+                presentPendingSheet()
+            }
+            return
+        }
+        isDismissingSheet = true
+        sheet = nil
+    }
+
+    /// シートが閉じ終わったとき（`onDismiss`）に呼ぶ。下に引いて閉じたときも呼ばれる。
+    private func presentPendingSheet() {
+        isDismissingSheet = false
+        guard let next = pendingSheet else { return }
+        pendingSheet = nil
+        sheet = next
+    }
+
+    private func afterSaveRecommendationViewModel() -> AfterSaveRecommendationViewModel {
+        if let afterSaveViewModel { return afterSaveViewModel }
+        let viewModel = AfterSaveRecommendationViewModel(trackStatsRepository: trackStatsRepository)
+        afterSaveViewModel = viewModel
+        return viewModel
     }
 
     private func moveToHistory() {

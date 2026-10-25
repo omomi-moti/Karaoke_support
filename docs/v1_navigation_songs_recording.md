@@ -2,14 +2,16 @@
 
 ## 方針
 
-- **記録シートは `RootView` に 1 つだけ**置く。`TabView` に `.sheet(item: $recordingSheetItem)` を付け、`RecordingSheetContainerView` をモーダル表示する（`presentation: .sheet`）。選曲・履歴・検索のどのタブから開いても同じシートを使う。
+- **シートは `RootView` に 1 つだけ**置く。`TabView` に `.sheet(item: $sheet, onDismiss:)` を付け、記録シート（`RecordingSheetContainerView`）と保存直後のシート（`AfterSaveRecommendationSheetView`）を切り替える（ADR 0025）。選曲・履歴・検索のどのタブから開いても同じシートを使う。
 - **歌唱記録 UI は `NavigationStack` の push では出さない**。push で `NavigationPath` を空にして pop すると、必ず一度 **下のルートが露出**する。保存後に履歴タブへ切り替えるときの「一瞬チラつき」を避けるため、**シートの dismiss** で閉じる。
 - 各タブの `NavigationStack` はタブ内に独立して持つ（選曲は `SongsRootView`、履歴は `HistoryListContainerView`、設定・検索は `RootView` の `Tab` 内）。記録シートはどのタブのスタックにも積まない。
 - 選曲タブは **インテント（`IntentTabContainerView`）のみ**を表示する。V1 にあった「インテント / Spotify」のセグメントは撤去した（Spotify 視聴履歴の配置は V2 の I-026 で再検討）。
 
 ## シートの開き方
 
-`RootView` 内の `RecordingSheetItem`（`id: UUID` + `seed: RecordingSessionSeed`）で表示する。開くたびに新しい `id` を採番するため、同じ曲を続けて選んでもシートは作り直される。
+`RootView` 内の `RootSheet`（`id: UUID` + `kind`）で表示する。`kind` は記録シート（`.recording(RecordingSessionSeed)`）か保存直後のシート（`.afterSave(AfterSaveSheetContent)`）。開くたびに新しい `id` を採番するため、同じ曲を続けて選んでもシートは作り直される。
+
+開き方はすべて `present()` を通す。シートが出ていなければその場で出し、閉じている途中なら閉じ終わって（`onDismiss`）から出し、別のシートが開いていれば閉じてから出す。閉じている途中に次のシートを出すと、SwiftUI が出し損ねることがあるため。閉じている途中にもう一度押されたとき（カードの二度押しなど）も、予約し直すだけにして、閉じ終わってから 1 枚だけ出す（`closeSheet(then:)`）。
 
 | 起点 | 呼び出し | `seed` |
 |------|----------|--------|
@@ -17,14 +19,16 @@
 | 空状態の「手動で曲名を入力して歌う」（選曲・履歴） | `EnvironmentValues.navigateToManualRecording` → `presentManualRecording()` | `.mode(.manual)` |
 | タイムマシン／マイアンセムのランキング行 | `SongsRootView(onSelectTrack:)` → `presentRecording(_:)` | `.selectedTrack(SelectedTrack)` |
 | 検索タブ（`Tab(role: .search)`）の結果行 | `SearchContainerView(onSelectTrack:)` → `presentRecording(_:)` | `.selectedTrack(SelectedTrack)` |
+| 保存直後のシートの提案カード | `recordRecommendation(_:intent:)`（保存直後のシートを閉じてから開く） | `.selectedTrack(SelectedTrack, intent:)`（保存した記録の気分を入れて開く） |
 
 `navigateToManualRecording` は以前は「選曲タブへ切替 + tick で `SongsRootView` にシートを開かせる」方式だったが、シートを `RootView` に集約したため **その場で開く**だけになった。
 
 ## 保存成功時
 
-1. `RecordingSheetContentView.attemptSave()` 成功時に `onSavedMoveToHistory()` を呼ぶ。
-2. `RootView` で **`recordingSheetItem = nil`**（シート解除）、**`historyReloadTick += 1`**、`selectedTab = .history`（アニメーションなし）。
-3. `RecordingSheetContentView` は `presentation == .sheet` のとき **`dismiss()`** も呼ぶ（二重の閉じ方だが問題にならない）。
+1. `RecordingSheetContentView.attemptSave()` 成功時に、保存した記録の要約（`SavedRecording`）を付けて `onSavedMoveToHistory(_:)` を呼ぶ。
+2. `RootView.handleSaved(_:)` で **シートを閉じ**、**`historyReloadTick += 1`**、`selectedTab = .history`（アニメーションなし）。
+3. `RecordingSheetContentView` は **`dismiss()`** も呼ぶ（二重の閉じ方だが問題にならない）。
+4. `AfterSaveRecommendationViewModel.prepare(for:)` で候補を読み、中身が返ったときだけ保存直後のシートを出す。新規の記録で候補が 1 件以上あるときだけで、編集して更新したとき・候補が 0 件のとき・読み込みに失敗したときは出さない（ADR 0024）。出すのは保存してから 1 秒たってから（`afterSaveSheetDelay`。記録シートが閉じ、履歴に記録が増えたのが見えてから出すため・ADR 0030）。候補を待っている間に別のシートが開かれた・予約されたとき（保存した直後に＋を押した、など）も出さず、そちらを優先する（ADR 0025）。
 
 ### `historyReloadTick` が必要な理由
 
@@ -45,11 +49,18 @@
                                                │
                                                ▼ 成功
                         シート解除 + historyReloadTick += 1 + 履歴タブへ
+                                               │
+                                               ▼ 新規で候補があるとき（閉じ終わってから）
+                         .sheet ──► AfterSaveRecommendationSheetView
+                                   │                    │
+                                   ▼ カード             ▼ あとで
+                     記録シート（曲名＋気分入り）       シート解除
 ```
 
 ## 関連コード
 
-- `Sources/Presentation/Root/RootView.swift` — `TabView`（iOS 26 `Tab` API）+ 記録シート + ＋ボタン + `historyReloadTick`
+- `Sources/Presentation/Root/RootView.swift` — `TabView`（iOS 26 `Tab` API）+ 記録シートと保存直後のシートの切り替え + ＋ボタン + `historyReloadTick`
+- `Sources/Presentation/AfterSave/` — 保存直後のシート（`AfterSaveRecommendationSheetView`）と、候補を用意する `AfterSaveRecommendationViewModel`（#115）
 - `Sources/Presentation/Songs/SongsRootView.swift` — 選曲タブの `NavigationStack`（ルートのみ）。記録は `onSelectTrack` で `RootView` に委譲
 - `Sources/Presentation/Search/SearchContainerView.swift` — 検索タブ本体（`.searchable`）。選択は `onSelectTrack` で `RootView` に委譲
 - `Sources/App/Environment/HistoryReloadEnvironment.swift` — `historyReloadTick`
@@ -65,7 +76,7 @@
 | `trackDetail(trackId:title:)` | 行タップ（`NavigationLink(value:)`） | `TrackDetailContainerView`（読み取り専用） |
 
 - 曲名は行のスナップショットから `title` としてルートに載せる。曲詳細のヘッダーを追加クエリなしで描画するため
-- 編集の保存後は、新規と同じく `RootView` がシートを閉じて `historyReloadTick` を増やし、一覧を読み込み直す
+- 編集の保存後は、新規と同じく `RootView` がシートを閉じて `historyReloadTick` を増やし、一覧を読み込み直す。保存直後のシートは出さない
 
 ## インテントタブのランキングシート（I-017）
 

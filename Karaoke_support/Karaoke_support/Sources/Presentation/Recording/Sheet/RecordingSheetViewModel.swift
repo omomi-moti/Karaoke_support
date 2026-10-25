@@ -66,9 +66,10 @@ final class RecordingSheetViewModel {
 		self.trackRepository = trackRepository
 	}
 
-	/// 確定済み ``SelectedTrack`` から開始（ランキング・検索など I-013）。
+	/// 確定済み ``SelectedTrack`` から開始（ランキング・検索など I-013）。`intent` を渡すと気分を選んだ状態にする。
 	init(
 		selectedTrack: SelectedTrack,
+		intent: Intent? = nil,
 		sessionRepository: any SessionRepositoryProtocol,
 		trackRepository: any TrackRepositoryProtocol
 	) {
@@ -78,6 +79,9 @@ final class RecordingSheetViewModel {
 		let built = Self.trackInputState(from: selectedTrack)
 		self.trackState = built.state
 		self.inlineErrorMessage = built.initialInlineError
+		if let intent {
+			self.draft.intent = intent
+		}
 	}
 
 	/// 履歴から開いた既存セッションの編集（I-014-C）。曲の差し替えは不可。
@@ -157,9 +161,11 @@ final class RecordingSheetViewModel {
 	}
 
 	/// 新規は ``saveNewRecordingSession``、編集は ``updateRecordingSession``（I-014-C / I-003）。
-	func save() async -> Bool {
-		guard !isSaving else { return false }
-		guard validate() else { return false }
+	/// - Returns: 保存した記録の要約。保存しなかった・失敗したときは `nil`。
+	///   成否と要約を 1 つの値で返し、「成功したのに要約がない」状態を作れないようにしている（ADR 0028）。
+	func save() async -> SavedRecording? {
+		guard !isSaving else { return nil }
+		guard validate() else { return nil }
 
 		isSaving = true
 		defer { isSaving = false }
@@ -183,7 +189,7 @@ final class RecordingSheetViewModel {
 					memo: draft.normalizedMemo
 				)
 				try await sessionRepository.updateRecordingSession(session)
-				return true
+				return Self.savedRecording(session, isNewRecording: false)
 			}
 
 			let sessionId: UUID
@@ -205,11 +211,22 @@ final class RecordingSheetViewModel {
 			)
 			try await sessionRepository.saveNewRecordingSession(session)
 			pendingSessionIdForSave = nil
-			return true
+			return Self.savedRecording(session, isNewRecording: true)
 		} catch {
 			inlineErrorMessage = "保存に失敗しました。もう一度お試しください"
-			return false
+			return nil
 		}
+	}
+
+	private static func savedRecording(_ session: SingingSession, isNewRecording: Bool) -> SavedRecording {
+		SavedRecording(
+			sessionId: session.id,
+			trackId: session.track.id,
+			trackTitle: TrackDisplayTitle.primary(for: session.track),
+			intent: session.intent,
+			score: session.score,
+			isNewRecording: isNewRecording
+		)
 	}
 
 	// MARK: - 曲名サジェスト（もしかして）
