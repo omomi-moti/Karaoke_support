@@ -2,6 +2,9 @@ import Foundation
 
 @MainActor
 final class PreviewTrackStatsRepository: TrackStatsRepositoryProtocol {
+	/// 環境キーの初期値として、メインアクターの外で作られることがあるため（ADR 0027）。
+	nonisolated init() {}
+
 	func fetchTrackSingingStats() async throws -> [TrackSingingStats] {
 		let now = Date()
 		func daysAgo(_ days: Int) -> Date {

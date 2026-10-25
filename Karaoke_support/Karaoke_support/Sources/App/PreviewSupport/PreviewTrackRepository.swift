@@ -2,6 +2,9 @@ import Foundation
 
 @MainActor
 final class PreviewTrackRepository: TrackRepositoryProtocol {
+	/// 環境キーの初期値として、メインアクターの外で作られることがあるため（ADR 0027）。
+	nonisolated init() {}
+
 	func searchLocal(query: String) async throws -> [Track] {
 		[]
 	}
