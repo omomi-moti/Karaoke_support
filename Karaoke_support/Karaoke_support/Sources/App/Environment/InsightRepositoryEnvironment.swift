@@ -1,7 +1,8 @@
 import SwiftUI
 
 private struct InsightRepositoryEnvironmentKey: EnvironmentKey {
-	@MainActor static let defaultValue: any InsightRepositoryProtocol = PreviewInsightRepository()
+	/// 初期値は状態を持つ参照型なので、@Entry ではなく static let で 1 回だけ作る（ADR 0031）。
+	static let defaultValue: any InsightRepositoryProtocol = PreviewInsightRepository()
 }
 
 extension EnvironmentValues {

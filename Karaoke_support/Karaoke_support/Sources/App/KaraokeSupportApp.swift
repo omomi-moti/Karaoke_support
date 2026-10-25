@@ -50,7 +50,7 @@ struct KaraokeSupportApp: App {
 	var body: some Scene {
 		WindowGroup {
 			RootView()
-				.environment(\.networkMonitor, networkMonitor)
+				.environment(networkMonitor)
 				.environment(\.sessionRepository, sessionRepository)
 				.environment(\.trackRepository, trackRepository)
 				.environment(\.insightRepository, insightRepository)

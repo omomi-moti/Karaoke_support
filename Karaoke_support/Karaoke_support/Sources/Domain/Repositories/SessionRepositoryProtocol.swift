@@ -1,8 +1,9 @@
 import Foundation
 
 /// 歌唱セッションの永続化・取得を担当する Repository のプロトコル。
+/// `@MainActor` の実装はもともと Sendable なので、Sendable を契約に入れて `any` 越しにも安全に共有できるようにする（ADR 0027）。
 @MainActor
-protocol SessionRepositoryProtocol {
+protocol SessionRepositoryProtocol: Sendable {
 	func saveNewRecordingSession(_ session: SingingSession) async throws
     
 	func updateRecordingSession(_ session: SingingSession) async throws

@@ -7,6 +7,9 @@ import Foundation
 /// - サンプル行を `deleteRecordingSession` した ID は `deletedSampleSessionIds` で除外し、`exists` / `fetchAll` / `fetchRecordingSession` と契約を揃える。
 @MainActor
 final class PreviewSessionRepository: SessionRepositoryProtocol {
+	/// 環境キーの初期値として、メインアクターの外で作られることがあるため（ADR 0027）。
+	nonisolated init() {}
+
 	private var recordedSessionIdsForPreview: Set<UUID> = []
 	/// プレビュー上で削除した固定サンプル行の ID（`sampleSessions` から論理削除）。
 	private var deletedSampleSessionIds: Set<UUID> = []

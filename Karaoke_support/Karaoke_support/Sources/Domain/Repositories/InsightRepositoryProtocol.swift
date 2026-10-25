@@ -8,8 +8,9 @@
 import Foundation
 
 /// インサイト（ランキング等）の取得を担当する Repository のプロトコル。
+/// `@MainActor` の実装はもともと Sendable なので、Sendable を契約に入れて `any` 越しにも安全に共有できるようにする（ADR 0027）。
 @MainActor
-protocol InsightRepositoryProtocol {
+protocol InsightRepositoryProtocol: Sendable {
 	/// 過去 1 ヶ月の歌唱回数ランキング（Track 単位）。
 	func fetchTimeMachineRanking() async throws -> [InsightTrackCountRanking]
 

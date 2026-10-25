@@ -215,7 +215,7 @@ private struct TabBarInsetReader: ViewModifier {
 
 #Preview {
     RootView()
-        .environment(\.networkMonitor, NetworkMonitor(startsMonitoring: false))
+        .environment(NetworkMonitor(startsMonitoring: false))
         .environment(\.trackRepository, PreviewTrackRepository())
         .environment(\.insightRepository, PreviewInsightRepository())
         .environment(\.sessionRepository, PreviewSessionRepository())

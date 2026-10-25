@@ -8,8 +8,9 @@
 import Foundation
 
 /// 楽曲（Track）の永続化・取得を担当する Repository のプロトコル。
+/// `@MainActor` の実装はもともと Sendable なので、Sendable を契約に入れて `any` 越しにも安全に共有できるようにする（ADR 0027）。
 @MainActor
-protocol TrackRepositoryProtocol {
+protocol TrackRepositoryProtocol: Sendable {
 	/// userEnteredName でローカル検索。歌った回数降順。
 	func searchLocal(query: String) async throws -> [Track]
 

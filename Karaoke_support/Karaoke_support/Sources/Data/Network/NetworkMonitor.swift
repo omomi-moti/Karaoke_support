@@ -3,7 +3,8 @@
 //  Karaoke_support
 //
 //  I-006: ネットワーク監視ユーティリティ。NWPathMonitor で online/offline を検知する。
-//  Environment 注入は App 層の NetworkMonitorEnvironment.swift で行う（Data 層は SwiftUI 非依存）。
+//  App 層で `.environment(networkMonitor)` として注入し、View は `@Environment(NetworkMonitor.self)` で読む（ADR 0031）。
+//  `@Observable` なので EnvironmentKey は要らず、Data 層は SwiftUI に依存しないまま。
 //
 
 import Foundation
@@ -21,7 +22,7 @@ public final class NetworkMonitor {
 	public private(set) var isOnline: Bool = false
 
 	/// - Parameter queue: pathUpdateHandler が実行されるキュー。.main にすると isOnline の更新がメインスレッドで行われる（推奨）。
-	/// - Parameter startsMonitoring: false のときは NWPathMonitor を起動しない（プレビュー・EnvironmentKey の default 用）。
+	/// - Parameter startsMonitoring: false のときは NWPathMonitor を起動しない（プレビュー用）。
 	public init(
 		queue: DispatchQueue = .main,
 		startsMonitoring: Bool = true
