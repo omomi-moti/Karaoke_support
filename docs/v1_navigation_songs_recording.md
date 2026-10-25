@@ -28,7 +28,7 @@
 1. `RecordingSheetContentView.attemptSave()` 成功時に、保存した記録の要約（`SavedRecording`）を付けて `onSavedMoveToHistory(_:)` を呼ぶ。
 2. `RootView.handleSaved(_:)` で **シートを閉じ**、**`historyReloadTick += 1`**、`selectedTab = .history`（アニメーションなし）。
 3. `RecordingSheetContentView` は **`dismiss()`** も呼ぶ（二重の閉じ方だが問題にならない）。
-4. `AfterSaveRecommendationViewModel.prepare(for:)` で候補を読み、中身が返ったときだけ保存直後のシートを出す。新規の記録で候補が 1 件以上あるときだけで、編集して更新したとき・候補が 0 件のとき・読み込みに失敗したときは出さない（ADR 0024）。候補を待っている間に別のシートが開かれた・予約されたとき（保存した直後に＋を押した、など）も出さず、そちらを優先する（ADR 0025）。
+4. `AfterSaveRecommendationViewModel.prepare(for:)` で候補を読み、中身が返ったときだけ保存直後のシートを出す。新規の記録で候補が 1 件以上あるときだけで、編集して更新したとき・候補が 0 件のとき・読み込みに失敗したときは出さない（ADR 0024）。出すのは保存してから 1 秒たってから（`afterSaveSheetDelay`。記録シートが閉じ、履歴に記録が増えたのが見えてから出すため・ADR 0030）。候補を待っている間に別のシートが開かれた・予約されたとき（保存した直後に＋を押した、など）も出さず、そちらを優先する（ADR 0025）。
 
 ### `historyReloadTick` が必要な理由
 
