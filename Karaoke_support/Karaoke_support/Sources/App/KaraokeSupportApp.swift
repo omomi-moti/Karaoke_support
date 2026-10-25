@@ -3,11 +3,7 @@ import SwiftData
 
 @main
 struct KaraokeSupportApp: App {
-	private let modelContainer: ModelContainer
-	private let sessionRepository: any SessionRepositoryProtocol
-	private let trackRepository: any TrackRepositoryProtocol
-	private let insightRepository: any InsightRepositoryProtocol
-	private let trackStatsRepository: any TrackStatsRepositoryProtocol
+	private let dependencies: AppDependencies
 	@State private var networkMonitor = NetworkMonitor()
 
 	@MainActor
@@ -15,53 +11,34 @@ struct KaraokeSupportApp: App {
 		// UI テストは `Karaoke_supportUITestsLaunchTests` 等から `launchEnvironment` で有効化。永続ストア起因の起動クラッシュを避ける。
 		if ProcessInfo.processInfo.environment["KARAOKE_UITEST_IN_MEMORY"] == "1" {
 			do {
-				let container = try Self.makeModelContainer(isInMemory: true)
-				self.modelContainer = container
+				self.dependencies = try AppDependencies.make(configuration: ModelConfiguration(isStoredInMemoryOnly: true))
 			} catch {
 				fatalError("Failed to create in-memory ModelContainer for UI tests: \(error)")
 			}
-			let context = modelContainer.mainContext
-			self.sessionRepository = SwiftDataSessionRepository(modelContext: context)
-			self.trackRepository = SwiftDataTrackRepository(modelContext: context)
-			self.insightRepository = SwiftDataInsightRepository(modelContext: context)
-			self.trackStatsRepository = SwiftDataTrackStatsRepository(modelContext: context)
 			return
 		}
 
 		do {
-			let container = try Self.makeModelContainer(isInMemory: false)
-			self.modelContainer = container
+			self.dependencies = try AppDependencies.make(configuration: ModelConfiguration(isStoredInMemoryOnly: false))
 		} catch {
 			assertionFailure("Failed to create persistent ModelContainer: \(error). Falling back to in-memory store.")
 			do {
-				self.modelContainer = try Self.makeModelContainer(isInMemory: true)
+				self.dependencies = try AppDependencies.make(configuration: ModelConfiguration(isStoredInMemoryOnly: true))
 			} catch {
 				fatalError("Failed to create in-memory ModelContainer: \(error)")
 			}
 		}
-
-		let context = modelContainer.mainContext
-		self.sessionRepository = SwiftDataSessionRepository(modelContext: context)
-		self.trackRepository = SwiftDataTrackRepository(modelContext: context)
-		self.insightRepository = SwiftDataInsightRepository(modelContext: context)
-		self.trackStatsRepository = SwiftDataTrackStatsRepository(modelContext: context)
 	}
 
 	var body: some Scene {
 		WindowGroup {
 			RootView()
 				.environment(networkMonitor)
-				.environment(\.sessionRepository, sessionRepository)
-				.environment(\.trackRepository, trackRepository)
-				.environment(\.insightRepository, insightRepository)
-				.environment(\.trackStatsRepository, trackStatsRepository)
+				.environment(\.sessionRepository, dependencies.sessionRepository)
+				.environment(\.trackRepository, dependencies.trackRepository)
+				.environment(\.insightRepository, dependencies.insightRepository)
+				.environment(\.trackStatsRepository, dependencies.trackStatsRepository)
 		}
-		.modelContainer(modelContainer)
-	}
-
-	@MainActor
-	private static func makeModelContainer(isInMemory: Bool) throws -> ModelContainer {
-		let configuration = ModelConfiguration(isStoredInMemoryOnly: isInMemory)
-		return try ModelContainer(for: Track.self, SingingSession.self, configurations: configuration)
+		.modelContainer(dependencies.modelContainer)
 	}
 }
