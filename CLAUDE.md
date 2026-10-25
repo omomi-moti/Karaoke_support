@@ -128,7 +128,7 @@ The deployment target was raised to iOS 26 on 2026-09-23, so the iOS 17 bugs bel
 
 ### Idempotent save
 
-`SessionRepository.save` checks `exists(uuid:)` before inserting. UI layer also disables the save button immediately (`isSaving` flag). Both guards are required — the UI guard alone cannot handle rapid double-taps.
+`SessionRepository.saveNewRecordingSession` checks `exists(uuid:)` before inserting. UI layer also disables the save button immediately (`isSaving` flag). Both guards are required — the UI guard alone cannot handle rapid double-taps.
 
 ### History snapshot pattern
 

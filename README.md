@@ -60,18 +60,22 @@ open Karaoke_support/Karaoke_support.xcodeproj
 
 ```
 Sources/
-├── App/                  # @main、DI（EnvironmentKey）、プレビュー用モック
+├── App/                  # @main、起動時の組み立て（AppDependencies）、DI（EnvironmentKey）、プレビュー用モック
 ├── Presentation/         # View + ViewModel（画面単位でサブフォルダ）
 │   ├── Recording/        # 歌唱記録シート
+│   ├── AfterSave/        # 保存直後のシート（次の 1 曲の提案）
 │   ├── History/          # 履歴一覧
+│   ├── TrackDetail/      # 曲詳細
 │   ├── Songs/            # 選曲タブ・インテントタブ
-│   ├── Root/             # TabView
+│   ├── Search/           # 検索タブ
+│   ├── Settings/         # 設定タブ
+│   ├── Root/             # TabView・シートの切り替え・DB を開けなかったときの画面
 │   ├── Common/           # 共通コンポーネント
 │   └── Theme/            # 色トークン
 ├── Domain/               # Protocol・Model（フレームワーク非依存）
-│   ├── Models/           # Track, SingingSession, Intent
-│   ├── Repositories/     # SessionRepository, TrackRepository, InsightRepository
-│   └── Helpers/
+│   ├── Models/           # Track, SingingSession, Intent, RecordSource 等
+│   ├── Repositories/     # Session / Track / Insight / TrackStats の Repository
+│   └── Helpers/          # 次の 1 曲の計算、曲名の候補の並べ方 等
 └── Data/                 # 具体実装
     ├── SwiftData/        # Repository実装
     └── Network/          # NetworkMonitor
@@ -93,12 +97,15 @@ xcodebuild test \
 
 | テスト対象 | 内容 |
 |-----------|------|
-| Repository（SwiftData） | 冪等性・削除・更新・取得（Intent 別・曲別）・点数なしの記録の集計 |
+| 起動時の組み立て（AppDependencies） | DB と Repository の作成・DB を開けなかったときの throw |
+| Repository（SwiftData） | 冪等性・削除・更新・取得（Intent 別・曲別）・点数なしの記録の集計・曲ごとの集計・記録の入口と、その数 |
 | HistoryViewModel・並び順 | ページネーション・ソート・非同期競合 |
 | IntentTabViewModel | インサイト取得・並行制御・月次統計 |
-| RecordingSheetViewModel | 新規／編集の分岐・曲名の候補（もしかして）・点数入力・歌唱日時 |
+| RecordingSheetViewModel | 新規／編集の分岐・保存した記録の要約・曲と気分を入れて開く・記録の入口（提案から／それ以外）・曲名の候補（もしかして）・点数入力・歌唱日時 |
+| 保存直後のシート | 次の 1 曲の候補の用意・理由の文言 |
+| SettingsViewModel | 提案から記録した数の読み込み・再試行 |
 | TrackDetailViewModel・統計 | 曲ごとの点数推移・直近スコアと前回比 |
-| Domain ヘルパー・共通 | 曲名表示・曲名候補の並べ方・ランキングの曲名・点数の右詰め入力と表示・Empty State 文言 |
+| Domain ヘルパー・共通 | 次の 1 曲の計算・曲名表示・曲名候補の並べ方・ランキングの曲名・点数の右詰め入力と表示・Empty State 文言 |
 
 ---
 

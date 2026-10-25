@@ -40,14 +40,14 @@ Spotify Developer Terms 違反。最悪の場合 API キー失効、アプリ配
 ### 検出手順
 
 1. `Track` / `SingingSession` など `@Model` 型へのプロパティ追加を確認する
-2. `grep -rn 'UserDefaults' Sources` — V1 時点では 0 件が正常
+2. `grep -rn 'UserDefaults' Sources` — 今は 0 件が正常
 3. API 応答の型から `@Model` のプロパティへ代入している箇所を探す
 4. ファイル書き込み（`FileManager`, `Data.write`, `Codable` の永続化）を探す
 
 ### 現状
 
 `Data/Spotify/` と `Data/Cache/` は `.gitkeep` のみで空。
-V1 時点では検出対象が存在しない。**V2 で Spotify 連携を実装する時点で発火する**ルール。
+今は検出対象が存在しない。**V2 で Spotify 連携を実装する時点で発火する**ルール。
 
 ### 誤検知しやすいケース
 
@@ -102,7 +102,7 @@ V1 時点では検出対象が存在しない。**V2 で Spotify 連携を実装
 if let editId = editingSessionId {
     let session = SingingSession(id: editId, track: track, ...)
     try await sessionRepository.updateRecordingSession(session)
-    return true
+    return Self.savedRecording(session, isNewRecording: false)
 }
 // 以降は新規採番して saveNewRecordingSession へ
 ```
@@ -242,8 +242,8 @@ SwiftUI のキャンセルが効かないため独自の判定が要る。
 `RecordingSheetViewModel.save()` の冒頭。
 
 ```swift
-guard !isSaving else { return false }
-guard validate() else { return false }
+guard !isSaving else { return nil }
+guard validate() else { return nil }
 isSaving = true
 defer { isSaving = false }
 ```

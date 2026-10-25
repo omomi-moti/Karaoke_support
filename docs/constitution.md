@@ -51,7 +51,7 @@
 ### 依存性注入（DI）
 
 - **方針**: DIライブラリは使用しない。手動コンストラクタインジェクションを標準とする
-- **ルート**: `@main` の App 起点で依存を組み立て、`@EnvironmentObject` または初期化引数で ViewModel に渡す
+- **ルート**: `@main` の App 起点で依存を組み立て（`AppDependencies`）、`@Environment`（EnvironmentKey または `.environment(_:)`）で View に渡し、View が ViewModel の初期化引数に渡す
 - **禁止**: ViewModel が Repository の具体実装クラスを直接 `init` すること
 - **許容**: Protocol (interface) に依存することで、テスト時にモック実装に差し替え可能とする
 
@@ -63,26 +63,29 @@
 Sources/
 ├── App/                 # @main、EnvironmentKey（DI）、プレビュー用モック
 │   ├── KaraokeSupportApp.swift
-│   ├── Environment/     # Repository / Network 等の EnvironmentKey
+│   ├── AppDependencies.swift  # 起動時に DB と Repository を組み立てる
+│   ├── Environment/     # Repository 等の EnvironmentKey と、環境に置く値
 │   └── PreviewSupport/  # プレビュー用モック Repository
 ├── Presentation/        # View + ViewModel（画面単位でサブフォルダ）
 │   ├── Recording/       # Sheet / Sections / TrackInput 等（歌唱記録シート）
+│   ├── AfterSave/       # 保存直後のシート（次の 1 曲の提案）
 │   ├── History/         # List / Filters 等（履歴一覧）
+│   ├── TrackDetail/     # 曲詳細
 │   ├── Songs/           # 選曲タブ・インテントタブ等
-│   ├── Search/
-│   ├── Insight/
-│   ├── Root/            # TabView 等
+│   ├── Search/          # 検索タブ
+│   ├── Settings/        # 設定タブ
+│   ├── Root/            # TabView・シートの切り替え・DB を開けなかったときの画面
 │   ├── Common/
 │   └── Theme/
 ├── Domain/              # Protocol定義・モデル（フレームワーク非依存）
-│   ├── Models/          # Track, SingingSession, Intent 等
-│   ├── Repositories/    # SessionRepository(protocol), TrackRepository(protocol)
-│   └── Helpers/
+│   ├── Models/          # Track, SingingSession, Intent, RecordSource 等
+│   ├── Repositories/    # Session / Track / Insight / TrackStats の Repository(protocol)
+│   └── Helpers/         # 次の 1 曲の計算、曲名の候補の並べ方 等
 └── Data/                # 具体実装（SwiftData, Spotify, Cache）
-    ├── SwiftData/
-    ├── Network/
-    ├── Spotify/
-    └── Cache/
+    ├── SwiftData/       # Repository の実装
+    ├── Network/         # NetworkMonitor
+    ├── Spotify/         # V2（まだ空）
+    └── Cache/           # V2（まだ空）
 ```
 
 - Presentation → Domain Protocol に依存。Data の具体実装には依存しない
@@ -141,4 +144,4 @@ Sources/
   - 影響を受けるドキュメント
   - 必要な移行・採用作業
 
-**Version**: 1.2.0 | **Ratified**: 2026-03-13 | **Last Amended**: 2026-10-26（spec-kit をやめて `docs/` に移し、正とする文書を spec.md・設計書から Issues・ADR に変えた）
+**Version**: 1.2.1 | **Ratified**: 2026-03-13 | **Last Amended**: 2026-10-26（spec-kit をやめて `docs/` に移し、正とする文書を spec.md・設計書から Issues・ADR に変えた。DI とディレクトリ構成の記述を今のコードに合わせた）
