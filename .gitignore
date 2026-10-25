@@ -61,10 +61,10 @@ fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
 
-# Cursor / デバッグセッション
-.cursor/debug-*.log
-
 # macOS
 .DS_Store
 **/.DS_Store
-.claude/
+
+# Claude Code（スキルは共有する。個人の設定と作業用の worktree は入れない）
+.claude/settings.local.json
+.claude/worktrees/
