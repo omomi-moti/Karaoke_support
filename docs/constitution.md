@@ -31,7 +31,7 @@
 
 ### IV. ドキュメント間の一貫性
 
-仕様書（spec.md）・基本設計（basic_design.md）・詳細設計（detailed_design.md）は矛盾しない。
+仕様とタスクは GitHub Issues、設計の判断は ADR（`docs/adr/`）を正とし、CLAUDE.md と docs はこれと矛盾させない。
 - 技術選定（例：インメモリキャッシュ）は全文書で統一
 - データモデル定義（Track・SingingSession）は一貫
 - API 規約への制約は明示的に記載
@@ -112,7 +112,7 @@ Sources/
 
 ## 開発ワークフロー
 
-- **Spec確認**: spec.md が raw_spec.md v4.1 と矛盾していないか確認
+- **仕様確認**: Issue の受け入れ条件と「決めたこと」が、ADR と矛盾していないか確認
 - **設計レビュー**: 
   - Track・SingingSession のデータモデルが正確か
   - Spotify 規約違反の懸念がないか
@@ -122,9 +122,12 @@ Sources/
   - テストプラン含む
   - 重複排除ロジックの動作確認
   - オフライン時の振舞い確認
+  - モデルに項目を足したときは、前のビルドで作ったデータを新しいビルドで開いて確認
 
 - **マージ基準**:
-  - spec.md・basic_design.md・detailed_design.md が一貫性を持つ
+  - Issue の受け入れ条件を満たす
+  - 判断を ADR に残している
+  - プロジェクト用のレビュー（`karaoke-review`）を通している
   - Spotify 規約準拠の懸念がない
   - 矛盾・プレースホルダが解決されている
 
@@ -132,10 +135,10 @@ Sources/
 
 ## Governance
 
-- この憲法は、spec.md・basic_design.md・detailed_design.md より **優先される**
+- この憲法は、ADR・CLAUDE.md・docs より **優先される**
 - 修正時は PR で以下を記載：
   - 修正理由
   - 影響を受けるドキュメント
   - 必要な移行・採用作業
 
-**Version**: 1.1.2 | **Ratified**: 2026-03-13 | **Last Amended**: 2026-10-25（spec-kit をやめ、`.specify/memory/` から `docs/` に移した）
+**Version**: 1.2.0 | **Ratified**: 2026-03-13 | **Last Amended**: 2026-10-26（spec-kit をやめて `docs/` に移し、正とする文書を spec.md・設計書から Issues・ADR に変えた）
