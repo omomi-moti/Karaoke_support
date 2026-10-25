@@ -55,6 +55,12 @@ Sources/
 
 Repositories are instantiated in `KaraokeSupportApp.swift` with a `ModelContainer`, then injected via custom `EnvironmentKey` types defined in `Sources/App/Environment/`. Views read them with `@Environment(\.sessionRepository)` etc. and pass them into ViewModel `init`. Preview mocks live in `Sources/App/PreviewSupport/`.
 
+How a value goes into the environment depends on whether its default has identity (ADR 0031):
+
+- **Values and closures** (`historyReloadTick`, `navigateTo…`): `@Entry`. Its default is recomputed on every read when nothing is injected, which is harmless here.
+- **Stateful reference types** (repositories): `EnvironmentKey` + `static let defaultValue`, so the preview default is created once. Repository protocols are `@MainActor` and `Sendable`, and preview repositories have a `nonisolated init()` so the key's default can be created off the main actor (ADR 0027).
+- **The single `@Observable` app object** (`NetworkMonitor`): no key. Inject with `.environment(networkMonitor)` and read with `@Environment(NetworkMonitor.self)`. There is no default, so every preview that shows the recording sheet must inject `NetworkMonitor(startsMonitoring: false)`.
+
 ```swift
 // Pattern — never do this in a View:
 modelContext.insert(...)        // ❌ direct DB write from View
