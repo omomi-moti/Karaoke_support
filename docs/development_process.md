@@ -1,4 +1,4 @@
-# 開発プロセス（Spec 駆動）
+# 開発プロセス
 
 ## V1（MVP）の定義
 
@@ -14,60 +14,69 @@ V1 は **「コア体験が成立するかを検証する最小構成」** と�
 
 ---
 
-## Spec → Issue → 実装 の流れ
+## Issue → 実装 → 検証 の流れ
 
-本プロジェクトでは **SpecKit** によるスペック駆動開発を採用し、以下のフローで開発を進めた。
+仕様とタスクは GitHub Issues、設計の判断は ADR に置き、機能は「常に動く単位」で縦に切って進める（[ADR 0010](adr/0010-issues-and-adr-as-source-of-truth.md)）。
 
 ```mermaid
 flowchart LR
-    subgraph G1["仕様・設計"]
+    subgraph G1["計画"]
         direction TB
-        R["raw_spec.md v4.1"] --> S["spec.md（SpecKit）"]
-        S --> BD["basic_design / detailed_design"]
+        P["親 Issue（バックログ）"] --> S["スプリントの Issue<br/>（そのスプリントで要ることだけ決める）"]
     end
-    subgraph G2["Issue・棚卸し"]
+    subgraph G2["実装"]
         direction TB
-        ISS["issues → v1_issues（V1 の正）"] --> CC["cross_check_report"]
+        PL["変えるファイルと順番の案"] --> ST["手順ごとに実装・テスト・コミット"]
+        ST --> ADR["判断を ADR に 1 件ずつ"]
     end
-    subgraph G3["実装・記録"]
+    subgraph G3["検証・振り返り"]
         direction TB
-        BR["1 Issue 1 ブランチ・PR"] --> LG["log/feature/*"]
+        RV["レビュー → PR → main に squash merge"] --> TF["TestFlight の内部テスターで実機確認"]
+        TF --> KPT["KPT で振り返り"]
     end
     G1 --> G2 --> G3
 ```
 
 ### 各ステップの詳細
 
-1. **要求仕様書** — `docs/raw_spec.md`（v4.1 系）に課題・機能要求・制約（Spotify 規約など）を記述
-2. **SpecKit で Feature Specification（spec.md）を生成** — User Story / Acceptance Scenario / Functional Requirements を定義
-3. **基本設計書・詳細設計書を作成** — 画面遷移図・シーケンス図・クラス図・ER 図を Mermaid で記述
-4. **Issue 設計で実装タスクに分解** — Phase 0（基盤）→ Phase 1（MVP）→ Phase 2（インサイト）→ Phase 3/4（Spotify 連携・品質）
-5. **ドキュメント棚卸し** — `docs/cross_check_report.md` で spec・設計書・issues の整合性を確認
-6. **実装** — 1 Issue 1 feature ブランチで作業し、Pull Request 経由で squash merge
-7. **実装ログ** — `log/feature/i-xxx-*/` に、Issue 単位の実装メモ・判断の記録を残す
+1. **親 Issue にバックログを置く** — 例：選曲MVP（#114）。検証したい順にスプリントを並べ、終わるたびに見直す
+2. **1 スプリント = 1 Issue = 1 ブランチ** — main にマージされたものが、いつも実機で使える状態を保つ。スプリントの始めには、そのスプリントで要ることだけ決める
+3. **実装の前に案を出す** — 変えるファイルと進める順番を AI が出し、人が決める。手順ごとに実装・テストし、人がコミットする
+4. **判断は ADR に残す** — 何を比べ、どんなトレードオフがあり、なぜ選んだか、いつ見直すかを 1 件 1 ファイルで書く（[adr/](adr/README.md)）。承認した本文は書き換えず、変えるときは新しい番号で置き換える
+5. **確かめる** — ユニットテスト（Swift Testing、SwiftData は in-memory の `ModelContainer`）、シミュレーター、TestFlight の内部テスターでの実機確認。モデルに項目を足したときは、前のビルドで作ったデータを新しいビルドで開く
+6. **レビューしてマージ** — プロジェクト用のレビュー（下記）を通し、PR で main に squash merge する
+7. **振り返る** — スプリントごとに KPT で振り返り、次のスプリントの進め方に反映する
 
 ---
 
-## AI × 仕様駆動開発
+## AI の使い方
 
-### 開発環境・ツール
+### 道具
 
 | 区分 | 使用ツール |
 |------|------------|
-| OS / 実行 | macOS、**Xcode**（ビルド・シミュレータ・実機・デバッグ） |
-| エディタ | **Cursor**（ソースの主編集）。コードの生成・修正・リファクタリングは原則すべて Cursor で実施。**GitHub Copilot によるエディタ上のコード補完・インライン生成は使用していない** |
-| 仕様駆動 | **SpecKit** による `raw_spec` → `spec.md` → 設計書 → Issue 分解。実装作業は Cursor 上で行い、`.cursorrules` と `.specify/memory/constitution.md` をプロジェクトルールとして利用 |
-| AI 支援（PR） | **GitHub Copilot Pro**（学生向け特典で利用）。GitHub 上の Pull Request に対するコードレビューのみに使用 |
+| OS / 実行 | macOS、**Xcode**（ビルド・シミュレーター・実機・デバッグ） |
+| AI | **Claude Code**（デスクトップアプリ）。調査・実装案・実装・テスト・シミュレーターでの確認・レビュー・文書を任せる。決めること、実機での確認、コミットとマージは人が行う |
+| AI 向けの文書 | [`CLAUDE.md`](../CLAUDE.md)（毎回読み込まれる入口。ビルドの方法、アーキテクチャ、コーディングと Git の決まり、守る制約）と、最上位のルールの[憲法](constitution.md) |
+| レビュー | `.claude/skills/karaoke-review/`（プロジェクト用のレビューのスキル） |
+
+### 決まりを 1 か所にまとめる
+
+AI が毎回読み込む文書は `CLAUDE.md` の 1 本にしている。同じ決まりが複数の文書に少しずつ違う言い方で書いてあると、どれが正か分からなくなり、読み込む量も増えるため。理由や経緯は ADR に置き、`CLAUDE.md` からは番号で参照する。
+
+### プロジェクト用のレビュー
+
+`karaoke-review` は、このプロジェクトで「壊れても気づきにくい」6 点だけを見る（Spotify のメタデータの永続化、編集の握り潰し、古い非同期結果の上書き、二重保存、Repository を経由しない DB への書き込み、Presentation への具体的な Repository の型の漏れ）。コンパイラやテストが見つけるもの、一般的な書き方の指摘は外している。報告するのは「このまま出したらユーザーの画面で何が起きるか」を 1 文で言えるものだけにして、指摘の数より信頼度を優先している。
 
 ### AI の具体的な効果
 
-`.cursorrules`（132 行）で SwiftUI/SwiftData のコーディングルール・命名規則・Git ルールを定義し、Cursor のプロジェクトルールとして読み込ませた。`.specify/memory/constitution.md` を最上位ルールとしてプロンプトに含め、AI の出力に一貫した制約を与えている。
-
-constitution.md に「Spotify メタデータは永続化禁止」「`spotifyTrackId` のみ保持可」の制約を明記した結果、AI が Track モデルを生成する際に `userEnteredName`（ユーザー生成データ＝永続化可）と Spotify 由来データの区別を自発的に判別し、convenience init の分離やコメントでの理由記載まで一貫して行った。人間のレビューは「制約に違反していないか」の確認に集中でき、生成コードの修正量が大幅に削減された。
+- **出す前に、古いデータで落ちることが分かった** — 記録に入口（提案からか）を足したとき、テストは全部通っていた。前のビルドで作ったデータを新しいモデルで開いて確かめると、足した列が空のままで読むと落ちることが分かり、空を許す形に変えた（[ADR 0034](adr/0034-record-source-as-optional-enum.md)）
+- **言われたことを、確かめてから決めた** — 「`@Entry` は初期値を読むたびに作り直す」ことをマクロの展開と小さなプログラムで確かめてから、環境に置く値の書き方の基準を決めた（[ADR 0031](adr/0031-environment-values-by-default-identity.md)）
+- **最上位のルールを守らせた** — 憲法に「Spotify のメタデータは永続化しない」「`spotifyTrackId` だけ持ってよい」と書いたことで、AI が作るモデルでも、ユーザーが入力した曲名と Spotify 由来のデータが区別されている（[ADR 0002](adr/0002-no-persisting-spotify-metadata.md)）
 
 ---
 
-## Spec / Issue / 実装の対応関係
+## V1 で実装したもの
 
 Phase 0〜2（V1 スコープ）は全 Issue 実装済み。代表的なものを抜粋:
 
@@ -79,4 +88,4 @@ Phase 0〜2（V1 スコープ）は全 Issue 実装済み。代表的なもの�
 | I-014/015 | History + Infinite Scroll | 値型スナップショット・loadGeneration・20 件ページング | 3 ファイル |
 | I-017/018 | インテントタブ + タイムマシン | IntentTabViewModel・月次ランキング集計 | `IntentTabViewModelTests` |
 
-全対応は [`archive/v1_issues.md`](archive/v1_issues.md)（アーカイブ）を参照。
+全対応は [`archive/v1_issues.md`](archive/v1_issues.md)、当時の実装ログは [`archive/log/`](archive/log/)（どちらもアーカイブ）を参照。

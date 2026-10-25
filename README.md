@@ -110,7 +110,7 @@ xcodebuild test \
 | プロダクト概要・Intent設計 | [`docs/product_overview.md`](docs/product_overview.md) |
 | 技術判断の記録（ADR） | [`docs/adr/`](docs/adr/README.md) |
 | アーキテクチャ・データフロー | [`docs/architecture.md`](docs/architecture.md) |
-| 開発プロセス（Spec駆動・AI活用） | [`docs/development_process.md`](docs/development_process.md) |
+| 開発プロセス（Issue・ADR・AI 活用） | [`docs/development_process.md`](docs/development_process.md) |
 | V1 Issue一覧・完了チェック（アーカイブ） | [`docs/archive/v1_issues.md`](docs/archive/v1_issues.md) |
 | 画面遷移設計 | [`docs/v1_navigation_songs_recording.md`](docs/v1_navigation_songs_recording.md) |
 | 手動QA手順 | [`docs/manual_qa_I008_I009_record_save.md`](docs/manual_qa_I008_I009_record_save.md) |
