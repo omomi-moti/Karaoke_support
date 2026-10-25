@@ -108,6 +108,6 @@ struct RecordingSheetContainerView: View {
 
 #Preview {
 	RecordingSheetContainerView(trackMode: .manual, onSavedMoveToHistory: { _ in })
-		.environment(\.networkMonitor, NetworkMonitor(startsMonitoring: false))
+		.environment(NetworkMonitor(startsMonitoring: false))
 		.environment(\.trackRepository, PreviewTrackRepository())
 }

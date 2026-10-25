@@ -5,7 +5,7 @@ import UIKit
 struct RecordingSheetContentView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
-    @Environment(\.networkMonitor) private var networkMonitor
+    @Environment(NetworkMonitor.self) private var networkMonitor
 
     @Bindable var viewModel: RecordingSheetViewModel
     let onSavedMoveToHistory: (SavedRecording) -> Void
@@ -153,5 +153,5 @@ struct RecordingSheetContentView: View {
         ),
         onSavedMoveToHistory: { _ in }
     )
-    .environment(\.networkMonitor, NetworkMonitor(startsMonitoring: false))
+    .environment(NetworkMonitor(startsMonitoring: false))
 }
