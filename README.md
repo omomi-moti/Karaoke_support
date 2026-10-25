@@ -27,13 +27,13 @@ Hitokara Log は、歌唱の意図を **Intent（🔥 Shout / 🌙 Emo / 🎤 Pr
 
 | カテゴリ | 技術 |
 |----------|------|
-| 言語 | Swift 5.9+ |
+| 言語 | Swift 6.2（Xcode 26 付属のコンパイラ。言語モードは 5.9、Approachable Concurrency を有効） |
 | UI | SwiftUI |
 | ローカル DB | SwiftData |
 | 状態管理 | `@Observable`（Observation framework） |
 | 非同期処理 | Swift Concurrency（async/await） |
 | アーキテクチャ | MVVM + Repository、手動 DI（`@Environment`） |
-| テスト | XCTest・Swift Testing（ユニットテスト + UI テスト） |
+| テスト | Swift Testing・XCTest（ユニットテスト。UI テストは起動の確認だけ） |
 | 最低対応 OS | iOS 26.0 |
 
 ---
@@ -49,7 +49,7 @@ open Karaoke_support/Karaoke_support.xcodeproj
 # Cmd + R でビルド & 実行（iPhone シミュレータ iOS 26+）
 ```
 
-起動後: 右下の「＋」ボタン → 曲名入力 → スコア → Intent → 保存
+起動後: 右下の「＋」ボタン → 曲名入力 → スコア（任意）→ Intent → 保存。保存すると履歴タブに移り、同じ気分で前に歌った曲（今日まだ歌っていないもの）があれば「次はこの曲？」で次の 1 曲の候補が出る
 
 
 ---
@@ -121,7 +121,6 @@ xcodebuild test \
 | 開発プロセス（Issue・ADR・AI 活用） | [`docs/development_process.md`](docs/development_process.md) |
 | V1 Issue一覧・完了チェック（アーカイブ） | [`docs/archive/v1_issues.md`](docs/archive/v1_issues.md) |
 | 画面遷移設計 | [`docs/v1_navigation_songs_recording.md`](docs/v1_navigation_songs_recording.md) |
-| 手動QA手順 | [`docs/manual_qa_I008_I009_record_save.md`](docs/manual_qa_I008_I009_record_save.md) |
 
 ---
 
