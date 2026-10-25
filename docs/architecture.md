@@ -45,9 +45,9 @@ Track と SingingSession の **リレーション・クエリ** が前提のた�
 
 ## データフロー
 
-### 歌唱記録の保存フロー（V1 実装）
+### 歌唱記録の保存フロー
 
-V1 ではオンライン・オフライン問わず同一フロー（Spotify API 呼び出しなし）。View → ViewModel → Repository → SwiftData の各層が明確に分離されている:
+オンライン・オフライン問わず同じ流れ。View → ViewModel → Repository → SwiftData の各層が明確に分離されている:
 
 ```mermaid
 flowchart TB
@@ -61,7 +61,7 @@ flowchart TB
 
     subgraph S2["曲の特定"]
         direction TB
-        D{曲の決め方は？}
+        D{曲の決め方は？}　
         E["手動で曲名を入れる"]
         R["ランキングなどから選ぶ"]
         T["その曲を特定し<br>なければ新規として用意"]
@@ -104,19 +104,6 @@ flowchart LR
     D --> E["エラーなしで完了<br>体験が劣化しない"]
 ```
 
-### Spotify メタデータ取得（V2 設計済み・未実装）
-
-```mermaid
-flowchart TD
-    A["Track.spotifyTrackId"] --> B{"TrackMetadataCache<br>(actor ベース)"}
-    B -->|"キャッシュヒット<br>(24h 以内)"| C["TrackMetadata を返却"]
-    B -->|"キャッシュミス"| D["Spotify Web API"]
-    D --> E["キャッシュ更新<br>(TTL: 24h)"]
-    E --> C
-    
-    F["API 規約"] -.->|"永続保存禁止"| B
-```
-
 ---
 
 ## 技術的な設計
@@ -136,33 +123,110 @@ flowchart TD
 - Repository・ViewModel とも `@MainActor` で ModelContext のスレッド安全性を保証
 - `Task.checkCancellation()` によるキャンセル伝播 + `loadGeneration` による世代管理
 
-### データ管理
-
-| 区分 | 永続化・ストレージ | 対象 |
-|------|-------------------|------|
-| **V1 で実装済み** | **SwiftData（SSOT）** | Track（`spotifyTrackId`, `userEnteredName`, `singCount`）、SingingSession（`intent`, `score`, `memo`, `performedAt`, `recordedSource`） |
-| **V2 設計・未実装** | **インメモリ TTL キャッシュ（24h）** | Spotify メタデータ（曲名・アーティスト名・アートワーク）— API 規約により永続化禁止 |
-| **V2 設計・未実装** | **Keychain** | OAuth トークン |
-
 ### オフラインファースト
 
 - `NWPathMonitor` ベースの `NetworkMonitor`（`@Observable`）で接続状態を監視
 - オフライン時: `Track(userEnteredName:)` でローカル保存。ブロックせず継続
-- **V2 設計**: オンライン復帰時に `spotifyTrackId` 経由で Spotify API からメタデータを補完する想定
+
+---
+
+## データベース（SwiftData）
+
+記録はすべて端末の中の SwiftData に保存し、これを唯一の正（SSOT）とする。外部のサーバーには送らない。
+
+### 保存先と開き方
+
+- 保存先は端末の中の 1 つのファイル（Application Support の `default.store`。中身は SQLite）
+- 起動時に `AppDependencies.make(configuration:)` が `ModelContainer` を 1 つ作り、全部の Repository が同じ `mainContext` を使う。`ModelContext` はスレッドセーフではないので、Repository は `@MainActor` で動く
+- 保存先を開けなかったときは、メモリ上の DB で起動せず、エラー画面で止める。元のデータには手を付けない（[ADR 0033](adr/0033-show-error-when-store-cannot-open.md)）
+- ユニットテストと UI テストは、メモリ上の DB（`isStoredInMemoryOnly: true`）を使う
+
+### モデル
+
+```mermaid
+erDiagram
+    Track ||--o{ SingingSession : "歌った記録"
+    Track {
+        UUID id "重複しない"
+        String userEnteredName "手で入れた曲名"
+        String spotifyTrackId "今は使っていない（常に空）"
+        Int singCount "歌った回数"
+        Date createdAt
+        Date updatedAt
+    }
+    SingingSession {
+        UUID id "重複しない。保存の冪等キー"
+        String intent "shout / emo / practice"
+        Date performedAt "歌った日時"
+        Double score "任意。0〜100、小数第3位まで"
+        String memo "任意"
+        String recordedSource "任意。空は manual として読む"
+    }
+```
+
+| モデル | 項目 | 説明 |
+|---|---|---|
+| `Track`（曲） | `id` | 重複しない UUID |
+| | `userEnteredName` | 手で入れた曲名。曲名が完全に同じなら同じ曲として使い回す |
+| | `spotifyTrackId` | 列はあるが、今は画面から入ることがなく常に空 |
+| | `singCount` | 歌った回数。記録を足すと 1 増え、消すと 1 減る |
+| | `sessions` | この曲の記録。曲を消すと記録も消える（cascade）が、今のアプリは曲を消さない |
+| `SingingSession`（記録） | `id` | 重複しない UUID。同じ `id` の保存は 1 回だけ反映する（冪等キー） |
+| | `track` | 歌った曲（1 つの曲に、記録がいくつもつく） |
+| | `intent` | 気分。enum を文字列で保存する |
+| | `performedAt` | 歌った日時。新規では保存した時刻（[ADR 0015](adr/0015-performed-at-from-save-time.md)） |
+| | `score` | 点数。任意で、0〜100 の小数第 3 位まで（[ADR 0012](adr/0012-score-three-decimals-optional.md)） |
+| | `memo` | メモ。任意 |
+| | `recordedSource` | どこから付けた記録か（提案から／それ以外）。空を許し、空（入口を記録し始める前の記録）は `manual` として読む（[ADR 0034](adr/0034-record-source-as-optional-enum.md)） |
+
+### 書き込みの決まり
+
+書き込みは必ず Repository を通す。View から `ModelContext` に直接書かない。
+
+| 操作 | やること |
+|---|---|
+| 新規の保存 | 同じ `id` の記録がなければ足し、曲の `singCount` を 1 増やす。同じ `id` の再送は何もせず成功にする（[ADR 0006](adr/0006-idempotent-save-in-ui-and-data.md)） |
+| 編集して更新 | 気分・日時・点数・メモだけを書き換える。曲と入口は変えない |
+| 削除 | 記録を消し、曲の `singCount` を 1 減らす（0 より下にはしない） |
+| 曲の用意 | 曲名が完全に同じ曲があればそれを使い、なければ新しく作る |
+
+### 読み方
+
+| 用途 | 読み方 |
+|---|---|
+| 履歴 | 日時の新しい順に 20 件ずつ読み、最大 500 件まで出す |
+| 気分での絞り込み | `#Predicate` で enum を使わず、直近 200 件を読んでからメモリで絞る（[ADR 0007](adr/0007-filter-intent-in-memory.md)） |
+| 集計（ランキング・曲ごとの集計・入口の数） | 集計した値は保存せず、読むたびに記録から計算する（[ADR 0029](adr/0029-recompute-track-stats-without-cache.md)） |
+
+### 項目を足すとき
+
+- 自動の移行に任せ、`VersionedSchema` は使っていない
+- 項目は空を許す形で足す。自動の移行では、前からある記録の新しい欄は空のままになり、空を許さない enum だと読んだときに落ちる（[ADR 0034](adr/0034-record-source-as-optional-enum.md)）
+- 出す前に、前のビルドで作ったデータを新しいビルドで開いて、記録が消えずに読めることを確かめる
 
 ---
 
 ## ユーザーフロー
 
+記録シートは `RootView` の 1 つのシートで開く（ADR 0025）。入口によって、空・曲名入り・編集の 3 通りで開き、新規の保存のあとは、候補があれば保存直後のシートを出す（ADR 0024・0032）。提案のカードから曲を変えずに保存した記録は、入口が「提案から」になる（ADR 0034）。
+
 ```mermaid
 flowchart TD
-    A["曲選択<br>ランキングタップ or 手動入力"] --> B[".sheet(item:)<br>記録シート表示"]
-    B --> C["曲入力"]
-    C --> D["スコア（任意）<br>標準テンキー・小数第3位まで"]
-    D --> E["Intent<br>Shout / Emo / Practice"]
-    E --> F["歌唱日時<br>編集のときだけ表示"]
-    F --> G["メモ（任意）"]
-    G --> H["保存<br>二重送信防止 → 冪等保存"]
-    H --> I["シート解除 → 閉じ終わってから履歴タブへ"]
-    I --> J["保存直後のシート<br>次の1曲の候補（新規で候補があるときだけ）"]
+    P["＋ボタン・空状態の導線"] --> S1["記録シート（空）"]
+    R["ランキング・検索で曲を選ぶ"] --> S2["記録シート（曲名入り）"]
+    E["履歴の行をスワイプして編集"] --> S3["記録シート（編集。曲名は変えられない）"]
+
+    S1 --> IN["曲名 → スコア（任意）→ Intent → メモ（任意）→ 保存"]
+    S2 --> IN
+    IN --> SAVE["二重送信を防いで冪等に保存"]
+    SAVE --> CLOSE["シートが閉じ終わってから履歴タブへ"]
+    CLOSE --> Q{"同じ気分で前に歌った曲<br>（今日まだ歌っていないもの）がある？"}
+    Q -->|ある| AS["1 秒後に保存直後のシート<br>「次はこの曲？」最大 2 曲"]
+    Q -->|ない| END["履歴に記録が増えて終わり"]
+    AS -->|カードを押す| S4["記録シート（候補の曲と直前の気分入り）<br>曲を変えずに保存すると、提案からの記録になる"]
+    AS -->|あとで| END
+    S4 --> IN
+
+    S3 --> UP["スコア・Intent・歌唱日時・メモを直して更新"]
+    UP --> CLOSE2["シートを閉じ、履歴を読み直す<br>（保存直後のシートは出さない）"]
 ```
