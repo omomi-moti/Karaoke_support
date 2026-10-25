@@ -19,6 +19,9 @@ final class RecordingSheetViewModel {
 	private let sessionRepository: any SessionRepositoryProtocol
 	private let trackRepository: any TrackRepositoryProtocol
 
+	/// 提案のカードから開いたときの曲。保存するときにこの曲のままなら、入口を `.suggestion` にする（#120）。
+	private let suggestedTrack: SelectedTrack?
+
 	/// 保存失敗後の再試行で同一 ``SingingSession.id`` を使う（I-011 Idempotency Key）。成功時は `nil` に戻す。**新規のみ**使用。
 	private var pendingSessionIdForSave: UUID?
 
@@ -61,15 +64,18 @@ final class RecordingSheetViewModel {
 		trackRepository: any TrackRepositoryProtocol
 	) {
 		self.editingSessionId = nil
+		self.suggestedTrack = nil
 		self.trackState = TrackInputState(mode: trackMode)
 		self.sessionRepository = sessionRepository
 		self.trackRepository = trackRepository
 	}
 
 	/// 確定済み ``SelectedTrack`` から開始（ランキング・検索など I-013）。`intent` を渡すと気分を選んだ状態にする。
+	/// `source` が `.suggestion` のときは、曲を変えずに保存すると提案からの記録になる（#120）。
 	init(
 		selectedTrack: SelectedTrack,
 		intent: Intent? = nil,
+		source: RecordSource = .manual,
 		sessionRepository: any SessionRepositoryProtocol,
 		trackRepository: any TrackRepositoryProtocol
 	) {
@@ -78,6 +84,8 @@ final class RecordingSheetViewModel {
 		self.trackRepository = trackRepository
 		let built = Self.trackInputState(from: selectedTrack)
 		self.trackState = built.state
+		// 保存するときと同じ形（前後の空白を除いた曲名・Spotify ID）で覚えておき、そのまま比べられるようにする
+		self.suggestedTrack = source == .suggestion ? try? TrackResolver.resolveSelectedTrack(from: built.state) : nil
 		self.inlineErrorMessage = built.initialInlineError
 		if let intent {
 			self.draft.intent = intent
@@ -92,6 +100,7 @@ final class RecordingSheetViewModel {
 	) {
 		self.editingSessionId = editingSession.id
 		self.editingSessionOriginalPerformedAt = editingSession.performedAt
+		self.suggestedTrack = nil
 		self.sessionRepository = sessionRepository
 		self.trackRepository = trackRepository
 		self.trackState = TrackInputState(trackForEditingSession: editingSession.track)
@@ -207,7 +216,9 @@ final class RecordingSheetViewModel {
 				// 新規記録は日時欄を出さないので、保存した時刻を歌唱日時にする
 				performedAt: now(),
 				score: score,
-				memo: draft.normalizedMemo
+				memo: draft.normalizedMemo,
+				// 提案のカードから開いても、曲を書き換えたら自分で選んだ記録として数える
+				source: selectedTrack == suggestedTrack ? .suggestion : .manual
 			)
 			try await sessionRepository.saveNewRecordingSession(session)
 			pendingSessionIdForSave = nil
