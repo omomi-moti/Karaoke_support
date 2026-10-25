@@ -19,7 +19,7 @@ struct RootView: View {
         let kind: Kind
     }
 
-    /// 保存してから保存直後のシートを出すまでの時間。記録シートが閉じ、履歴に記録が増えたのが見えてから出すため（ADR 0030）。
+    /// 履歴タブへ移ってから保存直後のシートを出すまでの時間。履歴に記録が増えたのが見えてから出すため（ADR 0032）。
     private static let afterSaveSheetDelay: Duration = .milliseconds(1000)
 
     @Environment(\.trackRepository) private var trackRepository
@@ -32,6 +32,12 @@ struct RootView: View {
     /// シートを閉じ始めてから、閉じ終わる（`onDismiss`）までの間 `true`。
     @State private var isDismissingSheet = false
     @State private var afterSaveViewModel: AfterSaveRecommendationViewModel?
+    /// 保存した後、記録シートが閉じ終わったら履歴タブへ移る。閉じている途中に切り替えると、後ろの画面が急に変わって見えるため（ADR 0032）。
+    @State private var movesToHistoryAfterDismiss = false
+    /// 読み込み終わった保存直後のシートの中身。履歴タブへ移ってから出す。
+    @State private var preparedAfterSaveContent: AfterSaveSheetContent?
+    /// 保存直後のシートを出してよい時刻（履歴タブへ移ってから ``afterSaveSheetDelay`` 後）。
+    @State private var afterSaveShowAt: ContinuousClock.Instant?
     /// 保存のたびに増やし、履歴一覧に再読み込みさせる（履歴タブ上で保存するとタブ切替による再表示が起きないため）。
     @State private var historyReloadTick = 0
     /// タブの中身の下の安全領域（タブバー＋ホームインジケーター）。＋ボタンをタブバーの上に置くのに使う。
@@ -78,7 +84,7 @@ struct RootView: View {
         .sheet(item: $sheet, onDismiss: presentPendingSheet) { sheet in
             switch sheet.kind {
             case .recording(let seed):
-                RecordingSheetContainerView(seed: seed, onSavedMoveToHistory: handleSaved)
+                RecordingSheetContainerView(seed: seed, onSaved: handleSaved)
             case .afterSave(let content):
                 AfterSaveRecommendationSheetView(
                     content: content,
@@ -112,14 +118,26 @@ struct RootView: View {
 
     /// 保存したら記録シートを閉じて履歴へ移り、候補があれば保存直後のシートを出す（#115）。
     private func handleSaved(_ saved: SavedRecording) {
-        let showAt = ContinuousClock.now + Self.afterSaveSheetDelay
+        // 前の保存のときの中身や時刻が残っていても使わない
+        preparedAfterSaveContent = nil
+        afterSaveShowAt = nil
+        movesToHistoryAfterDismiss = true
         closeSheet()
         historyReloadTick += 1
-        moveToHistory()
         let viewModel = afterSaveRecommendationViewModel()
         Task {
             guard let content = await viewModel.prepare(for: saved) else { return }
-            // 候補を読むのが早く終わっても、決めた時刻までは出さない
+            preparedAfterSaveContent = content
+            presentAfterSaveSheetWhenReady()
+        }
+    }
+
+    /// 中身の読み込みと履歴タブへの移動が両方終わったら、決めた時刻まで待って保存直後のシートを出す。どちらが先に終わってもよい。
+    private func presentAfterSaveSheetWhenReady() {
+        guard let content = preparedAfterSaveContent, let showAt = afterSaveShowAt else { return }
+        preparedAfterSaveContent = nil
+        afterSaveShowAt = nil
+        Task {
             try? await Task.sleep(until: showAt, clock: .continuous)
             // 待っている間に別のシートを開いた・開こうとしているなら、そちらを優先する（入力中の記録シートを閉じない）
             guard sheet == nil, pendingSheet == nil else { return }
@@ -163,6 +181,12 @@ struct RootView: View {
     /// シートが閉じ終わったとき（`onDismiss`）に呼ぶ。下に引いて閉じたときも呼ばれる。
     private func presentPendingSheet() {
         isDismissingSheet = false
+        if movesToHistoryAfterDismiss {
+            movesToHistoryAfterDismiss = false
+            moveToHistory()
+            afterSaveShowAt = ContinuousClock.now + Self.afterSaveSheetDelay
+            presentAfterSaveSheetWhenReady()
+        }
         guard let next = pendingSheet else { return }
         pendingSheet = nil
         sheet = next

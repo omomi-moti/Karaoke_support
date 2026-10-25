@@ -6,7 +6,7 @@ struct RecordingSheetContainerView: View {
 	@Environment(\.dismiss) private var dismiss
 
 	let seed: RecordingSessionSeed
-	let onSavedMoveToHistory: (SavedRecording) -> Void
+	let onSaved: (SavedRecording) -> Void
 
 	/// 親の `body` が再評価されるたびに `RecordingSheetViewModel` を作り直さない（I-011 `pendingSessionIdForSave` の整合）。
 	@State private var viewModel: RecordingSheetViewModel?
@@ -16,18 +16,18 @@ struct RecordingSheetContainerView: View {
 
 	init(
 		seed: RecordingSessionSeed,
-		onSavedMoveToHistory: @escaping (SavedRecording) -> Void
+		onSaved: @escaping (SavedRecording) -> Void
 	) {
 		self.seed = seed
-		self.onSavedMoveToHistory = onSavedMoveToHistory
+		self.onSaved = onSaved
 	}
 
 	/// 従来どおり ``TrackInputMode`` から開始。
 	init(
 		trackMode: TrackInputMode,
-		onSavedMoveToHistory: @escaping (SavedRecording) -> Void
+		onSaved: @escaping (SavedRecording) -> Void
 	) {
-		self.init(seed: .mode(trackMode), onSavedMoveToHistory: onSavedMoveToHistory)
+		self.init(seed: .mode(trackMode), onSaved: onSaved)
 	}
 
 	var body: some View {
@@ -58,7 +58,7 @@ struct RecordingSheetContainerView: View {
 			} else if let vm = viewModel {
 				RecordingSheetContentView(
 					viewModel: vm,
-					onSavedMoveToHistory: onSavedMoveToHistory
+					onSaved: onSaved
 				)
 			} else {
 				AppBackgroundGradientView()
@@ -107,7 +107,7 @@ struct RecordingSheetContainerView: View {
 }
 
 #Preview {
-	RecordingSheetContainerView(trackMode: .manual, onSavedMoveToHistory: { _ in })
+	RecordingSheetContainerView(trackMode: .manual, onSaved: { _ in })
 		.environment(NetworkMonitor(startsMonitoring: false))
 		.environment(\.trackRepository, PreviewTrackRepository())
 }

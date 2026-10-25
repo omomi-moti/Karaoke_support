@@ -8,7 +8,7 @@ struct RecordingSheetContentView: View {
     @Environment(NetworkMonitor.self) private var networkMonitor
 
     @Bindable var viewModel: RecordingSheetViewModel
-    let onSavedMoveToHistory: (SavedRecording) -> Void
+    let onSaved: (SavedRecording) -> Void
 
     private var recordingTitle: String {
         viewModel.isEditingExistingSession ? "記録を編集" : "記録を追加"
@@ -134,7 +134,7 @@ struct RecordingSheetContentView: View {
     @MainActor
     private func attemptSave() async {
         guard let saved = await viewModel.save() else { return }
-        onSavedMoveToHistory(saved)
+        onSaved(saved)
         dismiss()
     }
 
@@ -151,7 +151,7 @@ struct RecordingSheetContentView: View {
             sessionRepository: PreviewSessionRepository(),
             trackRepository: PreviewTrackRepository()
         ),
-        onSavedMoveToHistory: { _ in }
+        onSaved: { _ in }
     )
     .environment(NetworkMonitor(startsMonitoring: false))
 }
