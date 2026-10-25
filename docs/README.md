@@ -19,7 +19,6 @@
 | [v1_navigation_songs_recording.md](v1_navigation_songs_recording.md) | 記録シートとタブのナビゲーション |
 | [design/color_tokens_v1.md](design/color_tokens_v1.md) | カラートークン（Color Set）の一覧と使い分け |
 | [design/track_matching.md](design/track_matching.md) | 曲名の一致・候補の並べ方 |
-| [detailed_design.md](detailed_design.md) | 詳細設計書（データモデル・シーケンス・Spotify API） |
 
 ## 仕様・計画（作成時点の資料）
 
@@ -27,6 +26,7 @@
 |---|---|
 | [raw_spec.md](raw_spec.md) | 最初の要件（v4.1） |
 | [basic_design.md](basic_design.md) | 基本設計書（2026-03 作成。最低対応 OS など、今の実装と違う記述がある） |
+| [detailed_design.md](detailed_design.md) | 詳細設計書（2026-03 作成。データモデル・シーケンス・クラス図は今の実装と違う。V2 の Spotify Web API の仕様はここにしかないので、V2 を始めるときに取り出す） |
 
 ## 記録
 

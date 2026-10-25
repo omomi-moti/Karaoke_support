@@ -13,11 +13,12 @@ Hitokara Log は、歌唱の意図を **Intent（🔥 Shout / 🌙 Emo / 🎤 Pr
 - 歌唱記録が散逸する → **タイムマシン・マイアンセム**で振り返り＆次の選曲を支援
 
 <p align="center">
-  <img src="docs/screenshots/Simulator Screenshot - iPhone 17 - 2026-03-26 at 21.26.41.png" alt="選曲ホーム" width="160">
-  <img src="docs/screenshots/Simulator Screenshot - iPhone 17 - 2026-03-26 at 21.27.04.png" alt="歌唱記録シート" width="160">
-  <img src="docs/screenshots/Simulator Screenshot - iPhone 17 - 2026-03-26 at 21.27.17.png" alt="履歴" width="160">
-  <img src="docs/screenshots/Simulator Screenshot - iPhone 17 - 2026-03-26 at 21.26.53.png" alt="タイムマシン" width="160">
-  <img src="docs/screenshots/Simulator Screenshot - iPhone 17 - 2026-03-26 at 21.26.58.png" alt="マイアンセム" width="160">
+  <img src="docs/screenshots/songs.png" alt="選曲ホーム" width="160">
+  <img src="docs/screenshots/recording.png" alt="歌唱記録シート" width="160">
+  <img src="docs/screenshots/after-save.png" alt="保存直後の次の1曲の提案" width="160">
+  <img src="docs/screenshots/history.png" alt="履歴" width="160">
+  <img src="docs/screenshots/track-detail.png" alt="曲詳細" width="160">
+  <img src="docs/screenshots/time-machine.png" alt="タイムマシン" width="160">
 </p>
 
 ---
