@@ -46,7 +46,7 @@ Sources/
 ├── App/          # @main, ModelContainer setup, EnvironmentKey definitions, preview mocks
 ├── Presentation/ # View + ViewModel (one ViewModel per screen)
 ├── Domain/       # Protocols, @Model entities, enums, helpers — no SwiftUI/Data imports
-└── Data/         # Concrete repository implementations (SwiftData, NetworkMonitor)
+└── Data/         # Concrete repository implementations (SwiftData, NetworkMonitor) — no SwiftUI imports
 ```
 
 **Dependency direction**: `Presentation → Domain Protocol`. `Data` implements Domain protocols and is injected at app startup. `Presentation` never imports `Data`.
@@ -79,13 +79,34 @@ viewModel.save()                // ✅
 | `Track` | `Domain/Models/SwiftData/Track.swift` | `spotifyTrackId` OR `userEnteredName`; two convenience inits |
 | `SingingSession` | `Domain/Models/SwiftData/SingingSession.swift` | UUID idempotency key; N:1 with Track |
 | `Intent` | `Domain/Models/Enums/Intent.swift` | `.shout` / `.emo` / `.practice`; `String` RawValue |
+| `RecordSource` | `Domain/Models/Enums/RecordSource.swift` | `.manual` / `.suggestion`; stored as optional `SingingSession.recordedSource`, read as `source` (nil = `.manual`) (ADR 0034) |
+
+When adding a property to an `@Model`, make it optional: SwiftData's automatic migration leaves the new column empty on existing rows, and a non-optional enum crashes when read (ADR 0034). Open data from the previous build with the new build before shipping.
 
 ### ViewModel rules
 
-- All ViewModels: `@Observable`, `@MainActor`, class.
+- All ViewModels: `@Observable`, `@MainActor`, class. Never `ObservableObject` / `@StateObject` / `@ObservedObject`.
 - One ViewModel per screen/tab.
 - Repositories injected via `init` (never created inside ViewModel).
-- `async throws` for all repository calls; errors caught in ViewModel, surfaced as `@Published`-like state.
+- `async throws` for all repository calls; errors caught in ViewModel, surfaced as state, and the UI offers a retry.
+
+### View and data rules
+
+- **Views only draw.** No repository calls, business logic, or async work in a View; delegate to the ViewModel. A container View may read repositories from `@Environment` and create the ViewModel (e.g. `IntentTabContainerView`, `SettingsContainerView`).
+- **Property wrappers**: `@State` for transient UI state and for holding the ViewModel; `@Binding` for two-way state from a parent; `@Environment` for app-wide values (repositories, network state). Don't use `@Query` in Views; read through repositories (currently zero `@Query` in the app).
+- **Repositories are `@MainActor`** because `ModelContext` is not thread-safe and must stay on the thread that created it.
+- **`UserDefaults`** is only for UI flags (e.g. a tutorial-shown flag), never for displayed data or Spotify metadata (currently unused).
+- Check connectivity before calling an API and fall back to local data when offline (V2, Spotify).
+
+### Files and naming
+
+- Put files in a feature subfolder under each layer (`Presentation/Recording/`, `Presentation/History/`, …).
+- **One type per file, file name = type name.** A `#Preview` may live in the same file.
+- **Every View that can be previewed has a `#Preview`** (skip only when it needs auth or a live API).
+- Screens: `{Feature}View` / `{Role}View` (`HistoryListView`); reusable components: `{Purpose}{Kind}` (`TrackRowView`, `IntentBadgeView`).
+- `@Model` entities: singular PascalCase (`Track`, `SingingSession`). Bool properties and variables start with `is` / `has` / `can`.
+- Async functions start with a verb (`fetchSessions()`); repository methods use `save` / `fetch` / `update` / `delete` / `exists`; ViewModel methods name the user action (`save()`, `load()`).
+- Protocols name a role (`SessionRepositoryProtocol`); enums are singular nouns with lowerCamelCase cases (`Intent { case shout, emo, practice }`).
 
 ---
 
@@ -117,20 +138,22 @@ The deployment target was raised to iOS 26 on 2026-09-23, so the iOS 17 bugs bel
 
 ## Git Conventions
 
-- **Branch naming**:
-  - `feature/i-{番号}-{英語名}` (e.g. `feature/i-014-history-infinite-scroll`)
-  - `refactor/i-r{番号}-{内容}`
-  - `docs/i-d{番号}-{内容}`
-  - `chore/i-c{番号}-{内容}`
-- **Commit prefix**: `feat:` / `fix:` / `refactor:` / `docs:` / `test:` / `chore:`
-- **Merge**: squash merge via PR into the current integration branch `develop/ios26-redesign` (not directly into `main`). No direct pushes to `main`.
+- **Branch naming**: `{type}/{short-english-name}` with no issue number (e.g. `feature/after-save-recommendation`, `fix/data-load-error`, `refactor/environment-keys`). `type` is `feature` / `fix` / `refactor` / `docs` / `chore`. One issue (one sprint) per branch, small enough to merge within a few days.
+- **Linking issues**: put `Refs #N` in commit messages and `Closes #N` in the PR body, instead of in the branch name.
+- **Commit message**: `{prefix}: {summary of 50 characters or less}`, with a body for what and why when needed. Prefixes: `feat:` / `fix:` / `refactor:` / `docs:` / `test:` / `chore:`
+- **Merge**: squash merge via PR into `main`. No direct pushes to `main`. (The former integration branch `develop/ios26-redesign` was merged into `main` in #110 and is no longer used.)
+- Rebasing inside a feature branch is fine; never rebase commits already pushed to `main`.
 
 ---
 
 ## Project Constraints (Constitution)
 
+Summary of [docs/constitution.md](docs/constitution.md), which takes precedence over ADRs and other docs.
+
 - **Spotify metadata must never be persisted** (SwiftData, UserDefaults, disk). In-memory TTL cache only (≤ 24h, reset on restart). V2 design; not yet implemented.
 - **SSOT is local SwiftData**. API responses are never rendered directly in Views.
+- **Offline first**: recording and browsing history must work without a network. Intents and memos stay on the device and are never sent out.
+- **`Track` and `SingingSession` stay separate**: deduplicate tracks only; a new `SingingSession` is created for every performance.
 - **`userEnteredName`** is user-generated data (persistable). `spotifyTrackId` is Spotify metadata (identifier only, persistable as a key). Artwork/title/artist from Spotify API are NOT persistable.
 - Tasks and spec changes are tracked in GitHub Issues; design decisions are recorded in `docs/adr/`. The old issue lists (`docs/archive/v1_issues.md` etc.) are archived and only used to look up the `I-0xx` numbers that appear in code comments.
 
@@ -140,23 +163,26 @@ The deployment target was raised to iOS 26 on 2026-09-23, so the iOS 17 bugs bel
 
 ```
 Karaoke_supportTests/
+├── App/                 # AppDependencies
 ├── Data/SwiftData/      # in-memory ModelContainer tests for repository operations
-├── Domain/              # Helper and model unit tests
+├── Domain/              # Helper and model unit tests (e.g. NextTrackRecommender)
 └── Presentation/
+    ├── AfterSave/       # after-save recommendation
     ├── History/         # HistoryViewModel pagination, sort, loadGeneration
-    ├── Recording/       # RecordingSheetViewModel save/edit, track suggestions, score input
+    ├── Recording/       # RecordingSheetViewModel save/edit, record source, track suggestions, score input
+    ├── Settings/        # SettingsViewModel
     ├── Songs/           # IntentTabViewModel
     ├── TrackDetail/     # TrackDetailViewModel, score summary
     └── Common/
 ```
 
-Tests that touch SwiftData use a real `ModelContainer(isStoredInMemoryOnly: true)` — no mocking of the DB layer. ViewModel tests inject mock repositories via protocol.
+Tests that touch SwiftData use a real `ModelContainer(isStoredInMemoryOnly: true)` — no mocking of the DB layer. ViewModel tests inject mock repositories via protocol. New tests use Swift Testing (`@Suite` / `@Test`).
 
 ---
 
 ## Related Files
 
-- @.cursorrules — 詳細なコーディング規約・命名規則
+- docs/constitution.md — プロジェクト最上位ルール（要点は上の Project Constraints）
 - docs/adr/ — 技術判断の記録（ADR、1 件 1 ファイル）。設計判断を決めた・変えたときは 1 件足す。承認済みの本文は書き換えず、新しい番号で置き換える。書き方は docs/adr/README.md
 - docs/README.md — docs の目次と、どの文書が正か
-- @.specify/memory/constitution.md — プロジェクト最上位ルール
+- .claude/skills/karaoke-review/ — このプロジェクト用のコードレビュー
