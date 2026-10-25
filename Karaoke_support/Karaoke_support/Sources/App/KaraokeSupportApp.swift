@@ -1,67 +1,62 @@
+import OSLog
 import SwiftUI
 import SwiftData
 
 @main
 struct KaraokeSupportApp: App {
-	private let modelContainer: ModelContainer
-	private let sessionRepository: any SessionRepositoryProtocol
-	private let trackRepository: any TrackRepositoryProtocol
-	private let insightRepository: any InsightRepositoryProtocol
-	private let trackStatsRepository: any TrackStatsRepositoryProtocol
+	/// 保存先の DB を開けなかったときは失敗のまま持ち、メモリ上の DB では起動しない（ADR 0033）。
+	private let dependencies: Result<AppDependencies, any Error>
 	@State private var networkMonitor = NetworkMonitor()
+
+	private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Karaoke_support", category: "DataStore")
 
 	@MainActor
 	init() {
 		// UI テストは `Karaoke_supportUITestsLaunchTests` 等から `launchEnvironment` で有効化。永続ストア起因の起動クラッシュを避ける。
 		if ProcessInfo.processInfo.environment["KARAOKE_UITEST_IN_MEMORY"] == "1" {
 			do {
-				let container = try Self.makeModelContainer(isInMemory: true)
-				self.modelContainer = container
+				self.dependencies = .success(try AppDependencies.make(configuration: ModelConfiguration(isStoredInMemoryOnly: true)))
 			} catch {
 				fatalError("Failed to create in-memory ModelContainer for UI tests: \(error)")
 			}
-			let context = modelContainer.mainContext
-			self.sessionRepository = SwiftDataSessionRepository(modelContext: context)
-			self.trackRepository = SwiftDataTrackRepository(modelContext: context)
-			self.insightRepository = SwiftDataInsightRepository(modelContext: context)
-			self.trackStatsRepository = SwiftDataTrackStatsRepository(modelContext: context)
 			return
 		}
 
-		do {
-			let container = try Self.makeModelContainer(isInMemory: false)
-			self.modelContainer = container
-		} catch {
-			assertionFailure("Failed to create persistent ModelContainer: \(error). Falling back to in-memory store.")
-			do {
-				self.modelContainer = try Self.makeModelContainer(isInMemory: true)
-			} catch {
-				fatalError("Failed to create in-memory ModelContainer: \(error)")
-			}
+		#if DEBUG
+		// エラー画面を確かめるためだけに、DB を開けなかったことにする（デバッグのビルドだけ）。
+		if ProcessInfo.processInfo.environment["KARAOKE_SIMULATE_DATA_LOAD_FAILURE"] == "1" {
+			self.dependencies = .failure(SimulatedDataLoadFailure())
+			return
 		}
+		#endif
 
-		let context = modelContainer.mainContext
-		self.sessionRepository = SwiftDataSessionRepository(modelContext: context)
-		self.trackRepository = SwiftDataTrackRepository(modelContext: context)
-		self.insightRepository = SwiftDataInsightRepository(modelContext: context)
-		self.trackStatsRepository = SwiftDataTrackStatsRepository(modelContext: context)
+		do {
+			self.dependencies = .success(try AppDependencies.make(configuration: ModelConfiguration(isStoredInMemoryOnly: false)))
+		} catch {
+			// 元のデータには手を付けず、原因を追えるようにログだけ残す
+			Self.logger.error("Failed to open the persistent store: \(String(describing: error), privacy: .public)")
+			self.dependencies = .failure(error)
+		}
 	}
 
 	var body: some Scene {
 		WindowGroup {
-			RootView()
-				.environment(networkMonitor)
-				.environment(\.sessionRepository, sessionRepository)
-				.environment(\.trackRepository, trackRepository)
-				.environment(\.insightRepository, insightRepository)
-				.environment(\.trackStatsRepository, trackStatsRepository)
+			switch dependencies {
+			case .success(let dependencies):
+				RootView()
+					.environment(networkMonitor)
+					.environment(\.sessionRepository, dependencies.sessionRepository)
+					.environment(\.trackRepository, dependencies.trackRepository)
+					.environment(\.insightRepository, dependencies.insightRepository)
+					.environment(\.trackStatsRepository, dependencies.trackStatsRepository)
+					.modelContainer(dependencies.modelContainer)
+			case .failure:
+				DataLoadErrorView()
+			}
 		}
-		.modelContainer(modelContainer)
-	}
-
-	@MainActor
-	private static func makeModelContainer(isInMemory: Bool) throws -> ModelContainer {
-		let configuration = ModelConfiguration(isStoredInMemoryOnly: isInMemory)
-		return try ModelContainer(for: Track.self, SingingSession.self, configurations: configuration)
 	}
 }
+
+#if DEBUG
+private struct SimulatedDataLoadFailure: Error {}
+#endif

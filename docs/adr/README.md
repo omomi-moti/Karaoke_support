@@ -38,6 +38,7 @@
 | [0030](0030-delay-after-save-sheet.md) | 保存直後のシートは、保存してから 1 秒たってから出す | 置き換え済み（→ 0032） |
 | [0031](0031-environment-values-by-default-identity.md) | 環境に置くものは、初期値に同一性があるかで書き方を分ける | 承認 |
 | [0032](0032-move-to-history-after-dismiss.md) | 保存したら、記録シートが閉じ終わってから履歴タブへ移り、その 1 秒後に保存直後のシートを出す | 承認 |
+| [0033](0033-show-error-when-store-cannot-open.md) | 保存先の DB を開けなかったときは、メモリ上の DB で起動せず、エラー画面で止める | 承認 |
 
 ## 書き方
 

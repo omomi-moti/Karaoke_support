@@ -53,7 +53,9 @@ Sources/
 
 ### DI wiring
 
-Repositories are instantiated in `KaraokeSupportApp.swift` with a `ModelContainer`, then injected via custom `EnvironmentKey` types defined in `Sources/App/Environment/`. Views read them with `@Environment(\.sessionRepository)` etc. and pass them into ViewModel `init`. Preview mocks live in `Sources/App/PreviewSupport/`.
+The `ModelContainer` and repositories are built in one place, `AppDependencies.make(configuration:)` (`Sources/App/AppDependencies.swift`). `KaraokeSupportApp` holds the result and injects the repositories via custom `EnvironmentKey` types defined in `Sources/App/Environment/`. Views read them with `@Environment(\.sessionRepository)` etc. and pass them into ViewModel `init`. Preview mocks live in `Sources/App/PreviewSupport/`.
+
+If the persistent store cannot be opened, the app shows `DataLoadErrorView` instead of `RootView` and never falls back to an in-memory store; the original data is left untouched and the error is logged (ADR 0033). In Debug builds, launching with `KARAOKE_SIMULATE_DATA_LOAD_FAILURE=1` shows that screen.
 
 How a value goes into the environment depends on whether its default has identity (ADR 0031):
 
