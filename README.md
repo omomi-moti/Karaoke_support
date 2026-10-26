@@ -13,11 +13,12 @@ Hitokara Log は、歌唱の意図を **Intent（🔥 Shout / 🌙 Emo / 🎤 Pr
 - 歌唱記録が散逸する → **タイムマシン・マイアンセム**で振り返り＆次の選曲を支援
 
 <p align="center">
-  <img src="docs/screenshots/Simulator Screenshot - iPhone 17 - 2026-03-26 at 21.26.41.png" alt="選曲ホーム" width="160">
-  <img src="docs/screenshots/Simulator Screenshot - iPhone 17 - 2026-03-26 at 21.27.04.png" alt="歌唱記録シート" width="160">
-  <img src="docs/screenshots/Simulator Screenshot - iPhone 17 - 2026-03-26 at 21.27.17.png" alt="履歴" width="160">
-  <img src="docs/screenshots/Simulator Screenshot - iPhone 17 - 2026-03-26 at 21.26.53.png" alt="タイムマシン" width="160">
-  <img src="docs/screenshots/Simulator Screenshot - iPhone 17 - 2026-03-26 at 21.26.58.png" alt="マイアンセム" width="160">
+  <img src="docs/screenshots/songs.png" alt="選曲ホーム" width="160">
+  <img src="docs/screenshots/recording.png" alt="歌唱記録シート" width="160">
+  <img src="docs/screenshots/after-save.png" alt="保存直後の次の1曲の提案" width="160">
+  <img src="docs/screenshots/history.png" alt="履歴" width="160">
+  <img src="docs/screenshots/track-detail.png" alt="曲詳細" width="160">
+  <img src="docs/screenshots/time-machine.png" alt="タイムマシン" width="160">
 </p>
 
 ---
@@ -26,13 +27,13 @@ Hitokara Log は、歌唱の意図を **Intent（🔥 Shout / 🌙 Emo / 🎤 Pr
 
 | カテゴリ | 技術 |
 |----------|------|
-| 言語 | Swift 5.9+ |
+| 言語 | Swift 6.2（Xcode 26 付属のコンパイラ。言語モードは 5.9、Approachable Concurrency を有効） |
 | UI | SwiftUI |
 | ローカル DB | SwiftData |
 | 状態管理 | `@Observable`（Observation framework） |
 | 非同期処理 | Swift Concurrency（async/await） |
 | アーキテクチャ | MVVM + Repository、手動 DI（`@Environment`） |
-| テスト | XCTest・Swift Testing（ユニットテスト + UI テスト） |
+| テスト | Swift Testing・XCTest（ユニットテスト。UI テストは起動の確認だけ） |
 | 最低対応 OS | iOS 26.0 |
 
 ---
@@ -48,7 +49,7 @@ open Karaoke_support/Karaoke_support.xcodeproj
 # Cmd + R でビルド & 実行（iPhone シミュレータ iOS 26+）
 ```
 
-起動後: 右下の「＋」ボタン → 曲名入力 → スコア → Intent → 保存
+起動後: 右下の「＋」ボタン → 曲名入力 → スコア（任意）→ Intent → 保存。保存すると履歴タブに移り、同じ気分で前に歌った曲（今日まだ歌っていないもの）があれば「次はこの曲？」で次の 1 曲の候補が出る
 
 
 ---
@@ -60,18 +61,22 @@ open Karaoke_support/Karaoke_support.xcodeproj
 
 ```
 Sources/
-├── App/                  # @main、DI（EnvironmentKey）、プレビュー用モック
+├── App/                  # @main、起動時の組み立て（AppDependencies）、DI（EnvironmentKey）、プレビュー用モック
 ├── Presentation/         # View + ViewModel（画面単位でサブフォルダ）
 │   ├── Recording/        # 歌唱記録シート
+│   ├── AfterSave/        # 保存直後のシート（次の 1 曲の提案）
 │   ├── History/          # 履歴一覧
+│   ├── TrackDetail/      # 曲詳細
 │   ├── Songs/            # 選曲タブ・インテントタブ
-│   ├── Root/             # TabView
+│   ├── Search/           # 検索タブ
+│   ├── Settings/         # 設定タブ
+│   ├── Root/             # TabView・シートの切り替え・DB を開けなかったときの画面
 │   ├── Common/           # 共通コンポーネント
 │   └── Theme/            # 色トークン
 ├── Domain/               # Protocol・Model（フレームワーク非依存）
-│   ├── Models/           # Track, SingingSession, Intent
-│   ├── Repositories/     # SessionRepository, TrackRepository, InsightRepository
-│   └── Helpers/
+│   ├── Models/           # Track, SingingSession, Intent, RecordSource 等
+│   ├── Repositories/     # Session / Track / Insight / TrackStats の Repository
+│   └── Helpers/          # 次の 1 曲の計算、曲名の候補の並べ方 等
 └── Data/                 # 具体実装
     ├── SwiftData/        # Repository実装
     └── Network/          # NetworkMonitor
@@ -93,12 +98,15 @@ xcodebuild test \
 
 | テスト対象 | 内容 |
 |-----------|------|
-| Repository（SwiftData） | 冪等性・削除・更新・取得（Intent 別・曲別）・点数なしの記録の集計 |
+| 起動時の組み立て（AppDependencies） | DB と Repository の作成・DB を開けなかったときの throw |
+| Repository（SwiftData） | 冪等性・削除・更新・取得（Intent 別・曲別）・点数なしの記録の集計・曲ごとの集計・記録の入口と、その数 |
 | HistoryViewModel・並び順 | ページネーション・ソート・非同期競合 |
 | IntentTabViewModel | インサイト取得・並行制御・月次統計 |
-| RecordingSheetViewModel | 新規／編集の分岐・曲名の候補（もしかして）・点数入力・歌唱日時 |
+| RecordingSheetViewModel | 新規／編集の分岐・保存した記録の要約・曲と気分を入れて開く・記録の入口（提案から／それ以外）・曲名の候補（もしかして）・点数入力・歌唱日時 |
+| 保存直後のシート | 次の 1 曲の候補の用意・理由の文言 |
+| SettingsViewModel | 提案から記録した数の読み込み・再試行 |
 | TrackDetailViewModel・統計 | 曲ごとの点数推移・直近スコアと前回比 |
-| Domain ヘルパー・共通 | 曲名表示・曲名候補の並べ方・ランキングの曲名・点数の右詰め入力と表示・Empty State 文言 |
+| Domain ヘルパー・共通 | 次の 1 曲の計算・曲名表示・曲名候補の並べ方・ランキングの曲名・点数の右詰め入力と表示・Empty State 文言 |
 
 ---
 
@@ -110,10 +118,9 @@ xcodebuild test \
 | プロダクト概要・Intent設計 | [`docs/product_overview.md`](docs/product_overview.md) |
 | 技術判断の記録（ADR） | [`docs/adr/`](docs/adr/README.md) |
 | アーキテクチャ・データフロー | [`docs/architecture.md`](docs/architecture.md) |
-| 開発プロセス（Spec駆動・AI活用） | [`docs/development_process.md`](docs/development_process.md) |
+| 開発プロセス（Issue・ADR・AI 活用） | [`docs/development_process.md`](docs/development_process.md) |
 | V1 Issue一覧・完了チェック（アーカイブ） | [`docs/archive/v1_issues.md`](docs/archive/v1_issues.md) |
 | 画面遷移設計 | [`docs/v1_navigation_songs_recording.md`](docs/v1_navigation_songs_recording.md) |
-| 手動QA手順 | [`docs/manual_qa_I008_I009_record_save.md`](docs/manual_qa_I008_I009_record_save.md) |
 
 ---
 

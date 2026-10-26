@@ -24,4 +24,4 @@
 ## 見直す条件
 - コード中の `I-0xx` 番号を GitHub Issue の番号に置き換えるなどして、archive を参照しなくなったら削除する
 
-関連：[archive/v1_issues.md](../archive/v1_issues.md)、[cross_check_report.md](../cross_check_report.md)
+関連：[archive/v1_issues.md](../archive/v1_issues.md)、[cross_check_report.md](../archive/cross_check_report.md)

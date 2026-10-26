@@ -173,7 +173,7 @@ Phase 2: I-017 → I-018
   - [x] 保存ボタンを配置し、RecordingSheetViewModel 経由で TrackRepository.getOrCreate で Track を取得/作成し、SessionRepository.saveNewRecordingSession で歌唱記録を保存する
   - [x] 保存成功時は `selectedTab = .history` で履歴タブへ切り替える
   - [x] 保存失敗時は共通エラー表示コンポーネント（メッセージ「保存に失敗しました。もう一度お試しください」+ 再試行ボタン）を使用する（インライン表示）
-- **手動QA**: 記録保存フローの確認手順は [`manual_qa_I008_I009_record_save.md`](../manual_qa_I008_I009_record_save.md) を参照
+- **手動QA**: 記録保存フローの確認手順は [`manual_qa_I008_I009_record_save.md`](manual_qa_I008_I009_record_save.md) を参照
 
 ---
 
@@ -198,7 +198,7 @@ Phase 2: I-017 → I-018
   - [x] 冪等性が保証されることを確認する（`Karaoke_supportTests/Data/SwiftData/I011SessionIdempotencyTests.swift`）
 - **MVP 仕様メモ（冪等の意味）**:
   - **同一 Idempotency Key（`SingingSession.id`）の再送**は、データ層では **既存なら insert・`singCount` 加算を行わず成功扱い**（＝**同一キーの再送は無視**）。
-  - **V1 / MVP** では、保存失敗後の **再試行は「同じ入力内容でのやり直し」を推奨**とする。失敗後に曲名・スコア・Intent 等を変えてから再試行した場合、**既に同一キーで保存済み**だと **画面上の変更が DB に反映されないのに成功に見える**可能性がある（境界仕様）。詳細は [`manual_qa_I008_I009_record_save.md`](../manual_qa_I008_I009_record_save.md) の任意シナリオを参照。
+  - **V1 / MVP** では、保存失敗後の **再試行は「同じ入力内容でのやり直し」を推奨**とする。失敗後に曲名・スコア・Intent 等を変えてから再試行した場合、**既に同一キーで保存済み**だと **画面上の変更が DB に反映されないのに成功に見える**可能性がある（境界仕様）。詳細は [`manual_qa_I008_I009_record_save.md`](manual_qa_I008_I009_record_save.md) の任意シナリオを参照。
 
 ---
 

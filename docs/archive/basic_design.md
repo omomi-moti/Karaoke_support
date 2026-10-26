@@ -143,7 +143,7 @@ flowchart TD
 ### 3.3 各画面の役割
 
 - **S-001 オンボーディング**: Spotify連携を促す。スキップ時はローカル機能のみ利用可能とする案内。
-- **S-002 選曲・ホーム**: 2タブ（インテント / Spotify視聴履歴）。Empty State時は「まず1曲歌ってみよう！」。**V1 実装**では、曲確定後の歌唱記録 UI は **`NavigationStack` の push ではなくシート**（`.sheet(item:)`）で表示し、保存後の「ルートが一瞬見える」チラつきを避ける（詳細は [`v1_navigation_songs_recording.md`](./v1_navigation_songs_recording.md)）。
+- **S-002 選曲・ホーム**: 2タブ（インテント / Spotify視聴履歴）。Empty State時は「まず1曲歌ってみよう！」。**V1 実装**では、曲確定後の歌唱記録 UI は **`NavigationStack` の push ではなくシート**（`.sheet(item:)`）で表示し、保存後の「ルートが一瞬見える」チラつきを避ける（詳細は [`v1_navigation_songs_recording.md`](../v1_navigation_songs_recording.md)）。
 - **S-003 検索**: ローカル優先、歌った回数順。Debounce 0.5秒でSpotify検索。0件時は「手動で追加して歌う」。
 - **S-004 Intent選択**: 3モードから1つ選択。選択後はS-005へ。
 - **S-005 歌唱記録入力**: スコア（0〜100）、メモ（任意）。保存ボタン二重送信防止。
@@ -181,7 +181,7 @@ flowchart TD
 - **`SessionRepositoryProtocol.fetchAll(limit:offset:)`** のドキュメントコメントで **日時降順**取得が契約として明記されており、本番の **`SwiftDataSessionRepository`** は `SortDescriptor` でこれを満たす。
 - **将来の最適化案（未実装）**: その **日時降順契約**を前提に、**`performedAt < monthStart` が出たら以降のページ取得を打ち切る**など、過去データが多い場合の短絡が可能。導入する場合は **すべての実装・モック・テスト用スタブが同契約を満たすこと**（並びがバラバラだと打ち切りは誤集計になる）。より根本的には **`SessionRepository` に期間指定集計**を追加する方法がある。優先度は **体感・計測で問題が出るまで P2〜P3** 程度でよいことが多い。
 
-**本節は V1 の前提と V2 の検討余地のメモである。** 確定仕様は GitHub Issues で決める（[ADR 0010](adr/0010-issues-and-adr-as-source-of-truth.md)）。
+**本節は V1 の前提と V2 の検討余地のメモである。** 確定仕様は GitHub Issues で決める（[ADR 0010](../adr/0010-issues-and-adr-as-source-of-truth.md)）。
 
 ---
 

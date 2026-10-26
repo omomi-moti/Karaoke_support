@@ -19,7 +19,7 @@
 | 空状態の「手動で曲名を入力して歌う」（選曲・履歴） | `EnvironmentValues.navigateToManualRecording` → `presentManualRecording()` | `.mode(.manual)` |
 | タイムマシン／マイアンセムのランキング行 | `SongsRootView(onSelectTrack:)` → `presentRecording(_:)` | `.selectedTrack(SelectedTrack)` |
 | 検索タブ（`Tab(role: .search)`）の結果行 | `SearchContainerView(onSelectTrack:)` → `presentRecording(_:)` | `.selectedTrack(SelectedTrack)` |
-| 保存直後のシートの提案カード | `recordRecommendation(_:intent:)`（保存直後のシートを閉じてから開く） | `.selectedTrack(SelectedTrack, intent:)`（保存した記録の気分を入れて開く） |
+| 保存直後のシートの提案カード | `recordRecommendation(_:intent:)`（保存直後のシートを閉じてから開く） | `.selectedTrack(SelectedTrack, intent:, source: .suggestion)`（保存した記録の気分を入れて開く。曲を変えずに保存すると、提案からの記録になる・ADR 0034） |
 
 `navigateToManualRecording` は以前は「選曲タブへ切替 + tick で `SongsRootView` にシートを開かせる」方式だったが、シートを `RootView` に集約したため **その場で開く**だけになった。
 
@@ -39,7 +39,7 @@
 ```
 [選曲タブ] ──(＋ / 空状態)────────┐
 [選曲タブ] ──(ランキング行)───────┤
-[履歴タブ] ──(＋ / 空状態)────────┤──► RootView.recordingSheetItem
+[履歴タブ] ──(＋ / 空状態)────────┤──► RootView.sheet（.recording）
 [検索タブ] ──(検索結果行)─────────┘            │
                                                ▼
                          .sheet ──► RecordingSheetContainerView(seed:, presentation: .sheet)

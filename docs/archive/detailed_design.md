@@ -133,7 +133,7 @@ sequenceDiagram
 
 Domain層のモデルは以下の原則に従って設計されている。
 
-- **SwiftUI / SwiftData に対する依存を最小化する**。`Track` と `SingingSession` は永続化のために `@Model` を使用しているが、これは「Domain層に `@Model` を置くことでマッピング層を不要にし、実装をシンプルに保つ」ための意図的な例外（`.specify/memory/constitution.md` 参照）
+- **SwiftUI / SwiftData に対する依存を最小化する**。`Track` と `SingingSession` は永続化のために `@Model` を使用しているが、これは「Domain層に `@Model` を置くことでマッピング層を不要にし、実装をシンプルに保つ」ための意図的な例外（`docs/constitution.md` 参照）
 - **Spotify メタデータを永続化しない**。Spotify から取得した曲名・アーティスト名・アートワーク等は SwiftData / UserDefaults 等に一切保存しない。永続化するのは識別子（`spotifyTrackId`）とユーザー生成データのみ（詳細は §4 参照）
 - **ユーザーの意図（Intent）をドメイン概念として扱う**。Intent は UI 表示用ラベルではなく、インサイト集計・フィルタリングのキーとして全域で機能するドメイン概念である
 
@@ -173,8 +173,8 @@ Track(userEnteredName: "夜に駆ける")   // 手動入力の曲
 | `id` | `UUID` | Idempotency Key（二重送信防止の主キー）。UI 層で生成する |
 | `track` | `Track` | 紐づく曲（必須） |
 | `intent` | `Intent` | 歌唱の意図（永続化時は `RawValue: String`） |
-| `performedAt` | `Date` | 歌唱日時。新規記録では保存した時刻（[ADR 0015](adr/0015-performed-at-from-save-time.md)） |
-| `score` | `Double?` | スコア（0〜100、小数第3位まで）。`nil` は点数なし（[ADR 0012](adr/0012-score-three-decimals-optional.md)） |
+| `performedAt` | `Date` | 歌唱日時。新規記録では保存した時刻（[ADR 0015](../adr/0015-performed-at-from-save-time.md)） |
+| `score` | `Double?` | スコア（0〜100、小数第3位まで）。`nil` は点数なし（[ADR 0012](../adr/0012-score-three-decimals-optional.md)） |
 | `memo` | `String?` | メモ（任意） |
 
 **冪等性の保証**: `id` を Idempotency Key として使用し、同一 `id` のセッションが既に存在する場合は insert も `singCount` 加算も行わずに成功扱いとする。UI 層の `isSaving` フラグと合わせた二重構造で重複保存を防止する。

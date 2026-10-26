@@ -1,27 +1,46 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+このリポジトリで作業する Claude Code（claude.ai/code）への案内。一部のフォルダだけに効く決まりは `.claude/rules/` にあり、そのフォルダのファイルを触ったときに読み込まれる。
 
 ---
 
-## Build & Test
+## Claude との作業の約束
 
-This is an Xcode project with no external package manager. All builds and tests run through Xcode or `xcodebuild`.
+本人は、書くことは Claude に任せつつ、すべての変更を理解し、コードの質を保ちたい。
+
+- **日本語で答える。** 文書（CLAUDE.md・ルール・ADR・docs・スキル）も日本語で書く。コードの識別子・コマンド・ファイル名は英語のまま（ADR 0035）。
+- **実装の前に、どのファイルの何を、なぜ変えるかを必ず書き出してから実装する。** 黙って書き換え始めない。
+- 何段階もある作業は、変えるファイルと順番の案を出し、了承をもらってから始める。ブランチも、作る前に名前の案を出す。
+- 差分は最小にする。説明のためのコメントはコードに入れず、チャットで説明する。契約を書く doc コメントはよい。
+- **文書の更新を確かめる。** 手順ごとに、コミットの分け方を出す前に、文書（CLAUDE.md・`.claude/rules/`・docs・README・ADR）の更新が要るか確かめ、結果を一言書く（「要らない」または「これを直す」）。直すなら同じ手順で直す。フォルダごとに見る文書は各ルールの最後に書いてある。それ以外は次のとおり：
+  - 設計の判断をした・変えた → `docs/adr/` に 1 件足す
+  - 作業の進め方や AI の使い方を変えた → `docs/development_process.md` と、この CLAUDE.md
+  - 機能を足した・変えた → `README.md`（説明・スクリーンショット・テストの表）と `docs/product_overview.md`
+- **コミットは本人がする。** 手順ごとに、ファイルの分け方（`git add …`）とコミットメッセージを出す。「コミットして」と頼まれたときだけ Claude がコミットする。`Karaoke_support.xcodeproj/project.pbxproj` のビルド番号は、頼まれない限り入れない。
+- PR は、タイトルと「背景」「変更内容」だけの本文にし、最後に `Closes #N` を書く。
+- **ADR**：背景・比べた案・トレードオフは Claude が書く。「選んだ理由」は本人が自分の言葉で書くので、`<!-- 本人が書く -->` を置いて空けておく。
+- PR の前に `karaoke-review` のスキルでレビューする。確かめていない推測を不具合として出さない。確かめるか、確かめていないと書く。
+
+---
+
+## ビルドとテスト
+
+外部のパッケージマネージャーはない Xcode のプロジェクト。ビルドとテストは Xcode か `xcodebuild` で行う。
 
 ```bash
-# Build (simulator)
+# ビルド（シミュレーター）
 xcodebuild build \
   -project Karaoke_support/Karaoke_support.xcodeproj \
   -scheme Karaoke_support \
   -destination 'platform=iOS Simulator,name=iPhone 17'
 
-# Run all unit tests
+# ユニットテストを全部
 xcodebuild test \
   -project Karaoke_support/Karaoke_support.xcodeproj \
   -scheme Karaoke_support \
   -destination 'platform=iOS Simulator,name=iPhone 17'
 
-# Run a single test class
+# 1 つのテストクラスだけ
 xcodebuild test \
   -project Karaoke_support/Karaoke_support.xcodeproj \
   -scheme Karaoke_support \
@@ -29,134 +48,81 @@ xcodebuild test \
   -only-testing:Karaoke_supportTests/HistoryViewModelPaginationTests
 ```
 
-There is no linter configured. Swift compiler warnings serve as the lint signal.
+リンターはない。Swift コンパイラの警告をリントの代わりにする。
 
 ---
 
-## Architecture
+## アーキテクチャ
 
-**Stack**: SwiftUI + SwiftData (iOS 26+), `@Observable`, Swift Concurrency, no external dependencies.
+**構成**：SwiftUI + SwiftData（iOS 26 以上）、`@Observable`、Swift Concurrency。外部の依存はない。
 
-**Pattern**: MVVM + Repository, manual DI via `@Environment`.
-
-### Layer map
+**パターン**：MVVM + Repository。DI は `@Environment` で手で行う。詳しくは `docs/architecture.md`（レイヤー、データの流れ、データベース、ユーザーフロー）。
 
 ```
 Sources/
-├── App/          # @main, ModelContainer setup, EnvironmentKey definitions, preview mocks
-├── Presentation/ # View + ViewModel (one ViewModel per screen)
-├── Domain/       # Protocols, @Model entities, enums, helpers — no SwiftUI/Data imports
-└── Data/         # Concrete repository implementations (SwiftData, NetworkMonitor)
+├── App/          # @main、AppDependencies、EnvironmentKey、プレビュー用のモック
+├── Presentation/ # View + ViewModel（1 画面 1 ViewModel）。機能ごとのサブフォルダ
+├── Domain/       # プロトコル、@Model、enum、ヘルパー。SwiftUI を読み込まない
+└── Data/         # Repository の具体的な実装（SwiftData、NetworkMonitor）。SwiftUI を読み込まない
 ```
 
-**Dependency direction**: `Presentation → Domain Protocol`. `Data` implements Domain protocols and is injected at app startup. `Presentation` never imports `Data`.
+**依存の向き**：`Presentation → Domain のプロトコル`。`Data` は Domain のプロトコルを実装し、起動時に注入する。`Presentation` は `Data` の型を参照しない。
 
-### DI wiring
+### DI の配線
 
-The `ModelContainer` and repositories are built in one place, `AppDependencies.make(configuration:)` (`Sources/App/AppDependencies.swift`). `KaraokeSupportApp` holds the result and injects the repositories via custom `EnvironmentKey` types defined in `Sources/App/Environment/`. Views read them with `@Environment(\.sessionRepository)` etc. and pass them into ViewModel `init`. Preview mocks live in `Sources/App/PreviewSupport/`.
+`ModelContainer` と Repository は `AppDependencies.make(configuration:)` の 1 か所で作る。`KaraokeSupportApp` がその結果を持ち、`Sources/App/Environment/` の `EnvironmentKey` で Repository を注入する。Container の View は `@Environment(\.sessionRepository)` などで読み、ViewModel の `init` に渡す。プレビュー用のモックは `Sources/App/PreviewSupport/`。
 
-If the persistent store cannot be opened, the app shows `DataLoadErrorView` instead of `RootView` and never falls back to an in-memory store; the original data is left untouched and the error is logged (ADR 0033). In Debug builds, launching with `KARAOKE_SIMULATE_DATA_LOAD_FAILURE=1` shows that screen.
+保存先の DB を開けなかったときは `DataLoadErrorView` を出し、メモリ上の DB には切り替えない（ADR 0033）。デバッグのビルドでは `KARAOKE_SIMULATE_DATA_LOAD_FAILURE=1` でこの画面を出せる。
 
-How a value goes into the environment depends on whether its default has identity (ADR 0031):
+環境に置く値の書き方は、初期値に同一性があるかで分ける（ADR 0031）。
 
-- **Values and closures** (`historyReloadTick`, `navigateTo…`): `@Entry`. Its default is recomputed on every read when nothing is injected, which is harmless here.
-- **Stateful reference types** (repositories): `EnvironmentKey` + `static let defaultValue`, so the preview default is created once. Repository protocols are `@MainActor` and `Sendable`, and preview repositories have a `nonisolated init()` so the key's default can be created off the main actor (ADR 0027).
-- **The single `@Observable` app object** (`NetworkMonitor`): no key. Inject with `.environment(networkMonitor)` and read with `@Environment(NetworkMonitor.self)`. There is no default, so every preview that shows the recording sheet must inject `NetworkMonitor(startsMonitoring: false)`.
+- **値とクロージャ**（`historyReloadTick`、`navigateTo…`）：`@Entry`
+- **状態を持つ参照型**（Repository）：`EnvironmentKey` + `static let defaultValue`。Repository のプロトコルは `@MainActor` かつ `Sendable`。プレビュー用の Repository は `nonisolated init()` を持つ（ADR 0027）
+- **アプリに 1 つの `@Observable` のオブジェクト**（`NetworkMonitor`）：`.environment(networkMonitor)` / `@Environment(NetworkMonitor.self)`。初期値はない
 
-```swift
-// Pattern — never do this in a View:
-modelContext.insert(...)        // ❌ direct DB write from View
-SessionRepository(...)          // ❌ instantiate concrete type in View
+### 主なモデル
 
-// Always go through Repository via ViewModel:
-viewModel.save()                // ✅
-```
-
-### Key domain models
-
-| Type | File | Notes |
+| 型 | ファイル | メモ |
 |------|------|-------|
-| `Track` | `Domain/Models/SwiftData/Track.swift` | `spotifyTrackId` OR `userEnteredName`; two convenience inits |
-| `SingingSession` | `Domain/Models/SwiftData/SingingSession.swift` | UUID idempotency key; N:1 with Track |
-| `Intent` | `Domain/Models/Enums/Intent.swift` | `.shout` / `.emo` / `.practice`; `String` RawValue |
+| `Track` | `Domain/Models/SwiftData/Track.swift` | `userEnteredName`（今は必ず入る）か `spotifyTrackId`（使っていない。常に nil） |
+| `SingingSession` | `Domain/Models/SwiftData/SingingSession.swift` | UUID が冪等キー。Track と N:1 |
+| `Intent` | `Domain/Models/Enums/Intent.swift` | `.shout` / `.emo` / `.practice`。RawValue は `String` |
+| `RecordSource` | `Domain/Models/Enums/RecordSource.swift` | `.manual` / `.suggestion`。空を許す `recordedSource` に保存し、`source` で読む（ADR 0034） |
 
-### ViewModel rules
+### どこでも効く決まり
 
-- All ViewModels: `@Observable`, `@MainActor`, class.
-- One ViewModel per screen/tab.
-- Repositories injected via `init` (never created inside ViewModel).
-- `async throws` for all repository calls; errors caught in ViewModel, surfaced as `@Published`-like state.
-
----
-
-## Patterns Originating from iOS 17 Constraints
-
-The deployment target was raised to iOS 26 on 2026-09-23, so the iOS 17 bugs below no longer apply. The code still follows these patterns; don't change them without adding an ADR to `docs/adr/`.
-
-**SwiftData `#Predicate` + enum** (ADR 0007, review candidate): `#Predicate { $0.intent == .shout }` crashed on iOS 17.0–17.2, so all intent-filtered fetches use `fetchAll` then `filter` in memory. See `SwiftDataSessionRepository.fetchByIntent`. Whether to move filtering back into the predicate on iOS 26 is undecided.
-
-**Single sheet on `RootView`** (ADR 0008, superseded by ADR 0025): Originally adopted because using `NavigationStack` and `.sheet` in the same View corrupted navigation state after sheet dismiss on iOS 17.0. It is kept for its other benefits (no flicker on save, one sheet reachable from every tab). The sheet lives **once on `RootView`** (`.sheet(item: $sheet, onDismiss:)` on the `TabView`), not inside any tab's `NavigationStack`; the Songs tab's stack is root-only. It switches between the recording sheet and the after-save recommendation sheet (ADR 0024); every presentation goes through `present()`, which waits for the current sheet to finish dismissing before showing the next one. After a save, `RootView` bumps `historyReloadTick` so the History list reloads, switches to the History tab only after the recording sheet has finished dismissing, and shows the after-save sheet one second after that (ADR 0032). See `docs/v1_navigation_songs_recording.md`.
+- ViewModel は `@Observable`・`@MainActor` の class。1 画面に 1 つ。Repository は `init` で受け取る。Repository の呼び出しは `async throws` で、エラーは ViewModel で受け止め、再試行できるように見せる。
+- **1 ファイル 1 型。ファイル名 = 型名。**
+- Bool の名前は `is` / `has` / `can` で始める。非同期の関数は動詞で始める。プロトコルは役割を表す名前（`SessionRepositoryProtocol`）。enum は単数形で、case は lowerCamelCase。
+- シートは `RootView` に 1 つだけ置き、出すときは必ず `present()` を通す（ADR 0025・0032、`docs/v1_navigation_songs_recording.md`）。
+- iOS 17 の不具合から来たパターン（気分での絞り込みをメモリで行う ADR 0007、シートを 1 つにする ADR 0008）は今も有効。変えるときは新しい ADR を足す。
 
 ---
 
-## Important Patterns
+## Git の決まり
 
-### Async race condition — `loadGeneration`
-
-`HistoryViewModel` uses an `Int` counter (`loadGeneration`) to discard stale fetch completions. Increment on each new load; only apply results when the completed generation matches the current one. `Task.cancel()` alone is insufficient because cancellation is asynchronous.
-
-### Idempotent save
-
-`SessionRepository.save` checks `exists(uuid:)` before inserting. UI layer also disables the save button immediately (`isSaving` flag). Both guards are required — the UI guard alone cannot handle rapid double-taps.
-
-### History snapshot pattern
-
-`HistoryViewModel` maps `SingingSession` (SwiftData reference type) to `HistorySessionRowDisplayItem` (value type) immediately on fetch. The UI operates on the snapshot — optimistic deletes remove from the snapshot first, restore on failure. Max 500 rows; 20 per page, prefetch at 5 rows from bottom.
+- **ブランチ名**：`{種類}/{英語の短い名前}`。Issue 番号は付けない（例：`feature/after-save-recommendation`、`fix/data-load-error`）。種類は `feature` / `fix` / `refactor` / `docs` / `chore`。1 つの Issue（1 スプリント）に 1 ブランチ。どのブランチも、終わった時点でアプリが動く状態にする。
+- **Issue とのつながり**：コミットメッセージに `Refs #N`、PR の本文に `Closes #N`。
+- **コミットメッセージ**：`{プレフィックス}: {50 文字以内の要約}` を日本語で。必要なら本文に「何を」「なぜ」を書く。プレフィックスは `feat:` / `fix:` / `refactor:` / `docs:` / `test:` / `chore:`。
+- **マージ**：PR を squash merge で `main` に入れる。`main` に直接 push しない。
 
 ---
 
-## Git Conventions
+## プロジェクトの制約（憲法）
 
-- **Branch naming**:
-  - `feature/i-{番号}-{英語名}` (e.g. `feature/i-014-history-infinite-scroll`)
-  - `refactor/i-r{番号}-{内容}`
-  - `docs/i-d{番号}-{内容}`
-  - `chore/i-c{番号}-{内容}`
-- **Commit prefix**: `feat:` / `fix:` / `refactor:` / `docs:` / `test:` / `chore:`
-- **Merge**: squash merge via PR into the current integration branch `develop/ios26-redesign` (not directly into `main`). No direct pushes to `main`.
+[docs/constitution.md](docs/constitution.md) の要点。憲法は ADR やほかの文書より優先される。
 
----
-
-## Project Constraints (Constitution)
-
-- **Spotify metadata must never be persisted** (SwiftData, UserDefaults, disk). In-memory TTL cache only (≤ 24h, reset on restart). V2 design; not yet implemented.
-- **SSOT is local SwiftData**. API responses are never rendered directly in Views.
-- **`userEnteredName`** is user-generated data (persistable). `spotifyTrackId` is Spotify metadata (identifier only, persistable as a key). Artwork/title/artist from Spotify API are NOT persistable.
-- Tasks and spec changes are tracked in GitHub Issues; design decisions are recorded in `docs/adr/`. The old issue lists (`docs/archive/v1_issues.md` etc.) are archived and only used to look up the `I-0xx` numbers that appear in code comments.
+- **外部の曲データ（Spotify など）は今は使っていない。** 使うときは識別子（`spotifyTrackId` など）だけを永続化し、曲名・アーティスト名・アートワークなどのメタデータは永続化しない。認証・キャッシュ・クレジット表記は、そのときに ADR で決める。
+- **SwiftData が唯一の正（SSOT）。** オフラインファースト：記録と履歴はネットワークがなくても動く。気分やメモは端末の外に出さない。
+- **`Track` と `SingingSession` を分ける**：重複をまとめるのは曲だけ。記録は歌うたびに新しく作る。
+- タスクと仕様の変更は GitHub Issues、設計の判断は `docs/adr/`（1 件 1 ファイル。承認した本文は書き換えず、新しい番号で置き換える）。`docs/archive/` は止まった過去の資料。
 
 ---
 
-## Test Layout
+## 関連するファイル
 
-```
-Karaoke_supportTests/
-├── Data/SwiftData/      # in-memory ModelContainer tests for repository operations
-├── Domain/              # Helper and model unit tests
-└── Presentation/
-    ├── History/         # HistoryViewModel pagination, sort, loadGeneration
-    ├── Recording/       # RecordingSheetViewModel save/edit, track suggestions, score input
-    ├── Songs/           # IntentTabViewModel
-    ├── TrackDetail/     # TrackDetailViewModel, score summary
-    └── Common/
-```
-
-Tests that touch SwiftData use a real `ModelContainer(isStoredInMemoryOnly: true)` — no mocking of the DB layer. ViewModel tests inject mock repositories via protocol.
-
----
-
-## Related Files
-
-- @.cursorrules — 詳細なコーディング規約・命名規則
-- docs/adr/ — 技術判断の記録（ADR、1 件 1 ファイル）。設計判断を決めた・変えたときは 1 件足す。承認済みの本文は書き換えず、新しい番号で置き換える。書き方は docs/adr/README.md
-- docs/README.md — docs の目次と、どの文書が正か
-- @.specify/memory/constitution.md — プロジェクト最上位ルール
+- docs/constitution.md — プロジェクトの最上位のルール
+- docs/adr/ — 技術判断の記録。書き方は docs/adr/README.md
+- docs/README.md — docs の目次と、どれが正か
+- .claude/rules/ — フォルダごとの決まり（SwiftData・Presentation・テスト）
+- .claude/skills/karaoke-review/ — このプロジェクト用のコードレビュー
