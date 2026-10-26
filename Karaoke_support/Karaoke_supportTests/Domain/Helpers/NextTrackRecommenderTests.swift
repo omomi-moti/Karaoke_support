@@ -28,6 +28,7 @@ struct NextTrackRecommenderTests {
 		intent: Intent = .emo,
 		lastPerformedAt: Date,
 		bestScore: Double?,
+		wantAgain: Bool = false,
 		trackId: UUID = UUID()
 	) -> TrackSingingStats {
 		TrackSingingStats(
@@ -37,7 +38,8 @@ struct NextTrackRecommenderTests {
 			latestIntent: intent,
 			lastPerformedAt: lastPerformedAt,
 			bestScore: bestScore,
-			sessionCount: 1
+			sessionCount: 1,
+			latestWantAgain: wantAgain
 		)
 	}
 
@@ -175,5 +177,42 @@ struct NextTrackRecommenderTests {
 			limit: 2
 		)
 		#expect(result.map(\.daysSinceLastSung) == [14])
+	}
+
+	// MARK: また歌いたい（ハート・#124）
+
+	@Test("ハート付きの曲は、点数が高く久しぶりなハートなしの曲より上に出る")
+	func wantAgainRanksAboveEverythingElse() {
+		let names = recommendedNames([
+			stats("ハートなし・100点・半年ぶり", lastPerformedAt: daysAgo(180), bestScore: 100),
+			stats("ハート付き・70点・昨日", lastPerformedAt: daysAgo(1), bestScore: 70, wantAgain: true),
+		])
+		#expect(names == ["ハート付き・70点・昨日", "ハートなし・100点・半年ぶり"])
+	}
+
+	@Test("ハート付き同士は、今までどおり点数と久しぶり度で並ぶ")
+	func wantAgainTracksKeepTheirOrder() {
+		let names = recommendedNames([
+			stats("ハート・80点", lastPerformedAt: daysAgo(14), bestScore: 80, wantAgain: true),
+			stats("ハート・95点", lastPerformedAt: daysAgo(14), bestScore: 95, wantAgain: true),
+		])
+		#expect(names == ["ハート・95点", "ハート・80点"])
+	}
+
+	@Test("ハート付きでも、気分が違う曲は出ない")
+	func wantAgainDoesNotCrossMoods() {
+		let names = recommendedNames([
+			stats("Shoutのハート", intent: .shout, lastPerformedAt: daysAgo(10), bestScore: 95, wantAgain: true),
+			stats("Emoのハートなし", intent: .emo, lastPerformedAt: daysAgo(10), bestScore: 80),
+		], mood: .emo)
+		#expect(names == ["Emoのハートなし"])
+	}
+
+	@Test("ハートの項は 3.0 で、点数と久しぶり度を足した最大値 2.5 より大きい")
+	func wantAgainWeightExceedsOtherTerms() {
+		let withHeart = NextTrackRecommender.score(bestScore: 70, daysSinceLastSung: 1, wantAgain: true)
+		let withoutHeart = NextTrackRecommender.score(bestScore: 70, daysSinceLastSung: 1, wantAgain: false)
+		#expect(withHeart - withoutHeart == 3.0)
+		#expect(NextTrackRecommender.scoreWeight + NextTrackRecommender.recencyWeight < NextTrackRecommender.wantAgainWeight)
 	}
 }

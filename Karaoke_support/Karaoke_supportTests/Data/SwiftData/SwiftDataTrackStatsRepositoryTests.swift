@@ -27,13 +27,14 @@ struct SwiftDataTrackStatsRepositoryTests {
 		return track
 	}
 
-	private func save(_ track: Track, _ intent: Intent, at interval: TimeInterval, score: Double?) async throws {
+	private func save(_ track: Track, _ intent: Intent, at interval: TimeInterval, score: Double?, wantAgain: Bool = false) async throws {
 		try await sessionRepository.saveNewRecordingSession(
 			SingingSession(
 				track: track,
 				intent: intent,
 				performedAt: Date(timeIntervalSince1970: interval),
-				score: score
+				score: score,
+				wantAgain: wantAgain
 			)
 		)
 	}
@@ -93,5 +94,25 @@ struct SwiftDataTrackStatsRepositoryTests {
 
 		let stats = try await repository.fetchTrackSingingStats()
 		#expect(stats.first?.sessionCount == count)
+	}
+
+	@Test("最新の記録にハートが付いていれば、latestWantAgain が true")
+	func latestWantAgainComesFromNewestRecord() async throws {
+		let track = try makeTrack(named: "ハートの曲")
+		try await save(track, .emo, at: 100, score: 80)
+		try await save(track, .emo, at: 200, score: 85, wantAgain: true)
+
+		let stats = try await repository.fetchTrackSingingStats()
+		#expect(stats.first?.latestWantAgain == true)
+	}
+
+	@Test("ハート付きの曲をハートなしで歌い直すと、latestWantAgain は false に戻る")
+	func singingAgainWithoutHeartClearsIt() async throws {
+		let track = try makeTrack(named: "歌い直す曲")
+		try await save(track, .emo, at: 100, score: 80, wantAgain: true)
+		try await save(track, .emo, at: 200, score: 85)
+
+		let stats = try await repository.fetchTrackSingingStats()
+		#expect(stats.first?.latestWantAgain == false)
 	}
 }

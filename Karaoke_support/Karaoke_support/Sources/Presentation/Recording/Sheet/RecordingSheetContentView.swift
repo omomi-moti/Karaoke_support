@@ -99,20 +99,28 @@ struct RecordingSheetContentView: View {
     }
 
     private var bottomCTA: some View {
-        Button {
-            Task { await attemptSave() }
-        } label: {
-            HStack {
-                Image(systemName: saveButtonSystemImage)
-                Text(saveButtonTitle)
-                    .font(.headline)
+        HStack(spacing: 12) {
+            RecordingSheetWantAgainButton(
+                isOn: $viewModel.draft.wantAgain,
+                isDisabled: viewModel.isSaving || viewModel.inlineErrorMessage != nil
+            )
+            .zIndex(1)
+
+            Button {
+                Task { await attemptSave() }
+            } label: {
+                HStack {
+                    Image(systemName: saveButtonSystemImage)
+                    Text(saveButtonTitle)
+                        .font(.headline)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
+            .buttonStyle(.borderedProminent)
+            .tint(AppColor.accentScore)
+            .disabled(viewModel.isSaving)
         }
-        .buttonStyle(.borderedProminent)
-        .tint(AppColor.accentScore)
-        .disabled(viewModel.isSaving)
         .padding(.horizontal)
         .padding(.top, 8)
         .padding(.bottom, 12)

@@ -108,7 +108,8 @@ final class RecordingSheetViewModel {
 			score: editingSession.score.map(ScoreDigitInput.init(score:)) ?? ScoreDigitInput(),
 			intent: editingSession.intent,
 			memo: editingSession.memo ?? "",
-			performedAt: editingSession.performedAt
+			performedAt: editingSession.performedAt,
+			wantAgain: editingSession.wantAgain
 		)
 		self.pendingSessionIdForSave = nil
 	}
@@ -195,7 +196,8 @@ final class RecordingSheetViewModel {
 					intent: draft.intent,
 					performedAt: draft.performedAt,
 					score: score,
-					memo: draft.normalizedMemo
+					memo: draft.normalizedMemo,
+					wantAgain: draft.wantAgain
 				)
 				try await sessionRepository.updateRecordingSession(session)
 				return Self.savedRecording(session, isNewRecording: false)
@@ -218,7 +220,8 @@ final class RecordingSheetViewModel {
 				score: score,
 				memo: draft.normalizedMemo,
 				// 提案のカードから開いても、曲を書き換えたら自分で選んだ記録として数える
-				source: selectedTrack == suggestedTrack ? .suggestion : .manual
+				source: selectedTrack == suggestedTrack ? .suggestion : .manual,
+				wantAgain: draft.wantAgain
 			)
 			try await sessionRepository.saveNewRecordingSession(session)
 			pendingSessionIdForSave = nil

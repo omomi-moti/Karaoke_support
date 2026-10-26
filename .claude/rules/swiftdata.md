@@ -21,7 +21,7 @@ paths:
 - 書き込みは必ず Repository を通す。View から `ModelContext` を触らない。
 - `ModelContext` はスレッドセーフではないので、Repository は `@MainActor` で動かす。
 - **冪等な保存**：`saveNewRecordingSession` は先に `exists(uuid:)` を見て、すでにある id なら何もしない。ViewModel でも `isSaving` で連打を止める。両方が要る（ADR 0006）。
-- すでにある記録の id を `saveNewRecordingSession` に渡さない。編集は `updateRecordingSession` を通し、書き換えるのは気分・日時・点数・メモだけ（曲と `recordedSource` は変えない）。
+- すでにある記録の id を `saveNewRecordingSession` に渡さない。編集は `updateRecordingSession` を通し、書き換えるのは気分・日時・点数・メモ・ハート（`recordedWantAgain`）だけ（曲と `recordedSource` は変えない）。
 - `singCount` は新規の保存で 1 増やし、削除で 1 減らす。曲は `userEnteredName` が完全に同じなら使い回し、消さない。
 
 ## 読み込み

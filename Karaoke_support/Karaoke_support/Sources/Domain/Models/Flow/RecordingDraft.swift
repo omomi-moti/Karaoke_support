@@ -9,6 +9,8 @@ struct RecordingDraft: Equatable, Sendable {
 	/// 歌唱日時。編集時のみ画面で直せて、保存時に ``SingingSession/performedAt`` に反映する。
 	/// 新規記録では使わず、保存した時刻を歌唱日時にする（``RecordingSheetViewModel/save()``）。
 	var performedAt: Date = Date()
+	/// また歌いたいか（ハート）。新規記録は OFF から始める。
+	var wantAgain = false
 
 	var normalizedMemo: String? {
 		let trimmed = memo.trimmingCharacters(in: .whitespacesAndNewlines)

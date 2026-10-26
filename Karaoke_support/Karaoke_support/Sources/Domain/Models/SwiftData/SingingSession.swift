@@ -24,6 +24,13 @@ final class SingingSession {
 	/// 記録をどこから付けたか。入口を記録し始める前の記録は `.manual` として読む。
 	var source: RecordSource { recordedSource ?? .manual }
 
+	/// また歌いたいか（ハート。保存する値）。`nil` はハートを付けられるようになる前（#124）の記録で、OFF として読む（ADR 0034 と同じ形）。
+	/// 新しい記録では `init` が必ず値を入れる。編集で更新すると書き換わる。
+	var recordedWantAgain: Bool?
+
+	/// また歌いたいか（ハート）。ハートを付けられるようになる前の記録は `false` として読む。
+	var wantAgain: Bool { recordedWantAgain ?? false }
+
 	init(
 		id: UUID = UUID(),
 		track: Track,
@@ -31,7 +38,8 @@ final class SingingSession {
 		performedAt: Date = .now,
 		score: Double?,
 		memo: String? = nil,
-		source: RecordSource = .manual
+		source: RecordSource = .manual,
+		wantAgain: Bool = false
 	) {
 		precondition(score.map { (0...100).contains($0) } ?? true, "SingingSession score must be in 0...100.")
 		self.id = id
@@ -41,6 +49,7 @@ final class SingingSession {
 		self.score = score
 		self.memo = memo
 		self.recordedSource = source
+		self.recordedWantAgain = wantAgain
 	}
 }
 
