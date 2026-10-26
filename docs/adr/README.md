@@ -40,6 +40,7 @@
 | [0032](0032-move-to-history-after-dismiss.md) | 保存したら、記録シートが閉じ終わってから履歴タブへ移り、その 1 秒後に保存直後のシートを出す | 承認 |
 | [0033](0033-show-error-when-store-cannot-open.md) | 保存先の DB を開けなかったときは、メモリ上の DB で起動せず、エラー画面で止める | 承認 |
 | [0034](0034-record-source-as-optional-enum.md) | 記録の入口は空を許す enum で持ち、空は手で付けた記録として読む | 承認 |
+| [0035](0035-write-docs-in-japanese.md) | 文書は AI 向けのものも含めて日本語で書き、識別子・コマンド・ファイル名は英語のままにする | 承認 |
 
 ## 書き方
 
