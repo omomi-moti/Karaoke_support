@@ -161,6 +161,7 @@ erDiagram
         Double score "任意。0〜100、小数第3位まで"
         String memo "任意"
         String recordedSource "任意。空は manual として読む"
+        Bool recordedWantAgain "任意。空はハートなしとして読む"
     }
 ```
 
@@ -178,6 +179,7 @@ erDiagram
 | | `score` | 点数。任意で、0〜100 の小数第 3 位まで（[ADR 0012](adr/0012-score-three-decimals-optional.md)） |
 | | `memo` | メモ。任意 |
 | | `recordedSource` | どこから付けた記録か（提案から／それ以外）。空を許し、空（入口を記録し始める前の記録）は `manual` として読む（[ADR 0034](adr/0034-record-source-as-optional-enum.md)） |
+| | `recordedWantAgain` | また歌いたいか（ハート）。空を許し、空（ハートを付けられるようになる前の記録）はハートなしとして読む。編集で変えられる |
 
 ### 書き込みの決まり
 
@@ -186,7 +188,7 @@ erDiagram
 | 操作 | やること |
 |---|---|
 | 新規の保存 | 同じ `id` の記録がなければ足し、曲の `singCount` を 1 増やす。同じ `id` の再送は何もせず成功にする（[ADR 0006](adr/0006-idempotent-save-in-ui-and-data.md)） |
-| 編集して更新 | 気分・日時・点数・メモだけを書き換える。曲と入口は変えない |
+| 編集して更新 | 気分・日時・点数・メモ・ハートだけを書き換える。曲と入口は変えない |
 | 削除 | 記録を消し、曲の `singCount` を 1 減らす（0 より下にはしない） |
 | 曲の用意 | 曲名が完全に同じ曲があればそれを使い、なければ新しく作る |
 
