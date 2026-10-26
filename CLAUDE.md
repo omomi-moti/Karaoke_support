@@ -76,7 +76,7 @@ viewModel.save()                // ✅
 
 | Type | File | Notes |
 |------|------|-------|
-| `Track` | `Domain/Models/SwiftData/Track.swift` | `spotifyTrackId` OR `userEnteredName`; two convenience inits |
+| `Track` | `Domain/Models/SwiftData/Track.swift` | `userEnteredName` (always set today) OR `spotifyTrackId` (unused, always nil); two convenience inits |
 | `SingingSession` | `Domain/Models/SwiftData/SingingSession.swift` | UUID idempotency key; N:1 with Track |
 | `Intent` | `Domain/Models/Enums/Intent.swift` | `.shout` / `.emo` / `.practice`; `String` RawValue |
 | `RecordSource` | `Domain/Models/Enums/RecordSource.swift` | `.manual` / `.suggestion`; stored as optional `SingingSession.recordedSource`, read as `source` (nil = `.manual`) (ADR 0034) |
@@ -95,8 +95,8 @@ When adding a property to an `@Model`, make it optional: SwiftData's automatic m
 - **Views only draw.** No repository calls, business logic, or async work in a View; delegate to the ViewModel. A container View may read repositories from `@Environment` and create the ViewModel (e.g. `IntentTabContainerView`, `SettingsContainerView`).
 - **Property wrappers**: `@State` for transient UI state and for holding the ViewModel; `@Binding` for two-way state from a parent; `@Environment` for app-wide values (repositories, network state). Don't use `@Query` in Views; read through repositories (currently zero `@Query` in the app).
 - **Repositories are `@MainActor`** because `ModelContext` is not thread-safe and must stay on the thread that created it.
-- **`UserDefaults`** is only for UI flags (e.g. a tutorial-shown flag), never for displayed data or Spotify metadata (currently unused).
-- Check connectivity before calling an API and fall back to local data when offline (V2, Spotify).
+- **`UserDefaults`** is only for UI flags (e.g. a tutorial-shown flag), never for displayed data or external track metadata (currently unused).
+- If an external API is ever added, check connectivity before calling it and fall back to local data when offline.
 
 ### Files and naming
 
@@ -150,11 +150,11 @@ The deployment target was raised to iOS 26 on 2026-09-23, so the iOS 17 bugs bel
 
 Summary of [docs/constitution.md](docs/constitution.md), which takes precedence over ADRs and other docs.
 
-- **Spotify metadata must never be persisted** (SwiftData, UserDefaults, disk). In-memory TTL cache only (≤ 24h, reset on restart). V2 design; not yet implemented.
+- **External track data (e.g. Spotify) is not used today.** If it is ever used, persist only identifiers (e.g. `spotifyTrackId`) and never metadata such as title, artist, or artwork (SwiftData, UserDefaults, disk). Decide auth, caching, and credits in an ADR at that time.
 - **SSOT is local SwiftData**. API responses are never rendered directly in Views.
 - **Offline first**: recording and browsing history must work without a network. Intents and memos stay on the device and are never sent out.
 - **`Track` and `SingingSession` stay separate**: deduplicate tracks only; a new `SingingSession` is created for every performance.
-- **`userEnteredName`** is user-generated data (persistable). `spotifyTrackId` is Spotify metadata (identifier only, persistable as a key). Artwork/title/artist from Spotify API are NOT persistable.
+- **`userEnteredName`** is user-generated data (persistable). `spotifyTrackId` is an external identifier (persistable as a key; always nil today).
 - Tasks and spec changes are tracked in GitHub Issues; design decisions are recorded in `docs/adr/`. The old issue lists (`docs/archive/v1_issues.md` etc.) are archived and only used to look up the `I-0xx` numbers that appear in code comments.
 
 ---

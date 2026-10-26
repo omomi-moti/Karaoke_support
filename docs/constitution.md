@@ -7,41 +7,40 @@
 
 ## Core Principles
 
-### I. Spotify API 規約準拠
+### I. 外部の曲データの扱い
 
-すべての設計・実装は Spotify API 利用規約を遵守しなければならない。特に：
-- メタデータ（曲名・アーティスト名・アートワーク等）の永続保存は禁止
-- メタデータのキャッシュはインメモリのみ許可し、永続化してはならない（最長24時間以内のTTLを許容し、アプリ再起動時には初期化する）
-- 取得したデータは表示目的のみに使用
-- 検索画面・設定画面に「Powered by Spotify」クレジット配置
+外部の曲データ（Spotify など）は、今は使っていない。使うときは、その API の利用規約で許された範囲だけを保存する：
+- 曲名・アーティスト名・アートワーク等のメタデータは永続化しない（DB・UserDefaults・ディスクのいずれにも）。永続化してよいのは識別子（`spotifyTrackId` 等）だけ
+- 認証・キャッシュ・クレジット表記などの具体的なやり方は、使うと決めたときに ADR で決める
 
 ### II. オフラインファースト設計
 
 ネットワーク未接続状態でも、基本機能（歌唱記録・履歴閲覧）は動作しなければならない。
 - SwiftData がローカルDB の唯一の真実の源（SSOT）
 - ユーザーの Intent・メモ等の機微情報は端末内のみ保存、外部送信しない
-- ネットワーク復帰時は外部同期を行わず、`spotifyTrackId` を用いたメタデータ再取得で表示を補完する
+- ネットワーク復帰時も外部と同期しない
+- アプリ内に「すべてのデータは端末内に保存する」旨を明記する
 
 ### III. Track と SingingSession の明確な分離
 
 データモデルは以下の責務を厳密に分ける：
-- **Track（楽曲）**: spotifyTrackId（識別子）、userEnteredName（手動入力）、singCount（集計）、createdAt/updatedAt
+- **Track（楽曲）**: userEnteredName（手動入力）、spotifyTrackId（外部の曲の識別子。今は使っていない）、singCount（集計）、createdAt/updatedAt
 - **SingingSession（歌唱記録）**: Intent、スコア（0〜100）、メモ、日時を毎回新規作成
 - 重複排除の対象は **Track 側のメタデータ・ID** のみ（SingingSession は都度追加）
 
 ### IV. ドキュメント間の一貫性
 
 仕様とタスクは GitHub Issues、設計の判断は ADR（`docs/adr/`）を正とし、CLAUDE.md と docs はこれと矛盾させない。
-- 技術選定（例：インメモリキャッシュ）は全文書で統一
+- 技術選定は全文書で統一
 - データモデル定義（Track・SingingSession）は一貫
-- API 規約への制約は明示的に記載
+- 外部 API を使うときは、その規約による制約を明示的に記載
 
 ### V. テスト可能性と検証
 
 すべての重要な動作は自動・手動で検証可能でなければならない。
 - UI層：ユーザー操作の応答確認
 - DB層：SwiftData の永続化と重複排除ルール確認
-- API層：Spotify API の呼び出しとキャッシュ戦略の確認
+- 外部 API を使うときは、その呼び出しとキャッシュの確認
 - 特に「同一曲の複数回記録」は重複排除が正しく機能することを確認
 
 ---
@@ -81,11 +80,11 @@ Sources/
 │   ├── Models/          # Track, SingingSession, Intent, RecordSource 等
 │   ├── Repositories/    # Session / Track / Insight / TrackStats の Repository(protocol)
 │   └── Helpers/         # 次の 1 曲の計算、曲名の候補の並べ方 等
-└── Data/                # 具体実装（SwiftData, Spotify, Cache）
+└── Data/                # 具体実装（SwiftData, Network）
     ├── SwiftData/       # Repository の実装
     ├── Network/         # NetworkMonitor
-    ├── Spotify/         # V2（まだ空）
-    └── Cache/           # V2（まだ空）
+    ├── Spotify/         # 外部 API 用（まだ空）
+    └── Cache/           # 外部 API 用（まだ空）
 ```
 
 - Presentation → Domain Protocol に依存。Data の具体実装には依存しない
@@ -95,31 +94,12 @@ Sources/
 
 ---
 
-## Spotify API 規約準拠と規制
-
-- **メタデータの永続保存禁止**
-  - メタデータはインメモリキャッシュとしてのみ実装し、DB・UserDefaults・ディスクへ永続化しない
-  - 許容されるのは「最長24時間以内のインメモリTTLキャッシュ」のみとし、アプリ再起動時には初期化する
-  
-- **クレジット表記**
-  - 検索画面・設定画面に「Powered by Spotify」ロゴ配置
-  
-- **認証方式**
-  - OAuth 2.0 PKCE フロー必須実装
-  - トークンは Keychain に安全に保存
-
-- **プライバシー**
-  - アプリ内に「すべてのデータは端末内保存」旨を明記
-
----
-
 ## 開発ワークフロー
 
 - **仕様確認**: Issue の受け入れ条件と「決めたこと」が、ADR と矛盾していないか確認
 - **設計レビュー**: 
   - Track・SingingSession のデータモデルが正確か
-  - Spotify 規約違反の懸念がないか
-  - インメモリキャッシュ戦略が明示されているか
+  - 外部の曲データのメタデータを永続化していないか
   
 - **実装検証**:
   - テストプラン含む
@@ -131,7 +111,7 @@ Sources/
   - Issue の受け入れ条件を満たす
   - 判断を ADR に残している
   - プロジェクト用のレビュー（`karaoke-review`）を通している
-  - Spotify 規約準拠の懸念がない
+  - 外部の曲データのメタデータを永続化していない
   - 矛盾・プレースホルダが解決されている
 
 ---
@@ -144,4 +124,4 @@ Sources/
   - 影響を受けるドキュメント
   - 必要な移行・採用作業
 
-**Version**: 1.2.1 | **Ratified**: 2026-03-13 | **Last Amended**: 2026-10-26（spec-kit をやめて `docs/` に移し、正とする文書を spec.md・設計書から Issues・ADR に変えた。DI とディレクトリ構成の記述を今のコードに合わせた）
+**Version**: 1.3.0 | **Ratified**: 2026-03-13 | **Last Amended**: 2026-10-26（spec-kit をやめて `docs/` に移し、正とする文書を spec.md・設計書から Issues・ADR に変えた。DI とディレクトリ構成の記述を今のコードに合わせた。Spotify の決まりを、使うときだけ効く条件付きの原則に縮めた）
