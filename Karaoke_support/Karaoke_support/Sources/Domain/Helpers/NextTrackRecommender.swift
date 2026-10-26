@@ -6,9 +6,11 @@ import Foundation
 enum NextTrackRecommender {
 	/// 点数を久しぶり度の 4 倍にする。「90 点・2 週間前」を「80 点・2ヶ月前」より上に、
 	/// 「85 点・2ヶ月前」を「90 点・昨日」より上に出すため（2.3 倍より大きく 5.9 倍より小さい範囲）。
-	/// 2 つを足しても最大 2.5 で、後で足す気分・また歌いたいの項（各 3.0）より必ず小さくなる。
+	/// 2 つを足しても最大 2.5 で、また歌いたいの項（3.0）より必ず小さくなる。
 	static let scoreWeight = 2.0
 	static let recencyWeight = 0.5
+	/// 最新の記録にハートが付いた曲を、点数や久しぶり度にかかわらず、ハートなしの曲より上に出す（#124）。
+	static let wantAgainWeight = 3.0
 
 	/// この日数で久しぶり度が頭打ちになる。
 	static let recencyCapDays = 60
@@ -33,7 +35,7 @@ enum NextTrackRecommender {
 			guard days >= 1 else { return nil }
 			return TrackRecommendation(
 				stats: stat,
-				score: score(bestScore: stat.bestScore, daysSinceLastSung: days),
+				score: score(bestScore: stat.bestScore, daysSinceLastSung: days, wantAgain: stat.latestWantAgain),
 				daysSinceLastSung: days
 			)
 		}
@@ -47,8 +49,10 @@ enum NextTrackRecommender {
 		return Array(sorted.prefix(max(0, limit)))
 	}
 
-	static func score(bestScore: Double?, daysSinceLastSung: Int) -> Double {
-		scoreWeight * scoreNorm(bestScore: bestScore) + recencyWeight * recency(daysSinceLastSung: daysSinceLastSung)
+	static func score(bestScore: Double?, daysSinceLastSung: Int, wantAgain: Bool) -> Double {
+		scoreWeight * scoreNorm(bestScore: bestScore)
+			+ recencyWeight * recency(daysSinceLastSung: daysSinceLastSung)
+			+ (wantAgain ? wantAgainWeight : 0)
 	}
 
 	/// 最高点を 70〜100 点で 0〜1 にする。70 点以下は 0、点数なしは ``missingScoreNorm``。

@@ -15,4 +15,6 @@ struct TrackSingingStats: Equatable, Sendable {
 	let bestScore: Double?
 	/// 記録の数。
 	let sessionCount: Int
+	/// 最新の記録にハート（また歌いたい）が付いているか。
+	var latestWantAgain = false
 }

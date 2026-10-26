@@ -37,6 +37,7 @@ struct AfterSaveRecommendationSheetView: View {
 								userEnteredName: recommendation.stats.userEnteredName
 							),
 							reason: RecommendationReasonFormat.sinceLastSung(days: recommendation.daysSinceLastSung),
+							isWantAgain: recommendation.stats.latestWantAgain,
 							onTap: { onSelect(recommendation) }
 						)
 					}
@@ -92,8 +93,8 @@ struct AfterSaveRecommendationSheetView: View {
 }
 
 #Preview {
-	let stats: [(String, Int)] = [("涙そうそう", 60), ("さよならララ", 21)]
-	let recommendations = stats.map { name, days in
+	let stats: [(String, Int, Bool)] = [("涙そうそう", 60, true), ("さよならララ", 21, false)]
+	let recommendations = stats.map { name, days, wantAgain in
 		TrackRecommendation(
 			stats: TrackSingingStats(
 				trackId: UUID(),
@@ -102,7 +103,8 @@ struct AfterSaveRecommendationSheetView: View {
 				latestIntent: .emo,
 				lastPerformedAt: .now,
 				bestScore: 90,
-				sessionCount: 3
+				sessionCount: 3,
+				latestWantAgain: wantAgain
 			),
 			score: 0,
 			daysSinceLastSung: days

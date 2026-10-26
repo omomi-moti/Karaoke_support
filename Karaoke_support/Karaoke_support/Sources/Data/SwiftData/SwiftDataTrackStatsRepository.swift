@@ -28,7 +28,8 @@ final class SwiftDataTrackStatsRepository: TrackStatsRepositoryProtocol {
 				latestIntent: latest.intent,
 				lastPerformedAt: latest.performedAt,
 				bestScore: trackSessions.compactMap(\.score).max(),
-				sessionCount: trackSessions.count
+				sessionCount: trackSessions.count,
+				latestWantAgain: latest.wantAgain
 			)
 		}
 	}

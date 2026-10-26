@@ -1,10 +1,12 @@
 import SwiftUI
 
 /// 保存直後のシートの提案カード（順位・曲名・理由の行）。タップでその曲を記録する（#115）。
+/// 最新の記録にハートが付いた曲は、右端にハートを出す（#124）。
 struct RecommendationCardView: View {
 	let rank: Int
 	let title: String
 	let reason: String
+	var isWantAgain = false
 	let onTap: () -> Void
 
 	var body: some View {
@@ -27,6 +29,12 @@ struct RecommendationCardView: View {
 						.foregroundStyle(AppColor.textSecondary)
 				}
 				Spacer(minLength: 8)
+				if isWantAgain {
+					Image(systemName: "heart.fill")
+						.font(.body.weight(.semibold))
+						.foregroundStyle(AppColor.accentScore)
+						.accessibilityHidden(true)
+				}
 			}
 			.padding(.horizontal, 14)
 			.padding(.vertical, 12)
@@ -36,14 +44,14 @@ struct RecommendationCardView: View {
 		}
 		.buttonStyle(.plain)
 		.accessibilityElement(children: .combine)
-		.accessibilityLabel("\(rank)位、\(title)、\(reason)")
+		.accessibilityLabel(isWantAgain ? "\(rank)位、\(title)、\(reason)、また歌いたい" : "\(rank)位、\(title)、\(reason)")
 		.accessibilityHint("この曲で記録します")
 	}
 }
 
 #Preview {
 	VStack(spacing: 8) {
-		RecommendationCardView(rank: 1, title: "涙そうそう", reason: "2ヶ月ぶり", onTap: {})
+		RecommendationCardView(rank: 1, title: "涙そうそう", reason: "2ヶ月ぶり", isWantAgain: true, onTap: {})
 		RecommendationCardView(rank: 2, title: "さよならララ", reason: "3週間ぶり", onTap: {})
 	}
 	.padding()
