@@ -29,3 +29,9 @@ paths:
 - `#Predicate` の中で enum を使わない。直近の分を読んでからメモリで絞る（ADR 0007、`SwiftDataSessionRepository.fetchByIntent`）。
 - 集計（ランキング、曲ごとの集計、入口の数）は読むたびに計算し、保存しない（ADR 0029）。
 - `UserDefaults` は UI の目印だけに使う。記録や外部の曲のメタデータは入れない（今は使っていない）。
+
+## このフォルダを変えたら見直す文書
+
+- `docs/architecture.md` の「データベース（SwiftData）」の節（モデル・書き込み・読み方）
+- CLAUDE.md の「主なモデル」の表
+- 判断をしたら `docs/adr/`

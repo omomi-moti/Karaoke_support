@@ -13,3 +13,7 @@ paths:
 - UI テストのターゲットは、`KARAOKE_UITEST_IN_MEMORY=1` で起動できることだけを確かめている。
 
 並びはアプリに合わせる：`App/`、`Data/SwiftData/`、`Domain/`、`Presentation/{機能}/`。
+
+## このフォルダを変えたら見直す文書
+
+- `README.md` の「テスト」の表

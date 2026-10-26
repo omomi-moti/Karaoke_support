@@ -20,3 +20,9 @@ paths:
 - **古い結果で上書きしない**：読み込み中に次の読み込みが始まりうる ViewModel は `loadGeneration` を持ち、終わった読み込みがまだ最新のときだけ結果を書く。`do`・`catch`・`defer` のどれでも同じ。`Task.cancel()` だけでは足りない。
 - **履歴のスナップショット**：`HistoryViewModel` は読んだ直後に `SingingSession` を値型の `HistorySessionRowDisplayItem` に写す。削除はまずスナップショットから消し、失敗したら戻す。1 ページ 20 行、下から 5 行で次を読み、最大 500 行。
 - 保存のあとや次のシートを出すのは `RootView`（`handleSaved`、`present()`）を通す。タブの `NavigationStack` の中からシートを出さない（ADR 0025・0032）。
+
+## このフォルダを変えたら見直す文書
+
+- `docs/v1_navigation_songs_recording.md`（シートとタブの動き）
+- `docs/architecture.md` の「ユーザーフロー」の図
+- 見た目が変わったら `README.md` のスクリーンショット（`docs/screenshots/`）
