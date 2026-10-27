@@ -29,6 +29,18 @@ final class RecordingSheetViewModel {
 
 	var isTrackInputLockedForEdit: Bool { editingSessionId != nil }
 
+	/// 開いたときの入力。閉じるときに、入力が変わったかを見るために覚えておく（#133）。
+	@ObservationIgnored private var initialDraft = RecordingDraft()
+	@ObservationIgnored private var initialManualName = ""
+
+	/// 開いたときから入力が変わったか。変わっていれば、閉じる前に確認する（#133）。
+	var hasUnsavedChanges: Bool {
+		draft != initialDraft || trackState.manualName != initialManualName
+	}
+
+	/// 開いたときに曲名の欄にカーソルを置くか。＋で空のシートを開いたときだけ置く（#133）。
+	private(set) var focusesTrackNameOnOpen = false
+
 	/// メモの案内。歌い切れなかったときは、難しかったところを書いてもらう（#128）。
 	var memoPlaceholder: String { draft.isCompleted ? "ひとこと" : "どこが難しかった？" }
 
@@ -71,6 +83,8 @@ final class RecordingSheetViewModel {
 		self.trackState = TrackInputState(mode: trackMode)
 		self.sessionRepository = sessionRepository
 		self.trackRepository = trackRepository
+		self.focusesTrackNameOnOpen = trackState.isEditable && trackState.manualName.isEmpty
+		rememberInitialInput()
 	}
 
 	/// 確定済み ``SelectedTrack`` から開始（ランキング・検索など I-013）。`intent` を渡すと気分を選んだ状態にする。
@@ -95,6 +109,7 @@ final class RecordingSheetViewModel {
 		if let intent {
 			self.draft.intent = intent
 		}
+		rememberInitialInput()
 	}
 
 	/// 履歴から開いた既存セッションの編集（I-014-C）。曲の差し替えは不可。
@@ -118,6 +133,12 @@ final class RecordingSheetViewModel {
 			isCompleted: editingSession.isCompleted
 		)
 		self.pendingSessionIdForSave = nil
+		rememberInitialInput()
+	}
+
+	private func rememberInitialInput() {
+		initialDraft = draft
+		initialManualName = trackState.manualName
 	}
 
 	/// ``SelectedTrack`` の failable `init?` 経由では `(nil, nil)` は起こらないが、将来の生成経路で不変条件が崩れた場合に備え本番では落とさない。

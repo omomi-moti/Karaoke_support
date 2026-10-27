@@ -10,6 +10,8 @@ struct RecordingSheetContentView: View {
     @Bindable var viewModel: RecordingSheetViewModel
     let onSaved: (SavedRecording) -> Void
 
+    @State private var isConfirmingDiscard = false
+
     private var recordingTitle: String {
         viewModel.isEditingExistingSession ? "記録を編集" : "記録を追加"
     }
@@ -24,7 +26,11 @@ struct RecordingSheetContentView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     SheetHeaderView(title: recordingTitle, isDisabled: viewModel.isSaving) {
-                        dismiss()
+                        if viewModel.hasUnsavedChanges {
+                            isConfirmingDiscard = true
+                        } else {
+                            dismiss()
+                        }
                     }
 
                     if let originalPerformedAt = viewModel.editingSessionOriginalPerformedAt {
@@ -41,6 +47,7 @@ struct RecordingSheetContentView: View {
                     TrackInputSectionView(
                         state: $viewModel.trackState,
                         isDisabled: trackSectionDisabled,
+                        focusesOnAppear: viewModel.focusesTrackNameOnOpen,
                         isLockedForEdit: viewModel.isTrackInputLockedForEdit,
                         suggestionState: trackSectionDisabled ? .hidden : viewModel.trackSuggestionState,
                         isSuggestionStale: viewModel.isTrackSuggestionStale,
@@ -100,7 +107,17 @@ struct RecordingSheetContentView: View {
             }
         }
         .safeAreaInset(edge: .bottom) { bottomCTA }
-        .interactiveDismissDisabled(viewModel.isSaving)
+        .interactiveDismissDisabled(viewModel.isSaving || viewModel.hasUnsavedChanges)
+        .confirmationDialog(
+            viewModel.isEditingExistingSession ? "変更を破棄しますか？" : "入力した内容を破棄しますか？",
+            isPresented: $isConfirmingDiscard,
+            titleVisibility: .visible
+        ) {
+            Button("破棄", role: .destructive) {
+                dismiss()
+            }
+            Button("入力を続ける", role: .cancel) {}
+        }
     }
 
     private var bottomCTA: some View {
