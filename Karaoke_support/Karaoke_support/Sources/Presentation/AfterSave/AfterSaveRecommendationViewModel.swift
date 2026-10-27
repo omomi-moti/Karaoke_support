@@ -42,9 +42,11 @@ final class AfterSaveRecommendationViewModel {
 		}
 		guard attempt == prepareGeneration else { return nil }
 
-		// Practice で保存したときは、選曲画面の Practice と同じく挑戦中の曲を出す（#131）
+		// Practice で保存したときは、練習中の曲を先に出し、足りなければ歌い切れなかった曲で埋める（#131）。
+		// 今保存した曲を勧めないよう、Practice でも今日歌った曲は出さない
+		let practice = NextTrackRecommender.practice(from: stats, now: now(), calendar: calendar)
 		let found = saved.intent == .practice
-			? Array(NextTrackRecommender.challenges(from: stats, now: now(), calendar: calendar).prefix(Self.maxRecommendations))
+			? Array((practice.practicing + practice.unfinished).filter { $0.daysSinceLastSung >= 1 }.prefix(Self.maxRecommendations))
 			: NextTrackRecommender.recommend(
 				from: stats,
 				mood: saved.intent,

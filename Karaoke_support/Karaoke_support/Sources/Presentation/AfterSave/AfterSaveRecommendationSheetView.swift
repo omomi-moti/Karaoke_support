@@ -21,7 +21,7 @@ struct AfterSaveRecommendationSheetView: View {
 						.fixedSize(horizontal: false, vertical: true)
 					HStack(spacing: 10) {
 						IntentBadgeView(intent: content.saved.intent)
-						Text(isShowingChallenges ? "挑戦中の曲から選んでいます" : "直前の気分から選んでいます")
+						Text(isShowingChallenges ? "練習中の曲から選んでいます" : "直前の気分から選んでいます")
 							.font(.caption)
 							.foregroundStyle(AppColor.textSecondary)
 					}
@@ -77,7 +77,7 @@ struct AfterSaveRecommendationSheetView: View {
 		.presentationDragIndicator(.visible)
 	}
 
-	/// Practice で保存したときは、挑戦中の曲を選曲画面の Practice と同じ形で出す（#131）。
+	/// Practice で保存したときは、練習中の曲と歌い切れなかった曲を、選曲画面の Practice と同じ形で出す（#131）。
 	private var isShowingChallenges: Bool { content.saved.intent == .practice }
 
 	private var savedHeader: some View {

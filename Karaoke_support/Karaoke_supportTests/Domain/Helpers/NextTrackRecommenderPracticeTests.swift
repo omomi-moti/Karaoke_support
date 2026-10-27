@@ -3,8 +3,8 @@ import Testing
 
 @testable import Karaoke_support
 
-@Suite("NextTrackRecommender の挑戦中の曲")
-struct NextTrackRecommenderChallengesTests {
+@Suite("NextTrackRecommender の Practice（練習中の曲・歌い切れなかった曲）")
+struct NextTrackRecommenderPracticeTests {
 
 	private let calendar: Calendar = {
 		var calendar = Calendar(identifier: .gregorian)
@@ -43,26 +43,31 @@ struct NextTrackRecommenderChallengesTests {
 		)
 	}
 
-	private func challengeNames(_ stats: [TrackSingingStats]) -> [String] {
-		NextTrackRecommender.challenges(from: stats, now: now, calendar: calendar).map { $0.stats.userEnteredName ?? "" }
+	private func practice(_ stats: [TrackSingingStats]) -> TrackPracticeSections {
+		NextTrackRecommender.practice(from: stats, now: now, calendar: calendar)
 	}
 
-	@Test("最新の記録が Practice の曲と、歌い切れなかった曲が挑戦中になる")
-	func challengesIncludePracticeAndUnfinished() {
-		let names = challengeNames([
+	private func names(_ recommendations: [TrackRecommendation]) -> [String] {
+		recommendations.map { $0.stats.userEnteredName ?? "" }
+	}
+
+	@Test("Practice で歌い切れた曲は「練習中の曲」、歌い切れなかった曲は気分に関係なく「歌い切れなかった曲」")
+	func splitsPracticingAndUnfinished() {
+		let result = practice([
 			stats("Practice", intent: .practice, lastPerformedAt: daysAgo(10), bestScore: 80),
 			stats("Emo・歌い切れず", lastPerformedAt: daysAgo(5), bestScore: nil, isCompleted: false),
 			stats("Practice・歌い切れず", intent: .practice, lastPerformedAt: daysAgo(3), bestScore: nil, isCompleted: false),
 			stats("Emo・歌い切れた", lastPerformedAt: daysAgo(20), bestScore: 90),
 		])
-		#expect(names == ["Practice", "Emo・歌い切れず", "Practice・歌い切れず"])
+		#expect(names(result.practicing) == ["Practice"])
+		#expect(names(result.unfinished) == ["Emo・歌い切れず", "Practice・歌い切れず"])
 	}
 
 	@Test("Practice 以外の気分で歌い切った曲は、挑戦中に入らない")
 	func completedInOtherMoodIsNotChallenging() {
 		let shout = stats("Shout・歌い切れた", intent: .shout, lastPerformedAt: daysAgo(3), bestScore: 70)
 		#expect(!shout.isChallenging)
-		#expect(challengeNames([shout]).isEmpty)
+		#expect(practice([shout]).isEmpty)
 	}
 
 	@Test("挑戦中の曲は、Practice を含むどの気分の候補にも「また歌いたい」にも出ない")
@@ -80,23 +85,39 @@ struct NextTrackRecommenderChallengesTests {
 		}
 	}
 
-	@Test("今日歌った曲は、挑戦中にも出ない")
-	func excludesTracksSungToday() {
-		let names = challengeNames([
-			stats("今日", intent: .practice, lastPerformedAt: now, bestScore: 80),
+	@Test("今日歌った曲も消さずに、それぞれのいちばん下に出す")
+	func keepsTracksSungTodayAtBottom() {
+		let result = practice([
+			stats("今日・ハート", intent: .practice, lastPerformedAt: now, bestScore: 80, wantAgain: true),
 			stats("昨日", intent: .practice, lastPerformedAt: daysAgo(1), bestScore: 80),
+			stats("今日・歌い切れず", lastPerformedAt: now, bestScore: nil, isCompleted: false),
+			stats("1週間前・歌い切れず", lastPerformedAt: daysAgo(7), bestScore: nil, isCompleted: false),
 		])
-		#expect(names == ["昨日"])
+		#expect(names(result.practicing) == ["昨日", "今日・ハート"])
+		#expect(names(result.unfinished) == ["1週間前・歌い切れず", "今日・歌い切れず"])
+		#expect(result.practicing.last?.daysSinceLastSung == 0)
+	}
+
+	@Test("今日歌っていない曲の中では、ハート付きが日数より先に来る")
+	func wantAgainComesFirst() {
+		let result = practice([
+			stats("1ヶ月前", intent: .practice, lastPerformedAt: daysAgo(30), bestScore: 70),
+			stats("2日前・ハート", intent: .practice, lastPerformedAt: daysAgo(2), bestScore: 90, wantAgain: true),
+			stats("歌い切れず・1ヶ月前", lastPerformedAt: daysAgo(30), bestScore: nil, isCompleted: false),
+			stats("歌い切れず・2日前・ハート", lastPerformedAt: daysAgo(2), bestScore: nil, wantAgain: true, isCompleted: false),
+		])
+		#expect(names(result.practicing) == ["2日前・ハート", "1ヶ月前"])
+		#expect(names(result.unfinished) == ["歌い切れず・2日前・ハート", "歌い切れず・1ヶ月前"])
 	}
 
 	@Test("日数が同じなら最高点が低い順で、点数がない曲を一番低いとする")
 	func tieBreaksByLowerBestScore() {
-		let names = challengeNames([
+		let result = practice([
 			stats("90点", intent: .practice, lastPerformedAt: daysAgo(7), bestScore: 90),
-			stats("点数なし", lastPerformedAt: daysAgo(7), bestScore: nil, isCompleted: false),
+			stats("点数なし", intent: .practice, lastPerformedAt: daysAgo(7), bestScore: nil),
 			stats("75点", intent: .practice, lastPerformedAt: daysAgo(7), bestScore: 75),
 		])
-		#expect(names == ["点数なし", "75点", "90点"])
+		#expect(names(result.practicing) == ["点数なし", "75点", "90点"])
 	}
 
 	@Test("同じ入力なら、渡す順番によらず同じ順番が返る")
@@ -106,6 +127,6 @@ struct NextTrackRecommenderChallengesTests {
 			stats("B", intent: .practice, lastPerformedAt: daysAgo(7), bestScore: 80),
 			stats("C", lastPerformedAt: daysAgo(2), bestScore: nil, isCompleted: false),
 		]
-		#expect(challengeNames(all) == challengeNames(all.reversed()))
+		#expect(practice(all) == practice(all.reversed()))
 	}
 }

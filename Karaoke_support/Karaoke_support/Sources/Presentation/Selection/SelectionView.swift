@@ -33,12 +33,17 @@ struct SelectionView: View {
 					VStack(alignment: .leading, spacing: 20) {
 						moodBar
 						let sections = viewModel.sections
-						if viewModel.isShowingChallenges {
-							let challenges = viewModel.challenges
-							if challenges.isEmpty {
+						if viewModel.isShowingPractice {
+							let practice = viewModel.practice
+							if practice.isEmpty {
 								noCandidates(message: "Practice で歌った曲や、歌い切れなかった曲がここに出ます")
 							} else {
-								section(title: "挑戦中の曲", systemImage: nil, recommendations: challenges, isChallenge: true)
+								if !practice.practicing.isEmpty {
+									section(title: "練習中の曲", systemImage: nil, recommendations: practice.practicing, isChallenge: true)
+								}
+								if !practice.unfinished.isEmpty {
+									section(title: "歌い切れなかった曲", systemImage: nil, recommendations: practice.unfinished, isChallenge: true)
+								}
 							}
 						} else if sections.isEmpty {
 							noCandidates(message: "記録が増えると、ここに曲が出ます")

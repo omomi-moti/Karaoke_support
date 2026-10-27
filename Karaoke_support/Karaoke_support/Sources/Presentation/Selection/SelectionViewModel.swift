@@ -35,11 +35,11 @@ final class SelectionViewModel {
 		NextTrackRecommender.sections(from: stats, mood: mood, now: now(), calendar: calendar)
 	}
 
-	/// Practice のチップを選んでいるときは、「挑戦中の曲」だけを出す（#131）。
-	var isShowingChallenges: Bool { mood == .practice }
+	/// Practice のチップを選んでいるときは、「練習中の曲」と「歌い切れなかった曲」を出す（#131）。
+	var isShowingPractice: Bool { mood == .practice }
 
-	var challenges: [TrackRecommendation] {
-		NextTrackRecommender.challenges(from: stats, now: now(), calendar: calendar)
+	var practice: TrackPracticeSections {
+		NextTrackRecommender.practice(from: stats, now: now(), calendar: calendar)
 	}
 
 	func load() async {

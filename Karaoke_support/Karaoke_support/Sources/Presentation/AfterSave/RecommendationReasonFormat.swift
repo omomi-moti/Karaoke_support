@@ -18,14 +18,16 @@ enum RecommendationReasonFormat {
 	}
 
 	/// 挑戦中の曲（#131）。歌い切れなかった曲は「歌い切れず ・ 1ヶ月前 ・ Shout」、
-	/// それ以外（最新の気分が Practice）は「点数アップ ・ 3回歌った ・ 前回は1週間前」。
+	/// それ以外（最新の気分が Practice）は「点数アップ ・ 3回歌った ・ 前回は1週間前」。今日歌った曲は「今日」「今日歌った」にする。
 	static func challenge(_ recommendation: TrackRecommendation) -> String {
 		let stats = recommendation.stats
 		let days = recommendation.daysSinceLastSung
 		if !stats.latestIsCompleted {
-			return "歌い切れず ・ \(ago(days: days)) ・ \(IntentLabel.title(stats.latestIntent))"
+			let when = days < 1 ? "今日" : ago(days: days)
+			return "歌い切れず ・ \(when) ・ \(IntentLabel.title(stats.latestIntent))"
 		}
-		return "点数アップ ・ \(stats.sessionCount)回歌った ・ 前回は\(ago(days: days))"
+		let last = days < 1 ? "今日歌った" : "前回は\(ago(days: days))"
+		return "点数アップ ・ \(stats.sessionCount)回歌った ・ \(last)"
 	}
 
 	private static func period(days: Int) -> String {

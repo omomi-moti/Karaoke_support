@@ -161,7 +161,7 @@ struct SelectionViewModelTests {
 		#expect(!vm.isLoading)
 	}
 
-	@Test("Practice を選ぶと挑戦中の曲を出し、ほかの気分では出さない")
+	@Test("Practice を選ぶと練習中の曲と歌い切れなかった曲を出し、ほかの気分では出さない")
 	func practiceShowsChallenges() async {
 		repository.stats = [
 			stats("Practice", intent: .practice, daysAgo: 3),
@@ -172,11 +172,12 @@ struct SelectionViewModelTests {
 		await vm.load()
 
 		vm.mood = .practice
-		#expect(vm.isShowingChallenges)
-		#expect(names(vm.challenges) == ["Emo・歌い切れず", "Practice"])
+		#expect(vm.isShowingPractice)
+		#expect(names(vm.practice.practicing) == ["Practice"])
+		#expect(names(vm.practice.unfinished) == ["Emo・歌い切れず"])
 
 		vm.mood = .emo
-		#expect(!vm.isShowingChallenges)
+		#expect(!vm.isShowingPractice)
 		#expect(names(vm.sections.moodMatched) == ["Emo"])
 	}
 }

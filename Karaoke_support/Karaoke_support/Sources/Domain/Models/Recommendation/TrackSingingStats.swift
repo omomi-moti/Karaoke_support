@@ -23,6 +23,6 @@ struct TrackSingingStats: Equatable, Sendable {
 	var latestMemo: String?
 
 	/// 挑戦中か。最新の記録の気分が Practice、または最新の記録で歌い切れなかった曲。
-	/// 挑戦中の曲は Practice の「挑戦中の曲」にだけ出し、ほかの候補には出さない。
+	/// 挑戦中の曲は Practice のチップ（練習中の曲・歌い切れなかった曲）にだけ出し、ほかの候補には出さない。
 	var isChallenging: Bool { latestIntent == .practice || !latestIsCompleted }
 }
