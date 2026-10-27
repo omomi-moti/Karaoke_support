@@ -52,6 +52,7 @@ final class SwiftDataSessionRepository: SessionRepositoryProtocol {
 		existing.score = session.score
 		existing.memo = session.memo
 		existing.recordedWantAgain = session.wantAgain
+		existing.recordedIsCompleted = session.isCompleted
 		// source（どこから付けた記録か）は、最初に保存したときのまま変えない（#120）
 		existing.track.updatedAt = .now
 		try modelContext.save()
