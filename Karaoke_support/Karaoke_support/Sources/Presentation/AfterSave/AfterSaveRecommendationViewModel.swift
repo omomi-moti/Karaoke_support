@@ -42,13 +42,16 @@ final class AfterSaveRecommendationViewModel {
 		}
 		guard attempt == prepareGeneration else { return nil }
 
-		let found = NextTrackRecommender.recommend(
-			from: stats,
-			mood: saved.intent,
-			now: now(),
-			calendar: calendar,
-			limit: Self.maxRecommendations
-		)
+		// Practice で保存したときは、選曲画面の Practice と同じく挑戦中の曲を出す（#131）
+		let found = saved.intent == .practice
+			? Array(NextTrackRecommender.challenges(from: stats, now: now(), calendar: calendar).prefix(Self.maxRecommendations))
+			: NextTrackRecommender.recommend(
+				from: stats,
+				mood: saved.intent,
+				now: now(),
+				calendar: calendar,
+				limit: Self.maxRecommendations
+			)
 		guard !found.isEmpty else { return nil }
 		return AfterSaveSheetContent(saved: saved, recommendations: found)
 	}
