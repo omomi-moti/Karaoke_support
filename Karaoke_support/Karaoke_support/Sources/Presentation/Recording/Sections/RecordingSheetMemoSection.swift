@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RecordingSheetMemoSection: View {
 	@Binding var memo: String
+	var placeholder = "ひとこと"
 	let isDisabled: Bool
 
 	var body: some View {
@@ -11,7 +12,7 @@ struct RecordingSheetMemoSection: View {
 
 			ZStack(alignment: .topLeading) {
 				if memo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-					Text("ひとこと")
+					Text(placeholder)
 						.foregroundStyle(.tertiary)
 						.padding(.top, 10)
 						.padding(.horizontal, 12)

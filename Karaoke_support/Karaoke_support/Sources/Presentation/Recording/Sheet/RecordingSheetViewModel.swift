@@ -29,6 +29,9 @@ final class RecordingSheetViewModel {
 
 	var isTrackInputLockedForEdit: Bool { editingSessionId != nil }
 
+	/// メモの案内。歌い切れなかったときは、難しかったところを書いてもらう（#128）。
+	var memoPlaceholder: String { draft.isCompleted ? "ひとこと" : "どこが難しかった？" }
+
 	static let maxTrackSuggestions = 5
 
 	/// 曲名入力欄の下の「もしかして」欄。
@@ -111,7 +114,8 @@ final class RecordingSheetViewModel {
 			intent: editingSession.intent,
 			memo: editingSession.memo ?? "",
 			performedAt: editingSession.performedAt,
-			wantAgain: editingSession.wantAgain
+			wantAgain: editingSession.wantAgain,
+			isCompleted: editingSession.isCompleted
 		)
 		self.pendingSessionIdForSave = nil
 	}
@@ -199,7 +203,8 @@ final class RecordingSheetViewModel {
 					performedAt: draft.performedAt,
 					score: score,
 					memo: draft.normalizedMemo,
-					wantAgain: draft.wantAgain
+					wantAgain: draft.wantAgain,
+					isCompleted: draft.isCompleted
 				)
 				try await sessionRepository.updateRecordingSession(session)
 				return Self.savedRecording(session, isNewRecording: false)
@@ -223,7 +228,8 @@ final class RecordingSheetViewModel {
 				memo: draft.normalizedMemo,
 				// 提案や選曲画面のカードから開いても、曲を書き換えたら自分で選んだ記録として数える
 				source: suggestion.flatMap { $0.track == selectedTrack ? $0.source : nil } ?? .manual,
-				wantAgain: draft.wantAgain
+				wantAgain: draft.wantAgain,
+				isCompleted: draft.isCompleted
 			)
 			try await sessionRepository.saveNewRecordingSession(session)
 			pendingSessionIdForSave = nil
