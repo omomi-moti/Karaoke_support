@@ -1,6 +1,6 @@
 # 0042. 歌い切れなかった曲は最新の記録で決めて候補から外し、ハートより優先する
 
-- 2026-10-27 ／ 承認
+- 2026-10-27 ／ 承認（3 は置き換え済み → [0043](0043-practice-challenges.md)）
 - 背景：選曲MVP のスプリント 5（#128）。記録に「歌い切れたか」を持たせた（[0041](0041-completion-as-optional-bool.md)）。保存直後のシート（[0024](0024-recommend-right-after-save.md)・[0037](0037-want-again-in-recommendations.md)）と選曲画面（[0039](0039-selection-screen-sections.md)）で、歌い切れなかった曲をどう扱うかを決める。元の仕様では、歌い切れなかった曲は「挑戦中」として、通常の候補には出さず Practice にだけ出す。Practice の「挑戦中の曲」はスプリント 6 で作る
 
 ## 比較した案
