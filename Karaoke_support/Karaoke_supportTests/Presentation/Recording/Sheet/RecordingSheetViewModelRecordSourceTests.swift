@@ -104,6 +104,25 @@ struct RecordingSheetViewModelRecordSourceTests {
 		#expect(sessionRepository.savedSessions.map(\.recordedSource) == [.suggestion])
 	}
 
+	@Test("選曲画面のカードから開いて、曲を変えずに保存すると selectionScreen")
+	func selectionScreenWhenTrackUnchanged() async throws {
+		let selected = try #require(SelectedTrack(spotifyTrackId: nil, userEnteredName: "涙そうそう"))
+		let vm = makeViewModel(selected, source: .selectionScreen)
+
+		#expect(await vm.save() != nil)
+		#expect(sessionRepository.savedSessions.map(\.recordedSource) == [.selectionScreen])
+	}
+
+	@Test("選曲画面のカードから開いても、曲名を書き換えて保存すると manual")
+	func manualWhenTrackNameEditedFromSelectionScreen() async throws {
+		let selected = try #require(SelectedTrack(spotifyTrackId: nil, userEnteredName: "涙そうそう"))
+		let vm = makeViewModel(selected, source: .selectionScreen)
+		vm.trackState.manualName = "島唄"
+
+		#expect(await vm.save() != nil)
+		#expect(sessionRepository.savedSessions.map(\.recordedSource) == [.manual])
+	}
+
 	@Test("ランキングや検索など、提案以外から曲を入れて開くと manual")
 	func manualWhenOpenedFromElsewhere() async throws {
 		let selected = try #require(SelectedTrack(spotifyTrackId: nil, userEnteredName: "涙そうそう"))
