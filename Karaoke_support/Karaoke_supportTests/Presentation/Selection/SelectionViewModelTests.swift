@@ -48,7 +48,7 @@ struct SelectionViewModelTests {
 		calendar.date(from: DateComponents(year: 2026, month: 10, day: 24, hour: 22))!
 	}
 
-	private func stats(_ name: String, intent: Intent = .emo, daysAgo days: Int, wantAgain: Bool = false) -> TrackSingingStats {
+	private func stats(_ name: String, intent: Intent = .emo, daysAgo days: Int, wantAgain: Bool = false, isCompleted: Bool = true) -> TrackSingingStats {
 		TrackSingingStats(
 			trackId: UUID(),
 			spotifyTrackId: nil,
@@ -57,7 +57,8 @@ struct SelectionViewModelTests {
 			lastPerformedAt: calendar.date(byAdding: .day, value: -days, to: now)!,
 			bestScore: 90,
 			sessionCount: 1,
-			latestWantAgain: wantAgain
+			latestWantAgain: wantAgain,
+			latestIsCompleted: isCompleted
 		)
 	}
 
@@ -158,5 +159,25 @@ struct SelectionViewModelTests {
 
 		#expect(names(vm.sections.moodMatched) == ["新しい"])
 		#expect(!vm.isLoading)
+	}
+
+	@Test("Practice を選ぶと練習中の曲と歌い切れなかった曲を出し、ほかの気分では出さない")
+	func practiceShowsChallenges() async {
+		repository.stats = [
+			stats("Practice", intent: .practice, daysAgo: 3),
+			stats("Emo・歌い切れず", intent: .emo, daysAgo: 5, isCompleted: false),
+			stats("Emo", intent: .emo, daysAgo: 1),
+		]
+		let vm = makeViewModel()
+		await vm.load()
+
+		vm.mood = .practice
+		#expect(vm.isShowingPractice)
+		#expect(names(vm.practice.practicing) == ["Practice"])
+		#expect(names(vm.practice.unfinished) == ["Emo・歌い切れず"])
+
+		vm.mood = .emo
+		#expect(!vm.isShowingPractice)
+		#expect(names(vm.sections.moodMatched) == ["Emo"])
 	}
 }

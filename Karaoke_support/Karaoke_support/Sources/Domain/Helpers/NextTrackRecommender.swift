@@ -1,6 +1,6 @@
 import Foundation
 
-/// 保存した直後に出す「次の 1 曲」の候補と、選曲画面に並べる候補を計算する。
+/// 保存した直後に出す「次の 1 曲」の候補と、選曲画面に並べる候補・挑戦中の曲を計算する。
 ///
 /// 曲ごとの集計・今の気分・今の時刻だけから決める純粋関数で、同じ入力には必ず同じ順番を返す。
 enum NextTrackRecommender {
@@ -19,7 +19,7 @@ enum NextTrackRecommender {
 	/// 1 日の区切り（時）。日付をまたぐひとカラも同じ日とみなす。
 	static let dayBoundaryHour = 5
 
-	/// - Returns: 最新の記録の気分が `mood` と同じで、今日まだ歌っておらず、最新の記録で歌い切れた曲を、スコアの高い順に最大 `limit` 件。
+	/// - Returns: 最新の記録の気分が `mood` と同じで、今日まだ歌っておらず、挑戦中ではない曲を、スコアの高い順に最大 `limit` 件。
 	///   スコアが同じなら最後に歌った日が古い順、それも同じなら曲の ID 順。
 	static func recommend(
 		from stats: [TrackSingingStats],
@@ -29,12 +29,12 @@ enum NextTrackRecommender {
 		limit: Int
 	) -> [TrackRecommendation] {
 		let found = candidates(from: stats, now: now, calendar: calendar)
-			.filter { $0.stats.latestIntent == mood }
+			.filter { !$0.stats.isChallenging && $0.stats.latestIntent == mood }
 			.sorted(by: isRankedHigher)
 		return Array(found.prefix(max(0, limit)))
 	}
 
-	/// - Returns: 今日まだ歌っておらず、最新の記録で歌い切れた曲を、選曲画面の 2 つのセクションに分けたもの。件数は絞らない。
+	/// - Returns: 今日まだ歌っておらず、挑戦中ではない曲を、選曲画面の 2 つのセクションに分けたもの。件数は絞らない。
 	///   「また歌いたい」は `mood` と同じ気分の曲を上にし、その中と「今の気分に合う曲」は ``recommend(from:mood:now:calendar:limit:)`` と同じ順に並べる。
 	static func sections(
 		from stats: [TrackSingingStats],
@@ -42,7 +42,7 @@ enum NextTrackRecommender {
 		now: Date,
 		calendar: Calendar
 	) -> TrackSelectionSections {
-		let found = candidates(from: stats, now: now, calendar: calendar)
+		let found = candidates(from: stats, now: now, calendar: calendar).filter { !$0.stats.isChallenging }
 		let wantAgain = found
 			.filter(\.stats.latestWantAgain)
 			.sorted { a, b in
@@ -55,6 +55,29 @@ enum NextTrackRecommender {
 			.filter { !$0.stats.latestWantAgain && $0.stats.latestIntent == mood }
 			.sorted(by: isRankedHigher)
 		return TrackSelectionSections(wantAgain: wantAgain, moodMatched: moodMatched)
+	}
+
+	/// - Returns: 挑戦中の曲を、「練習中の曲」と「歌い切れなかった曲」に分けたもの。件数は絞らない。
+	///   練習は同じ日に歌い直すので、今日歌った曲も消さずに、それぞれのいちばん下に出す。
+	///   今日歌っていない曲の中は、ハート付きが先、次に最後に歌ってからの日数が長い順、最高点が低い順（点数がない曲を一番低いとする）、曲の ID 順。
+	static func practice(from stats: [TrackSingingStats], now: Date, calendar: Calendar) -> TrackPracticeSections {
+		let sorted = candidates(from: stats, now: now, calendar: calendar, includesToday: true)
+			.filter(\.stats.isChallenging)
+			.sorted { a, b in
+				let aIsToday = a.daysSinceLastSung < 1
+				let bIsToday = b.daysSinceLastSung < 1
+				if aIsToday != bIsToday { return bIsToday }
+				if a.stats.latestWantAgain != b.stats.latestWantAgain { return a.stats.latestWantAgain }
+				if a.daysSinceLastSung != b.daysSinceLastSung { return a.daysSinceLastSung > b.daysSinceLastSung }
+				let aBest = a.stats.bestScore ?? -1
+				let bBest = b.stats.bestScore ?? -1
+				if aBest != bBest { return aBest < bBest }
+				return a.stats.trackId.uuidString < b.stats.trackId.uuidString
+			}
+		return TrackPracticeSections(
+			practicing: sorted.filter(\.stats.latestIsCompleted),
+			unfinished: sorted.filter { !$0.stats.latestIsCompleted }
+		)
 	}
 
 	static func score(bestScore: Double?, daysSinceLastSung: Int, wantAgain: Bool) -> Double {
@@ -79,13 +102,11 @@ enum NextTrackRecommender {
 		calendar.dateComponents([.day], from: dayStart(of: from, calendar: calendar), to: dayStart(of: to, calendar: calendar)).day ?? 0
 	}
 
-	private static func candidates(from stats: [TrackSingingStats], now: Date, calendar: Calendar) -> [TrackRecommendation] {
+	/// `includesToday` が `false` なら、今日歌った曲（未来の日時に直された記録も含む）は出さない。`true` なら日数を 0 として出す。
+	private static func candidates(from stats: [TrackSingingStats], now: Date, calendar: Calendar, includesToday: Bool = false) -> [TrackRecommendation] {
 		stats.compactMap { stat in
-			let days = daysBetween(stat.lastPerformedAt, now, calendar: calendar)
-			// 今日歌った曲（未来の日時に直された記録も含む）は出さない
-			guard days >= 1 else { return nil }
-			// 最新の記録で歌い切れなかった曲は、ハートが付いていても出さない（#128）
-			guard stat.latestIsCompleted else { return nil }
+			let days = max(daysBetween(stat.lastPerformedAt, now, calendar: calendar), 0)
+			guard includesToday || days >= 1 else { return nil }
 			return TrackRecommendation(
 				stats: stat,
 				score: score(bestScore: stat.bestScore, daysSinceLastSung: days, wantAgain: stat.latestWantAgain),

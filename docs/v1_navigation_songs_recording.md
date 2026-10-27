@@ -5,7 +5,7 @@
 - **シートは `RootView` に 1 つだけ**置く。`TabView` に `.sheet(item: $sheet, onDismiss:)` を付け、記録シート（`RecordingSheetContainerView`）と保存直後のシート（`AfterSaveRecommendationSheetView`）を切り替える（ADR 0025）。選曲・履歴・検索のどのタブから開いても同じシートを使う。
 - **歌唱記録 UI は `NavigationStack` の push では出さない**。push で `NavigationPath` を空にして pop すると、必ず一度 **下のルートが露出**する。保存後に履歴タブへ切り替えるときの「一瞬チラつき」を避けるため、**シートの dismiss** で閉じる。
 - 各タブの `NavigationStack` はタブ内に独立して持つ（選曲は `SongsRootView`、履歴は `HistoryListContainerView`、設定・検索は `RootView` の `Tab` 内）。記録シートはどのタブのスタックにも積まない。
-- 選曲タブ（`SongsRootView`）は選曲画面（`SelectionContainerView`）を出す（#126。タイムマシン・マイアンセム・今月の統計は ADR 0038 で消した）。記録を保存するたびに `historyReloadTick` で読み直す。V1 にあった「インテント / Spotify」のセグメントは撤去した。
+- 選曲タブ（`SongsRootView`）は選曲画面（`SelectionContainerView`）を出す（#126。タイムマシン・マイアンセム・今月の統計は ADR 0038 で消した）。記録を保存するたびに `historyReloadTick` で読み直す。Practice のチップでは「練習中の曲」（最新の記録が Practice で歌い切れた曲）と「歌い切れなかった曲」（最新の記録で歌い切れなかった曲）だけを出す（#131・ADR 0043・0044）。Practice では今日歌った曲も消さずに各セクションのいちばん下に出し、ハート付きを上に出す（ADR 0045）。V1 にあった「インテント / Spotify」のセグメントは撤去した。
 
 ## シートの開き方
 
@@ -28,7 +28,7 @@
 1. `RecordingSheetContentView.attemptSave()` 成功時に、保存した記録の要約（`SavedRecording`）を付けて `onSaved(_:)` を呼ぶ。
 2. `RootView.handleSaved(_:)` で **シートを閉じ**、**`historyReloadTick += 1`**。シートが**閉じ終わってから**（`onDismiss`）`selectedTab = .history`（アニメーションなし）にする。閉じている途中に切り替えると、後ろの画面が急に変わって見えるため（ADR 0032）。
 3. `RecordingSheetContentView` は **`dismiss()`** も呼ぶ（二重の閉じ方だが問題にならない）。
-4. `AfterSaveRecommendationViewModel.prepare(for:)` で候補を読み、中身が返ったときだけ保存直後のシートを出す。新規の記録で候補が 1 件以上あるときだけで、編集して更新したとき・候補が 0 件のとき・読み込みに失敗したときは出さない（ADR 0024）。出すのは履歴タブへ移ってから 1 秒たってから（`afterSaveSheetDelay`。履歴に記録が増えたのが見えてから出すため・ADR 0032）。中身の読み込みと履歴タブへの移動は、どちらが先に終わってもよい。保存直後のシートの「もっと見る」を押すと、シートを閉じ、閉じ終わってから（`onDismiss`）選曲タブへ移る（`movesToSongsAfterDismiss`）。選曲画面は保存のあとに読み直して直前の記録の気分になるので、保存した記録の気分がそのまま選ばれる（#126）。候補を待っている間に別のシートが開かれた・予約されたとき（保存した直後に＋を押した、など）も出さず、そちらを優先する（ADR 0025）。
+4. `AfterSaveRecommendationViewModel.prepare(for:)` で候補を読み（Practice で保存したときは練習中の曲を先に、足りなければ歌い切れなかった曲・ADR 0044）、中身が返ったときだけ保存直後のシートを出す。新規の記録で候補が 1 件以上あるときだけで、編集して更新したとき・候補が 0 件のとき・読み込みに失敗したときは出さない（ADR 0024）。出すのは履歴タブへ移ってから 1 秒たってから（`afterSaveSheetDelay`。履歴に記録が増えたのが見えてから出すため・ADR 0032）。中身の読み込みと履歴タブへの移動は、どちらが先に終わってもよい。保存直後のシートの「もっと見る」を押すと、シートを閉じ、閉じ終わってから（`onDismiss`）選曲タブへ移る（`movesToSongsAfterDismiss`）。選曲画面は保存のあとに読み直して直前の記録の気分になるので、保存した記録の気分がそのまま選ばれる（#126）。候補を待っている間に別のシートが開かれた・予約されたとき（保存した直後に＋を押した、など）も出さず、そちらを優先する（ADR 0025）。
 
 ### `historyReloadTick` が必要な理由
 

@@ -36,7 +36,7 @@ struct AfterSaveRecommendationViewModelTests {
 		calendar.date(byAdding: .day, value: -days, to: now)!
 	}
 
-	private func stats(_ name: String, intent: Intent = .emo, daysAgo days: Int, bestScore: Double? = 90) -> TrackSingingStats {
+	private func stats(_ name: String, intent: Intent = .emo, daysAgo days: Int, bestScore: Double? = 90, isCompleted: Bool = true) -> TrackSingingStats {
 		TrackSingingStats(
 			trackId: UUID(),
 			spotifyTrackId: nil,
@@ -44,7 +44,8 @@ struct AfterSaveRecommendationViewModelTests {
 			latestIntent: intent,
 			lastPerformedAt: daysAgo(days),
 			bestScore: bestScore,
-			sessionCount: 1
+			sessionCount: 1,
+			latestIsCompleted: isCompleted
 		)
 	}
 
@@ -89,6 +90,66 @@ struct AfterSaveRecommendationViewModelTests {
 		repository.stats = [
 			stats("Emo", intent: .emo, daysAgo: 30),
 			stats("Shout", intent: .shout, daysAgo: 30),
+		]
+		let vm = makeViewModel(repository)
+
+		let content = try #require(await vm.prepare(for: saved(intent: .shout)))
+
+		#expect(content.recommendations.map { $0.stats.userEnteredName } == ["Shout"])
+	}
+
+	@Test("Practice で保存したときは、練習中の曲を日数が長い順に 2 件返す")
+	func practiceUsesChallenges() async throws {
+		let repository = StubTrackStatsRepository()
+		repository.stats = [
+			stats("Practice・3日前", intent: .practice, daysAgo: 3),
+			stats("Shout・歌い切れず・10日前", intent: .shout, daysAgo: 10, bestScore: nil, isCompleted: false),
+			stats("Practice・20日前", intent: .practice, daysAgo: 20),
+			stats("Emo・歌い切れた", intent: .emo, daysAgo: 30),
+		]
+		let vm = makeViewModel(repository)
+
+		let content = try #require(await vm.prepare(for: saved(intent: .practice)))
+
+		#expect(content.recommendations.map { $0.stats.userEnteredName } == ["Practice・20日前", "Practice・3日前"])
+	}
+
+	@Test("Practice で保存したとき、練習中の曲が足りなければ歌い切れなかった曲で埋める")
+	func practiceFillsWithUnfinished() async throws {
+		let repository = StubTrackStatsRepository()
+		repository.stats = [
+			stats("Practice", intent: .practice, daysAgo: 3),
+			stats("Shout・歌い切れず", intent: .shout, daysAgo: 10, bestScore: nil, isCompleted: false),
+			stats("Emo・歌い切れず", intent: .emo, daysAgo: 5, bestScore: nil, isCompleted: false),
+		]
+		let vm = makeViewModel(repository)
+
+		let content = try #require(await vm.prepare(for: saved(intent: .practice)))
+
+		#expect(content.recommendations.map { $0.stats.userEnteredName } == ["Practice", "Shout・歌い切れず"])
+	}
+
+	@Test("Practice で保存したときも、今日歌った曲は出さない")
+	func practiceExcludesTracksSungToday() async throws {
+		let repository = StubTrackStatsRepository()
+		repository.stats = [
+			stats("今日・Practice", intent: .practice, daysAgo: 0),
+			stats("3日前・Practice", intent: .practice, daysAgo: 3),
+			stats("今日・歌い切れず", intent: .shout, daysAgo: 0, bestScore: nil, isCompleted: false),
+		]
+		let vm = makeViewModel(repository)
+
+		let content = try #require(await vm.prepare(for: saved(intent: .practice)))
+
+		#expect(content.recommendations.map { $0.stats.userEnteredName } == ["3日前・Practice"])
+	}
+
+	@Test("Shout や Emo で保存したときは、挑戦中の曲を出さない")
+	func otherMoodsExcludeChallenges() async throws {
+		let repository = StubTrackStatsRepository()
+		repository.stats = [
+			stats("Shout・歌い切れず", intent: .shout, daysAgo: 10, isCompleted: false),
+			stats("Shout", intent: .shout, daysAgo: 5),
 		]
 		let vm = makeViewModel(repository)
 

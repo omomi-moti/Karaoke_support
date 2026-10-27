@@ -33,8 +33,20 @@ struct SelectionView: View {
 					VStack(alignment: .leading, spacing: 20) {
 						moodBar
 						let sections = viewModel.sections
-						if sections.isEmpty {
-							noCandidates
+						if viewModel.isShowingPractice {
+							let practice = viewModel.practice
+							if practice.isEmpty {
+								noCandidates(message: "Practice で歌った曲や、歌い切れなかった曲がここに出ます")
+							} else {
+								if !practice.practicing.isEmpty {
+									section(title: "練習中の曲", systemImage: nil, recommendations: practice.practicing, isChallenge: true)
+								}
+								if !practice.unfinished.isEmpty {
+									section(title: "歌い切れなかった曲", systemImage: nil, recommendations: practice.unfinished, isChallenge: true)
+								}
+							}
+						} else if sections.isEmpty {
+							noCandidates(message: "記録が増えると、ここに曲が出ます")
 						} else {
 							if !sections.wantAgain.isEmpty {
 								section(title: "また歌いたい", systemImage: "heart.fill", recommendations: sections.wantAgain)
@@ -68,7 +80,7 @@ struct SelectionView: View {
 		}
 	}
 
-	private func section(title: String, systemImage: String?, recommendations: [TrackRecommendation]) -> some View {
+	private func section(title: String, systemImage: String?, recommendations: [TrackRecommendation], isChallenge: Bool = false) -> some View {
 		VStack(alignment: .leading, spacing: 8) {
 			HStack(spacing: 6) {
 				if let systemImage {
@@ -85,12 +97,13 @@ struct SelectionView: View {
 
 			ForEach(Array(recommendations.enumerated()), id: \.element.stats.trackId) { index, recommendation in
 				RecommendationCardView(
-					rank: index + 1,
+					rank: isChallenge ? nil : index + 1,
 					title: TrackDisplayTitle.primary(
 						spotifyTrackId: recommendation.stats.spotifyTrackId,
 						userEnteredName: recommendation.stats.userEnteredName
 					),
-					reason: reason(for: recommendation),
+					reason: isChallenge ? RecommendationReasonFormat.challenge(recommendation) : reason(for: recommendation),
+					note: isChallenge && !recommendation.stats.latestIsCompleted ? recommendation.stats.latestMemo : nil,
 					isWantAgain: recommendation.stats.latestWantAgain,
 					onTap: { onSelect(recommendation, viewModel.mood) }
 				)
@@ -105,9 +118,9 @@ struct SelectionView: View {
 		return RecommendationReasonFormat.sinceLastSung(days: recommendation.daysSinceLastSung, intent: recommendation.stats.latestIntent)
 	}
 
-	private var noCandidates: some View {
+	private func noCandidates(message: String) -> some View {
 		VStack(spacing: 16) {
-			Text("記録が増えると、ここに曲が出ます")
+			Text(message)
 				.font(.subheadline)
 				.foregroundStyle(AppColor.textSecondary)
 				.multilineTextAlignment(.center)

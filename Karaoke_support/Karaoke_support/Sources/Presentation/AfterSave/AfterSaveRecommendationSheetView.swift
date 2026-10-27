@@ -21,7 +21,7 @@ struct AfterSaveRecommendationSheetView: View {
 						.fixedSize(horizontal: false, vertical: true)
 					HStack(spacing: 10) {
 						IntentBadgeView(intent: content.saved.intent)
-						Text("直前の気分から選んでいます")
+						Text(isShowingChallenges ? "Practice の曲から選んでいます" : "直前の気分から選んでいます")
 							.font(.caption)
 							.foregroundStyle(AppColor.textSecondary)
 					}
@@ -30,12 +30,15 @@ struct AfterSaveRecommendationSheetView: View {
 				VStack(spacing: 8) {
 					ForEach(Array(content.recommendations.enumerated()), id: \.element.stats.trackId) { index, recommendation in
 						RecommendationCardView(
-							rank: index + 1,
+							rank: isShowingChallenges ? nil : index + 1,
 							title: TrackDisplayTitle.primary(
 								spotifyTrackId: recommendation.stats.spotifyTrackId,
 								userEnteredName: recommendation.stats.userEnteredName
 							),
-							reason: RecommendationReasonFormat.sinceLastSung(days: recommendation.daysSinceLastSung),
+							reason: isShowingChallenges
+								? RecommendationReasonFormat.challenge(recommendation)
+								: RecommendationReasonFormat.sinceLastSung(days: recommendation.daysSinceLastSung),
+							note: isShowingChallenges && !recommendation.stats.latestIsCompleted ? recommendation.stats.latestMemo : nil,
 							isWantAgain: recommendation.stats.latestWantAgain,
 							onTap: { onSelect(recommendation) }
 						)
@@ -73,6 +76,9 @@ struct AfterSaveRecommendationSheetView: View {
 		.presentationDetents([.medium, .large])
 		.presentationDragIndicator(.visible)
 	}
+
+	/// Practice で保存したときは、練習中の曲と歌い切れなかった曲を、選曲画面の Practice と同じ形で出す（#131）。
+	private var isShowingChallenges: Bool { content.saved.intent == .practice }
 
 	private var savedHeader: some View {
 		HStack(spacing: 12) {

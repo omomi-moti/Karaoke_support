@@ -27,13 +27,14 @@ struct SwiftDataTrackStatsRepositoryTests {
 		return track
 	}
 
-	private func save(_ track: Track, _ intent: Intent, at interval: TimeInterval, score: Double?, wantAgain: Bool = false, isCompleted: Bool = true) async throws {
+	private func save(_ track: Track, _ intent: Intent, at interval: TimeInterval, score: Double?, memo: String? = nil, wantAgain: Bool = false, isCompleted: Bool = true) async throws {
 		try await sessionRepository.saveNewRecordingSession(
 			SingingSession(
 				track: track,
 				intent: intent,
 				performedAt: Date(timeIntervalSince1970: interval),
 				score: score,
+				memo: memo,
 				wantAgain: wantAgain,
 				isCompleted: isCompleted
 			)
@@ -135,5 +136,15 @@ struct SwiftDataTrackStatsRepositoryTests {
 
 		let stats = try await repository.fetchTrackSingingStats()
 		#expect(stats.first?.latestIsCompleted == true)
+	}
+
+	@Test("latestMemo は、最新の記録のメモになる")
+	func latestMemoComesFromNewestRecord() async throws {
+		let track = try makeTrack(named: "メモの曲")
+		try await save(track, .shout, at: 100, score: 80, memo: "前のメモ")
+		try await save(track, .shout, at: 200, score: nil, memo: "サビのキーが高かった", isCompleted: false)
+
+		let stats = try await repository.fetchTrackSingingStats()
+		#expect(stats.first?.latestMemo == "サビのキーが高かった")
 	}
 }
