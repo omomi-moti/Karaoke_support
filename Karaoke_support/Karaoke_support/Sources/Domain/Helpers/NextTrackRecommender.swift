@@ -19,7 +19,7 @@ enum NextTrackRecommender {
 	/// 1 日の区切り（時）。日付をまたぐひとカラも同じ日とみなす。
 	static let dayBoundaryHour = 5
 
-	/// - Returns: 最新の記録の気分が `mood` と同じで、今日まだ歌っていない曲を、スコアの高い順に最大 `limit` 件。
+	/// - Returns: 最新の記録の気分が `mood` と同じで、今日まだ歌っておらず、最新の記録で歌い切れた曲を、スコアの高い順に最大 `limit` 件。
 	///   スコアが同じなら最後に歌った日が古い順、それも同じなら曲の ID 順。
 	static func recommend(
 		from stats: [TrackSingingStats],
@@ -34,7 +34,7 @@ enum NextTrackRecommender {
 		return Array(found.prefix(max(0, limit)))
 	}
 
-	/// - Returns: 今日まだ歌っていない曲を、選曲画面の 2 つのセクションに分けたもの。件数は絞らない。
+	/// - Returns: 今日まだ歌っておらず、最新の記録で歌い切れた曲を、選曲画面の 2 つのセクションに分けたもの。件数は絞らない。
 	///   「また歌いたい」は `mood` と同じ気分の曲を上にし、その中と「今の気分に合う曲」は ``recommend(from:mood:now:calendar:limit:)`` と同じ順に並べる。
 	static func sections(
 		from stats: [TrackSingingStats],
@@ -84,6 +84,8 @@ enum NextTrackRecommender {
 			let days = daysBetween(stat.lastPerformedAt, now, calendar: calendar)
 			// 今日歌った曲（未来の日時に直された記録も含む）は出さない
 			guard days >= 1 else { return nil }
+			// 最新の記録で歌い切れなかった曲は、ハートが付いていても出さない（#128）
+			guard stat.latestIsCompleted else { return nil }
 			return TrackRecommendation(
 				stats: stat,
 				score: score(bestScore: stat.bestScore, daysSinceLastSung: days, wantAgain: stat.latestWantAgain),

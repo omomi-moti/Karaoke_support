@@ -17,4 +17,6 @@ struct TrackSingingStats: Equatable, Sendable {
 	let sessionCount: Int
 	/// 最新の記録にハート（また歌いたい）が付いているか。
 	var latestWantAgain = false
+	/// 最新の記録で歌い切れたか。
+	var latestIsCompleted = true
 }
