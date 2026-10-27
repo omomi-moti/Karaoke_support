@@ -30,4 +30,9 @@ struct RecommendationReasonFormatTests {
 	func clampsToOneDay() {
 		#expect(RecommendationReasonFormat.sinceLastSung(days: 0) == "1日ぶり")
 	}
+
+	@Test("気分を付けると「気分 ・ 何日ぶり」になる")
+	func withIntent() {
+		#expect(RecommendationReasonFormat.sinceLastSung(days: 14, intent: .shout) == "Shout ・ 2週間ぶり")
+	}
 }

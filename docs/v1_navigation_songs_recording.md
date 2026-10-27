@@ -5,7 +5,7 @@
 - **シートは `RootView` に 1 つだけ**置く。`TabView` に `.sheet(item: $sheet, onDismiss:)` を付け、記録シート（`RecordingSheetContainerView`）と保存直後のシート（`AfterSaveRecommendationSheetView`）を切り替える（ADR 0025）。選曲・履歴・検索のどのタブから開いても同じシートを使う。
 - **歌唱記録 UI は `NavigationStack` の push では出さない**。push で `NavigationPath` を空にして pop すると、必ず一度 **下のルートが露出**する。保存後に履歴タブへ切り替えるときの「一瞬チラつき」を避けるため、**シートの dismiss** で閉じる。
 - 各タブの `NavigationStack` はタブ内に独立して持つ（選曲は `SongsRootView`、履歴は `HistoryListContainerView`、設定・検索は `RootView` の `Tab` 内）。記録シートはどのタブのスタックにも積まない。
-- 選曲タブ（`SongsRootView`）は、選曲画面ができるまで、記録がないときと同じ空の状態を出す（#126。タイムマシン・マイアンセム・今月の統計は ADR 0038 で消した）。V1 にあった「インテント / Spotify」のセグメントは撤去した。
+- 選曲タブ（`SongsRootView`）は選曲画面（`SelectionContainerView`）を出す（#126。タイムマシン・マイアンセム・今月の統計は ADR 0038 で消した）。記録を保存するたびに `historyReloadTick` で読み直す。V1 にあった「インテント / Spotify」のセグメントは撤去した。
 
 ## シートの開き方
 
@@ -18,6 +18,7 @@
 | 選曲・履歴タブ右下の ＋ ボタン | `presentManualRecording()` | `.mode(.manual)` |
 | 空状態の「手動で曲名を入力して歌う」（選曲・履歴） | `EnvironmentValues.navigateToManualRecording` → `presentManualRecording()` | `.mode(.manual)` |
 | 検索タブ（`Tab(role: .search)`）の結果行 | `SearchContainerView(onSelectTrack:)` → `presentRecording(_:)` | `.selectedTrack(SelectedTrack)` |
+| 選曲画面のカード | `SongsRootView(onSelect:)` → `recordFromSelectionScreen(_:intent:)` | `.selectedTrack(SelectedTrack, intent:, source: .selectionScreen)`（選んでいる気分を入れて開く。曲を変えずに保存すると、選曲画面からの記録になる・ADR 0040） |
 | 保存直後のシートの提案カード | `recordRecommendation(_:intent:)`（保存直後のシートを閉じてから開く） | `.selectedTrack(SelectedTrack, intent:, source: .suggestion)`（保存した記録の気分を入れて開く。曲を変えずに保存すると、提案からの記録になる・ADR 0034） |
 
 `navigateToManualRecording` は以前は「選曲タブへ切替 + tick で `SongsRootView` にシートを開かせる」方式だったが、シートを `RootView` に集約したため **その場で開く**だけになった。
@@ -37,7 +38,7 @@
 
 ```
 [選曲タブ] ──(＋ / 空状態)────────┐
-[選曲タブ] ──(ランキング行)───────┤
+[選曲タブ] ──(選曲画面のカード)───┤
 [履歴タブ] ──(＋ / 空状態)────────┤──► RootView.sheet（.recording）
 [検索タブ] ──(検索結果行)─────────┘            │
                                                ▼
@@ -63,7 +64,7 @@
 
 - `Sources/Presentation/Root/RootView.swift` — `TabView`（iOS 26 `Tab` API）+ 記録シートと保存直後のシートの切り替え + ＋ボタン + `historyReloadTick`
 - `Sources/Presentation/AfterSave/` — 保存直後のシート（`AfterSaveRecommendationSheetView`）と、候補を用意する `AfterSaveRecommendationViewModel`（#115）
-- `Sources/Presentation/Songs/SongsRootView.swift` — 選曲タブの `NavigationStack`（ルートのみ）。記録は `onSelectTrack` で `RootView` に委譲
+- `Sources/Presentation/Songs/SongsRootView.swift` — 選曲タブの `NavigationStack`（ルートのみ）。中身は `Sources/Presentation/Selection/` の選曲画面。記録は `onSelect` で `RootView` に委譲
 - `Sources/Presentation/Search/SearchContainerView.swift` — 検索タブ本体（`.searchable`）。選択は `onSelectTrack` で `RootView` に委譲
 - `Sources/App/Environment/HistoryReloadEnvironment.swift` — `historyReloadTick`
 - `Sources/Presentation/Recording/Sheet/RecordingSheetContainerView.swift` — `RootView` の記録シートの中身。新規・曲を選んだとき・履歴からの編集（`seed: .editSession`）のどれもここから開く（ADR 0022）

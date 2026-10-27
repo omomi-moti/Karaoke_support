@@ -46,7 +46,7 @@ struct RootView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             Tab("選曲", systemImage: "music.note.list", value: .songs) {
-                SongsRootView(onSelectTrack: presentRecording)
+                SongsRootView(onSelect: recordFromSelectionScreen)
                     .modifier(TabBarInsetReader(inset: $tabBarInset))
             }
 
@@ -152,6 +152,15 @@ struct RootView: View {
             userEnteredName: recommendation.stats.userEnteredName
         ) else { return }
         closeSheet(then: .recording(.selectedTrack(selected, intent: intent, source: .suggestion)))
+    }
+
+    /// 選曲画面のカードから、その曲と選んでいる気分を入れて記録シートを開く。曲を変えずに保存すると、選曲画面からの記録になる（#126）。
+    private func recordFromSelectionScreen(_ recommendation: TrackRecommendation, intent: Intent) {
+        guard let selected = SelectedTrack(
+            spotifyTrackId: recommendation.stats.spotifyTrackId,
+            userEnteredName: recommendation.stats.userEnteredName
+        ) else { return }
+        present(.recording(.selectedTrack(selected, intent: intent, source: .selectionScreen)))
     }
 
     private func present(_ kind: RootSheet.Kind) {

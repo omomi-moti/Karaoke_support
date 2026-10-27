@@ -12,4 +12,9 @@ enum RecommendationReasonFormat {
 		default: return "\(days / 365)年ぶり"
 		}
 	}
+
+	/// 選曲画面で、今の気分と違う曲に気分を付ける（#126）。例:「Shout ・ 2週間ぶり」。
+	static func sinceLastSung(days: Int, intent: Intent) -> String {
+		"\(IntentLabel.title(intent)) ・ \(sinceLastSung(days: days))"
+	}
 }
