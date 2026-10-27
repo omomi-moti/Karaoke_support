@@ -16,6 +16,8 @@ enum AppColor {
 	static let surfaceCard = Color(.appSurfaceCard)
 	static let borderSubtle = Color(.appBorderSubtle)
 	static let accentScore = Color(.appAccentScore)
+	static let completedAccent = Color(.appCompletedAccent)
+	static let notCompletedAccent = Color(.appNotCompletedAccent)
 	static let badgeShoutBackground = Color(.appBadgeShoutBackground)
 	static let badgeShoutForeground = Color(.appBadgeShoutForeground)
 	static let badgeEmoBackground = Color(.appBadgeEmoBackground)

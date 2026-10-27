@@ -11,15 +11,15 @@ struct RecordingSheetCompletionSection: View {
 				.font(.subheadline.bold())
 
 			HStack(spacing: 12) {
-				option(title: "歌い切れた", systemImage: "checkmark", value: true)
-				option(title: "歌い切れなかった", systemImage: "xmark", value: false)
+				option(title: "歌い切れた", systemImage: "checkmark", value: true, accent: AppColor.completedAccent)
+				option(title: "歌い切れなかった", systemImage: "xmark", value: false, accent: AppColor.notCompletedAccent)
 			}
 		}
 		.padding()
 		.background(.thinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
 	}
 
-	private func option(title: String, systemImage: String, value: Bool) -> some View {
+	private func option(title: String, systemImage: String, value: Bool, accent: Color) -> some View {
 		let isSelected = isCompleted == value
 
 		return Button {
@@ -28,7 +28,7 @@ struct RecordingSheetCompletionSection: View {
 			HStack(spacing: 6) {
 				Image(systemName: systemImage)
 					.font(.footnote.weight(.bold))
-					.foregroundStyle(isSelected ? AppColor.accentScore : .secondary)
+					.foregroundStyle(isSelected ? accent : .secondary)
 					.accessibilityHidden(true)
 				Text(title)
 					.font(.footnote.weight(.semibold))
@@ -40,13 +40,13 @@ struct RecordingSheetCompletionSection: View {
 			.foregroundStyle(isSelected ? .primary : .secondary)
 			.background(
 				RoundedRectangle(cornerRadius: 18, style: .continuous)
-					.fill(isSelected ? AppColor.accentScore.opacity(0.2) : Color.clear)
+					.fill(isSelected ? accent.opacity(0.16) : Color.clear)
 			)
 			.overlay(
 				RoundedRectangle(cornerRadius: 18, style: .continuous)
 					.stroke(
-						isSelected ? AppColor.accentScore : Color.secondary.opacity(0.3),
-						lineWidth: isSelected ? 2 : 1
+						isSelected ? accent : Color.secondary.opacity(0.3),
+						lineWidth: isSelected ? 1.5 : 1
 					)
 			)
 		}
