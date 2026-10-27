@@ -1,6 +1,6 @@
 import Foundation
 
-/// 保存した直後に出す「次の 1 曲」の候補を計算する（#115）。
+/// 保存した直後に出す「次の 1 曲」の候補と、選曲画面に並べる候補を計算する。
 ///
 /// 曲ごとの集計・今の気分・今の時刻だけから決める純粋関数で、同じ入力には必ず同じ順番を返す。
 enum NextTrackRecommender {
@@ -28,25 +28,33 @@ enum NextTrackRecommender {
 		calendar: Calendar,
 		limit: Int
 	) -> [TrackRecommendation] {
-		let candidates = stats.compactMap { stat -> TrackRecommendation? in
-			guard stat.latestIntent == mood else { return nil }
-			let days = daysBetween(stat.lastPerformedAt, now, calendar: calendar)
-			// 今日歌った曲（未来の日時に直された記録も含む）は出さない
-			guard days >= 1 else { return nil }
-			return TrackRecommendation(
-				stats: stat,
-				score: score(bestScore: stat.bestScore, daysSinceLastSung: days, wantAgain: stat.latestWantAgain),
-				daysSinceLastSung: days
-			)
-		}
-		let sorted = candidates.sorted { a, b in
-			if a.score != b.score { return a.score > b.score }
-			if a.stats.lastPerformedAt != b.stats.lastPerformedAt {
-				return a.stats.lastPerformedAt < b.stats.lastPerformedAt
+		let found = candidates(from: stats, now: now, calendar: calendar)
+			.filter { $0.stats.latestIntent == mood }
+			.sorted(by: isRankedHigher)
+		return Array(found.prefix(max(0, limit)))
+	}
+
+	/// - Returns: 今日まだ歌っていない曲を、選曲画面の 2 つのセクションに分けたもの。件数は絞らない。
+	///   「また歌いたい」は `mood` と同じ気分の曲を上にし、その中と「今の気分に合う曲」は ``recommend(from:mood:now:calendar:limit:)`` と同じ順に並べる。
+	static func sections(
+		from stats: [TrackSingingStats],
+		mood: Intent,
+		now: Date,
+		calendar: Calendar
+	) -> TrackSelectionSections {
+		let found = candidates(from: stats, now: now, calendar: calendar)
+		let wantAgain = found
+			.filter(\.stats.latestWantAgain)
+			.sorted { a, b in
+				let aMatchesMood = a.stats.latestIntent == mood
+				let bMatchesMood = b.stats.latestIntent == mood
+				if aMatchesMood != bMatchesMood { return aMatchesMood }
+				return isRankedHigher(a, b)
 			}
-			return a.stats.trackId.uuidString < b.stats.trackId.uuidString
-		}
-		return Array(sorted.prefix(max(0, limit)))
+		let moodMatched = found
+			.filter { !$0.stats.latestWantAgain && $0.stats.latestIntent == mood }
+			.sorted(by: isRankedHigher)
+		return TrackSelectionSections(wantAgain: wantAgain, moodMatched: moodMatched)
 	}
 
 	static func score(bestScore: Double?, daysSinceLastSung: Int, wantAgain: Bool) -> Double {
@@ -69,6 +77,28 @@ enum NextTrackRecommender {
 	/// `from` から `to` まで何日たったか。日の区切りは ``dayBoundaryHour`` 時。
 	static func daysBetween(_ from: Date, _ to: Date, calendar: Calendar) -> Int {
 		calendar.dateComponents([.day], from: dayStart(of: from, calendar: calendar), to: dayStart(of: to, calendar: calendar)).day ?? 0
+	}
+
+	private static func candidates(from stats: [TrackSingingStats], now: Date, calendar: Calendar) -> [TrackRecommendation] {
+		stats.compactMap { stat in
+			let days = daysBetween(stat.lastPerformedAt, now, calendar: calendar)
+			// 今日歌った曲（未来の日時に直された記録も含む）は出さない
+			guard days >= 1 else { return nil }
+			return TrackRecommendation(
+				stats: stat,
+				score: score(bestScore: stat.bestScore, daysSinceLastSung: days, wantAgain: stat.latestWantAgain),
+				daysSinceLastSung: days
+			)
+		}
+	}
+
+	/// スコアの高い順。同じなら最後に歌った日が古い順、それも同じなら曲の ID 順。
+	private static func isRankedHigher(_ a: TrackRecommendation, _ b: TrackRecommendation) -> Bool {
+		if a.score != b.score { return a.score > b.score }
+		if a.stats.lastPerformedAt != b.stats.lastPerformedAt {
+			return a.stats.lastPerformedAt < b.stats.lastPerformedAt
+		}
+		return a.stats.trackId.uuidString < b.stats.trackId.uuidString
 	}
 
 	private static func dayStart(of date: Date, calendar: Calendar) -> Date {
