@@ -1,11 +1,10 @@
 import SwiftUI
 
-/// 保存直後のシート。保存した記録を確かめ、次の 1 曲の候補を出す（#115）。
-///
-/// 「もっと見る」（選曲画面を開く）は選曲画面ができてから足す。
+/// 保存直後のシート。保存した記録を確かめ、次の 1 曲の候補を出す（#115）。「もっと見る」で選曲画面へ移る（#126）。
 struct AfterSaveRecommendationSheetView: View {
 	let content: AfterSaveSheetContent
 	let onSelect: (TrackRecommendation) -> Void
+	let onShowMore: () -> Void
 	let onLater: () -> Void
 
 	var body: some View {
@@ -42,6 +41,20 @@ struct AfterSaveRecommendationSheetView: View {
 						)
 					}
 				}
+
+				Button(action: onShowMore) {
+					HStack(spacing: 6) {
+						Text("もっと見る")
+						Image(systemName: "chevron.right")
+							.font(.subheadline.weight(.bold))
+							.accessibilityHidden(true)
+					}
+					.font(.body.weight(.semibold))
+					.frame(maxWidth: .infinity, minHeight: 44)
+				}
+				.buttonStyle(.bordered)
+				.tint(AppColor.accentScore)
+				.accessibilityHint("選曲画面で、ほかの曲も見ます")
 
 				Button(action: onLater) {
 					Text("あとで")
@@ -125,6 +138,7 @@ struct AfterSaveRecommendationSheetView: View {
 					recommendations: recommendations
 				),
 				onSelect: { _ in },
+				onShowMore: {},
 				onLater: {}
 			)
 		}

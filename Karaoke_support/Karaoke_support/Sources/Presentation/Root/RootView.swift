@@ -34,6 +34,8 @@ struct RootView: View {
     @State private var afterSaveViewModel: AfterSaveRecommendationViewModel?
     /// 保存した後、記録シートが閉じ終わったら履歴タブへ移る。閉じている途中に切り替えると、後ろの画面が急に変わって見えるため（ADR 0032）。
     @State private var movesToHistoryAfterDismiss = false
+    /// 保存直後のシートの「もっと見る」の後、シートが閉じ終わったら選曲タブへ移る（#126）。
+    @State private var movesToSongsAfterDismiss = false
     /// 読み込み終わった保存直後のシートの中身。履歴タブへ移ってから出す。
     @State private var preparedAfterSaveContent: AfterSaveSheetContent?
     /// 保存直後のシートを出してよい時刻（履歴タブへ移ってから ``afterSaveSheetDelay`` 後）。
@@ -89,6 +91,7 @@ struct RootView: View {
                 AfterSaveRecommendationSheetView(
                     content: content,
                     onSelect: { recordRecommendation($0, intent: content.saved.intent) },
+                    onShowMore: showSelectionScreen,
                     onLater: { closeSheet() }
                 )
             }
@@ -163,6 +166,12 @@ struct RootView: View {
         present(.recording(.selectedTrack(selected, intent: intent, source: .selectionScreen)))
     }
 
+    /// 保存直後のシートを閉じ、閉じ終わってから選曲タブへ移る。気分は、選曲画面が保存のあとに読み直すときに、保存した記録の気分になる（#126）。
+    private func showSelectionScreen() {
+        movesToSongsAfterDismiss = true
+        closeSheet()
+    }
+
     private func present(_ kind: RootSheet.Kind) {
         if isDismissingSheet {
             pendingSheet = RootSheet(kind: kind)
@@ -192,9 +201,13 @@ struct RootView: View {
         isDismissingSheet = false
         if movesToHistoryAfterDismiss {
             movesToHistoryAfterDismiss = false
-            moveToHistory()
+            move(to: .history)
             afterSaveShowAt = ContinuousClock.now + Self.afterSaveSheetDelay
             presentAfterSaveSheetWhenReady()
+        }
+        if movesToSongsAfterDismiss {
+            movesToSongsAfterDismiss = false
+            move(to: .songs)
         }
         guard let next = pendingSheet else { return }
         pendingSheet = nil
@@ -208,11 +221,11 @@ struct RootView: View {
         return viewModel
     }
 
-    private func moveToHistory() {
+    private func move(to tab: RootTab) {
         var transaction = Transaction()
         transaction.disablesAnimations = true
         withTransaction(transaction) {
-            selectedTab = .history
+            selectedTab = tab
         }
     }
 }
