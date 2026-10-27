@@ -48,7 +48,9 @@
 | [0040](0040-selection-screen-record-source.md) | 選曲画面から付けた記録は、保存直後の提案とは別の入口として数える | 承認 |
 | [0041](0041-completion-as-optional-bool.md) | 「歌い切れたか」は空を許す形で記録に持たせ、空は歌い切れたとして読む | 承認 |
 | [0042](0042-exclude-unfinished-songs-from-suggestions.md) | 歌い切れなかった曲は最新の記録で決めて候補から外し、ハートより優先する | 承認（3 は置き換え済み → 0043） |
-| [0043](0043-practice-challenges.md) | Practice のチップは「挑戦中の曲」だけを出し、挑戦中の曲はほかの候補に出さない | 承認 |
+| [0043](0043-practice-challenges.md) | Practice のチップは「挑戦中の曲」だけを出し、挑戦中の曲はほかの候補に出さない | 承認（1・3・4 は置き換え済み → 0044） |
+| [0044](0044-split-practice-into-practicing-and-unfinished.md) | Practice は「練習中の曲」と「歌い切れなかった曲」に分けて出す | 承認 |
+| [0045](0045-practice-keeps-today-and-hearts-first.md) | Practice では今日歌った曲を消さずに下へ回し、ハート付きを上に出す | 承認 |
 
 ## 書き方
 

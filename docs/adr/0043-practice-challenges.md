@@ -1,6 +1,6 @@
 # 0043. Practice のチップは「挑戦中の曲」だけを出し、挑戦中の曲はほかの候補に出さない
 
-- 2026-10-27 ／ 承認
+- 2026-10-27 ／ 承認（1・3・4 は置き換え済み → [0044](0044-split-practice-into-practicing-and-unfinished.md)）
 - 背景：選曲MVP のスプリント 6（#131）。元の仕様では、最新の記録の気分が Practice の曲（点数アップ）と、最新の記録で歌い切れなかった曲（歌い切れず）を「挑戦中」として、選曲画面の Practice のチップにだけ出す。今は、Practice のチップは「最新の気分が Practice の曲」を「また歌いたい」と「今の気分に合う曲」に出していて（[0039](0039-selection-screen-sections.md) の 2）、歌い切れなかった曲はどこの候補にも出していない（[0042](0042-exclude-unfinished-songs-from-suggestions.md) の 3）。この ADR は 0039 の 2 と 0042 の 3 を置き換える
 
 ## 比較した案
