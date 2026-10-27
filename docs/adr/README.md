@@ -46,6 +46,8 @@
 | [0038](0038-remove-insights-for-selection-screen.md) | 選曲タブの振り返り（タイムマシン・マイアンセム・今月の統計）を消し、選曲タブを選曲画面にする | 承認 |
 | [0039](0039-selection-screen-sections.md) | 選曲画面は「また歌いたい」と「今の気分に合う曲」に分け、ハート付きの曲は気分が違っても出す | 承認 |
 | [0040](0040-selection-screen-record-source.md) | 選曲画面から付けた記録は、保存直後の提案とは別の入口として数える | 承認 |
+| [0041](0041-completion-as-optional-bool.md) | 「歌い切れたか」は空を許す形で記録に持たせ、空は歌い切れたとして読む | 承認 |
+| [0042](0042-exclude-unfinished-songs-from-suggestions.md) | 歌い切れなかった曲は最新の記録で決めて候補から外し、ハートより優先する | 承認 |
 
 ## 書き方
 

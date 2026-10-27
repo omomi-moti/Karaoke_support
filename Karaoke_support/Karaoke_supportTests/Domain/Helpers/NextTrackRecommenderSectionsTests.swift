@@ -27,6 +27,7 @@ struct NextTrackRecommenderSectionsTests {
 		lastPerformedAt: Date,
 		bestScore: Double?,
 		wantAgain: Bool = false,
+		isCompleted: Bool = true,
 		trackId: UUID = UUID()
 	) -> TrackSingingStats {
 		TrackSingingStats(
@@ -37,7 +38,8 @@ struct NextTrackRecommenderSectionsTests {
 			lastPerformedAt: lastPerformedAt,
 			bestScore: bestScore,
 			sessionCount: 1,
-			latestWantAgain: wantAgain
+			latestWantAgain: wantAgain,
+			latestIsCompleted: isCompleted
 		)
 	}
 
@@ -98,6 +100,17 @@ struct NextTrackRecommenderSectionsTests {
 		])
 		#expect(result.wantAgain.isEmpty)
 		#expect(names(result.moodMatched) == ["昨日"])
+	}
+
+	@Test("最新の記録で歌い切れなかった曲は、ハートが付いていても、どちらのセクションにも出ない")
+	func excludesUnfinishedTracks() {
+		let result = sections([
+			stats("歌い切れず・ハート", lastPerformedAt: daysAgo(3), bestScore: 95, wantAgain: true, isCompleted: false),
+			stats("歌い切れず", lastPerformedAt: daysAgo(3), bestScore: 95, isCompleted: false),
+			stats("歌い切れた", lastPerformedAt: daysAgo(3), bestScore: 80),
+		])
+		#expect(result.wantAgain.isEmpty)
+		#expect(names(result.moodMatched) == ["歌い切れた"])
 	}
 
 	@Test("件数を絞らず、候補を全部返す")

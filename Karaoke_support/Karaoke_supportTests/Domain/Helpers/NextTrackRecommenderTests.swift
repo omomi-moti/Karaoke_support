@@ -29,6 +29,7 @@ struct NextTrackRecommenderTests {
 		lastPerformedAt: Date,
 		bestScore: Double?,
 		wantAgain: Bool = false,
+		isCompleted: Bool = true,
 		trackId: UUID = UUID()
 	) -> TrackSingingStats {
 		TrackSingingStats(
@@ -39,7 +40,8 @@ struct NextTrackRecommenderTests {
 			lastPerformedAt: lastPerformedAt,
 			bestScore: bestScore,
 			sessionCount: 1,
-			latestWantAgain: wantAgain
+			latestWantAgain: wantAgain,
+			latestIsCompleted: isCompleted
 		)
 	}
 
@@ -214,5 +216,17 @@ struct NextTrackRecommenderTests {
 		let withoutHeart = NextTrackRecommender.score(bestScore: 70, daysSinceLastSung: 1, wantAgain: false)
 		#expect(withHeart - withoutHeart == 3.0)
 		#expect(NextTrackRecommender.scoreWeight + NextTrackRecommender.recencyWeight < NextTrackRecommender.wantAgainWeight)
+	}
+
+	// MARK: 歌い切れなかった曲（#128）
+
+	@Test("最新の記録で歌い切れなかった曲は、ハートが付いていても出ない")
+	func excludesUnfinishedTracks() {
+		let names = recommendedNames([
+			stats("歌い切れず", lastPerformedAt: daysAgo(10), bestScore: 95, isCompleted: false),
+			stats("歌い切れず・ハート", lastPerformedAt: daysAgo(10), bestScore: 95, wantAgain: true, isCompleted: false),
+			stats("歌い切れた", lastPerformedAt: daysAgo(10), bestScore: 80),
+		])
+		#expect(names == ["歌い切れた"])
 	}
 }

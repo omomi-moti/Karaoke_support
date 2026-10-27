@@ -27,14 +27,15 @@ struct SwiftDataTrackStatsRepositoryTests {
 		return track
 	}
 
-	private func save(_ track: Track, _ intent: Intent, at interval: TimeInterval, score: Double?, wantAgain: Bool = false) async throws {
+	private func save(_ track: Track, _ intent: Intent, at interval: TimeInterval, score: Double?, wantAgain: Bool = false, isCompleted: Bool = true) async throws {
 		try await sessionRepository.saveNewRecordingSession(
 			SingingSession(
 				track: track,
 				intent: intent,
 				performedAt: Date(timeIntervalSince1970: interval),
 				score: score,
-				wantAgain: wantAgain
+				wantAgain: wantAgain,
+				isCompleted: isCompleted
 			)
 		)
 	}
@@ -114,5 +115,25 @@ struct SwiftDataTrackStatsRepositoryTests {
 
 		let stats = try await repository.fetchTrackSingingStats()
 		#expect(stats.first?.latestWantAgain == false)
+	}
+
+	@Test("最新の記録で歌い切れなかったら、latestIsCompleted が false")
+	func latestIsCompletedComesFromNewestRecord() async throws {
+		let track = try makeTrack(named: "歌い切れなかった曲")
+		try await save(track, .shout, at: 100, score: 80)
+		try await save(track, .shout, at: 200, score: nil, isCompleted: false)
+
+		let stats = try await repository.fetchTrackSingingStats()
+		#expect(stats.first?.latestIsCompleted == false)
+	}
+
+	@Test("歌い切れなかった曲を、あとで歌い切ると latestIsCompleted は true に戻る")
+	func completingLaterRestoresIt() async throws {
+		let track = try makeTrack(named: "あとで歌い切る曲")
+		try await save(track, .shout, at: 100, score: nil, isCompleted: false)
+		try await save(track, .shout, at: 200, score: 85)
+
+		let stats = try await repository.fetchTrackSingingStats()
+		#expect(stats.first?.latestIsCompleted == true)
 	}
 }

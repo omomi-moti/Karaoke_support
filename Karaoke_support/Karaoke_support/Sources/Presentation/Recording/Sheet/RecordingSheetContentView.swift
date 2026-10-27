@@ -57,6 +57,10 @@ struct RecordingSheetContentView: View {
                         intent: $viewModel.draft.intent,
                         isDisabled: isRetrying
                     )
+                    RecordingSheetCompletionSection(
+                        isCompleted: $viewModel.draft.isCompleted,
+                        isDisabled: isRetrying
+                    )
                     // 新規記録の歌唱日時は保存した時刻を自動で入れる。直せるのは履歴からの編集のときだけ
                     if viewModel.isEditingExistingSession {
                         RecordingSheetPerformedAtSection(
@@ -66,6 +70,7 @@ struct RecordingSheetContentView: View {
                     }
                     RecordingSheetMemoSection(
                         memo: $viewModel.draft.memo,
+                        placeholder: viewModel.memoPlaceholder,
                         isDisabled: isRetrying
                     )
 

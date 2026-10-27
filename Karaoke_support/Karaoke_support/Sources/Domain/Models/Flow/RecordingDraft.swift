@@ -11,6 +11,8 @@ struct RecordingDraft: Equatable, Sendable {
 	var performedAt: Date = Date()
 	/// また歌いたいか（ハート）。新規記録は OFF から始める。
 	var wantAgain = false
+	/// 歌い切れたか。新規記録は「歌い切れた」から始める。
+	var isCompleted = true
 
 	var normalizedMemo: String? {
 		let trimmed = memo.trimmingCharacters(in: .whitespacesAndNewlines)
