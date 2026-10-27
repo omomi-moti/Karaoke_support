@@ -7,25 +7,10 @@
 
 import Foundation
 
-/// インサイト（ランキング等）の取得を担当する Repository のプロトコル。
+/// 記録の集計の取得を担当する Repository のプロトコル。
 /// `@MainActor` の実装はもともと Sendable なので、Sendable を契約に入れて `any` 越しにも安全に共有できるようにする（ADR 0027）。
 @MainActor
 protocol InsightRepositoryProtocol: Sendable {
-	/// 過去 1 ヶ月の歌唱回数ランキング（Track 単位）。
-	func fetchTimeMachineRanking() async throws -> [InsightTrackCountRanking]
-
-	/// Intent 別の「歌った回数ランキング」「点数ランキング」を取得する。
-	///
-	/// - Parameter period: 集計対象期間。デフォルトは 3 ヶ月。
-	func fetchMyAnthemRankings(period: InsightPeriod) async throws -> [MyAnthemRanking]
-
 	/// 入口を記録し始めてから付けた記録の数と、そのうち提案から付けた数（#120）。
 	func fetchRecordSourceCounts() async throws -> RecordSourceCounts
 }
-
-extension InsightRepositoryProtocol {
-	func fetchMyAnthemRankings() async throws -> [MyAnthemRanking] {
-		try await fetchMyAnthemRankings(period: .threeMonths)
-	}
-}
-

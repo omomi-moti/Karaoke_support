@@ -11,10 +11,6 @@ private final class StubInsightRepository: InsightRepositoryProtocol {
 		self.result = result
 	}
 
-	func fetchTimeMachineRanking() async throws -> [InsightTrackCountRanking] { [] }
-
-	func fetchMyAnthemRankings(period: InsightPeriod) async throws -> [MyAnthemRanking] { [] }
-
 	func fetchRecordSourceCounts() async throws -> RecordSourceCounts {
 		try result.get()
 	}

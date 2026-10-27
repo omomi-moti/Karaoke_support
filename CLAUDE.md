@@ -87,7 +87,7 @@ Sources/
 | `Track` | `Domain/Models/SwiftData/Track.swift` | `userEnteredName`（今は必ず入る）か `spotifyTrackId`（使っていない。常に nil） |
 | `SingingSession` | `Domain/Models/SwiftData/SingingSession.swift` | UUID が冪等キー。Track と N:1 |
 | `Intent` | `Domain/Models/Enums/Intent.swift` | `.shout` / `.emo` / `.practice`。RawValue は `String` |
-| `RecordSource` | `Domain/Models/Enums/RecordSource.swift` | `.manual` / `.suggestion`。空を許す `recordedSource` に保存し、`source` で読む（ADR 0034） |
+| `RecordSource` | `Domain/Models/Enums/RecordSource.swift` | `.manual` / `.suggestion` / `.selectionScreen`。空を許す `recordedSource` に保存し、`source` で読む（ADR 0034） |
 
 ### どこでも効く決まり
 

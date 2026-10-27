@@ -18,10 +18,6 @@
 | `AppSemanticError` | エラーメッセージ文言 |
 | `AppAddButton` | 新規記録の＋ボタン（`RootView`）。ライト・ダークで同じ色にしている。Liquid Glass を通すと少し明るく見えるので、その分を見込んで濃いめの値にしている。実際の見え方で、白い＋との比は 4.71〜4.92:1、背景との差はダーク約 3.7:1・ライト 4.8:1 |
 | `AppColor.editAccent`（Color Set ではなくシステムの青） | 記録の編集を表す色。履歴の「編集」スワイプと、編集画面の「編集中」の帯で使う。ライト／ダークは OS が出し分ける |
-| `AppInsightSheetBackground` / `AppInsightSheetRowBackground` | インサイトのランキングシート背景・行の面（`IntentTabInsightStyle` 経由） |
-| `AppInsightStatsCardBackground` | インテントタブの今月の統計チップ（`IntentTabInsightStyle` 経由） |
-| `AppInsightStatsScoreIcon` | 統計チップの平均スコアアイコン（`IntentTabInsightStyle` 経由） |
-| `AppInsightRankSilver` / `AppInsightRankBronze` | ランキング 2 位・3 位の王冠（`IntentTabInsightStyle` 経由） |
 
 **コントラスト:** 主要な「文字 × 背景」の組み合わせはデザインチェック推奨。ライト用の値は、小さい文字に使う `AppTextTertiary` / `AppAccentScore` を白〜`#F5F5F8` の背景で 4.5:1 以上になるように決めている。**WCAG AA を目安にするか**はチームで合意。自動ツールでの網羅検証は V1 の必須にはしない。
 
@@ -33,8 +29,7 @@
 
 - **標準**: 通常の画面・シートは `AppBackgroundGradientStart` → `AppBackgroundGradientEnd` のグラデーションを背景に使う。実装は個別に `LinearGradient` を書かず、共通コンポーネント **`AppBackgroundGradientView`**（`Sources/Presentation/Theme/AppBackgroundGradientView.swift`）と `View.appBackgroundGradient()` を使う。
   - 対象: 履歴（`HistoryListView`）、選曲タブ（`SongsRootView`）、検索シート（`SearchContainerView`）、設定タブ（`SettingsRootView`）、歌唱記録シート（`RecordingSheetContentView` / `RecordingSheetContainerView`）
-- **例外**: インサイトのランキングシート（`TimeMachineRankingSheetView` / `MyAnthemRankingSheetView`）は `IntentTabInsightStyle.rankingSheetBackground`（Color Set `AppInsightSheetBackground`。ダーク: 極暗パープル / ライト: 淡いラベンダー）を使う。インサイト系の世界観を独立させる意図的な差別化であり、標準グラデーションへの統一対象ではない。
-- **新規画面を追加する場合**: 上記「標準」に該当する一般画面・シートであれば `appBackgroundGradient()` を使う。インサイト系のような独自ブランディングが必要な場合のみ専用の背景トークンを検討する。
+- **新規画面を追加する場合**: 上記「標準」に該当する一般画面・シートであれば `appBackgroundGradient()` を使う。独自の見た目が必要な場合のみ専用の背景トークンを検討する。
 
 ---
 

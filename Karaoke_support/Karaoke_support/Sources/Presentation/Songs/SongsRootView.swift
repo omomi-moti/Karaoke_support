@@ -1,18 +1,16 @@
 import SwiftUI
 
 struct SongsRootView: View {
-    let onSelectTrack: (SelectedTrack) -> Void
+    let onSelect: (TrackRecommendation, Intent) -> Void
 
-    @Environment(\.insightRepository) private var insightRepository
-    @Environment(\.sessionRepository) private var sessionRepository
+    @Environment(\.trackStatsRepository) private var trackStatsRepository
     @Environment(\.navigateToManualRecording) private var navigateToManualRecording
 
     var body: some View {
         NavigationStack {
-            IntentTabContainerView(
-                insightRepository: insightRepository,
-                sessionRepository: sessionRepository,
-                onSelectTrack: onSelectTrack,
+            SelectionContainerView(
+                trackStatsRepository: trackStatsRepository,
+                onSelect: onSelect,
                 onNavigateToManualRecording: navigateToManualRecording
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -24,8 +22,7 @@ struct SongsRootView: View {
 }
 
 #Preview {
-    SongsRootView(onSelectTrack: { _ in })
-        .environment(\.insightRepository, PreviewInsightRepository())
-        .environment(\.sessionRepository, PreviewSessionRepository())
+    SongsRootView(onSelect: { _, _ in })
+        .environment(\.trackStatsRepository, PreviewTrackStatsRepository())
         .environment(\.navigateToManualRecording) {}
 }
