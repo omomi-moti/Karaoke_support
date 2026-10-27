@@ -5,7 +5,7 @@
 - **シートは `RootView` に 1 つだけ**置く。`TabView` に `.sheet(item: $sheet, onDismiss:)` を付け、記録シート（`RecordingSheetContainerView`）と保存直後のシート（`AfterSaveRecommendationSheetView`）を切り替える（ADR 0025）。選曲・履歴・検索のどのタブから開いても同じシートを使う。
 - **歌唱記録 UI は `NavigationStack` の push では出さない**。push で `NavigationPath` を空にして pop すると、必ず一度 **下のルートが露出**する。保存後に履歴タブへ切り替えるときの「一瞬チラつき」を避けるため、**シートの dismiss** で閉じる。
 - 各タブの `NavigationStack` はタブ内に独立して持つ（選曲は `SongsRootView`、履歴は `HistoryListContainerView`、設定・検索は `RootView` の `Tab` 内）。記録シートはどのタブのスタックにも積まない。
-- 選曲タブは **インテント（`IntentTabContainerView`）のみ**を表示する。V1 にあった「インテント / Spotify」のセグメントは撤去した（Spotify 視聴履歴の配置は V2 の I-026 で再検討）。
+- 選曲タブ（`SongsRootView`）は、選曲画面ができるまで、記録がないときと同じ空の状態を出す（#126。タイムマシン・マイアンセム・今月の統計は ADR 0038 で消した）。V1 にあった「インテント / Spotify」のセグメントは撤去した。
 
 ## シートの開き方
 
@@ -17,7 +17,6 @@
 |------|----------|--------|
 | 選曲・履歴タブ右下の ＋ ボタン | `presentManualRecording()` | `.mode(.manual)` |
 | 空状態の「手動で曲名を入力して歌う」（選曲・履歴） | `EnvironmentValues.navigateToManualRecording` → `presentManualRecording()` | `.mode(.manual)` |
-| タイムマシン／マイアンセムのランキング行 | `SongsRootView(onSelectTrack:)` → `presentRecording(_:)` | `.selectedTrack(SelectedTrack)` |
 | 検索タブ（`Tab(role: .search)`）の結果行 | `SearchContainerView(onSelectTrack:)` → `presentRecording(_:)` | `.selectedTrack(SelectedTrack)` |
 | 保存直後のシートの提案カード | `recordRecommendation(_:intent:)`（保存直後のシートを閉じてから開く） | `.selectedTrack(SelectedTrack, intent:, source: .suggestion)`（保存した記録の気分を入れて開く。曲を変えずに保存すると、提案からの記録になる・ADR 0034） |
 
@@ -80,7 +79,3 @@
 
 - 曲名は行のスナップショットから `title` としてルートに載せる。曲詳細のヘッダーを追加クエリなしで描画するため
 - 編集の保存後は、新規と同じく `RootView` がシートを閉じて `historyReloadTick` を増やし、一覧を読み込み直す。保存直後のシートは出さない
-
-## インテントタブのランキングシート（I-017）
-
-- **タイムマシン**（`TimeMachineRankingSheetView`）と **マイアンセム**（`MyAnthemRankingSheetView`）は、`IntentTabInsightView` 上で **`.sheet(isPresented:)` を2つ**（`showTimeMachineSheet` / `showMyAnthemSheet`）使っている。通常 UI では同時に開かないが、**両方 `true` になり得ると挙動が曖昧になりうる**。必要なら **`enum ActiveRankingSheet` + `.sheet(item:)` 一本化**を検討する（任意・優先度低）。

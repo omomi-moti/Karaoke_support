@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 歌唱データ 0 件向け Empty State（I-016）。I-017 のインテントタブ等でも再利用する。
+/// 歌唱データ 0 件向け Empty State（I-016）。履歴と選曲のタブで使う。
 struct SingingEmptyStateView: View {
 	let onManualEntryTap: () -> Void
 

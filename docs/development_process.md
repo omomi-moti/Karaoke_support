@@ -110,6 +110,5 @@ Phase 0〜2（V1 スコープ）は全 Issue 実装済み。代表的なもの�
 | I-003 | SessionRepository | 保存（冪等）・更新（Track 差し替え禁止）・削除（singCount 減算）・fetchByIntent | 4 ファイル |
 | I-009/011 | 歌唱記録 + 冪等性 | RecordingSheetViewModel + exists(uuid) チェック | `I011SessionIdempotencyTests` |
 | I-014/015 | History + Infinite Scroll | 値型スナップショット・loadGeneration・20 件ページング | 3 ファイル |
-| I-017/018 | インテントタブ + タイムマシン | IntentTabViewModel・月次ランキング集計 | `IntentTabViewModelTests` |
 
 全対応は [`archive/v1_issues.md`](archive/v1_issues.md)、当時の実装ログは [`archive/log/`](archive/log/)（どちらもアーカイブ）を参照。

@@ -9,7 +9,7 @@ paths:
 
 ## View
 
-- **View は描画だけ。** Repository の呼び出し、業務のロジック、非同期の処理を View に書かず、ViewModel に任せる。Container の View は `@Environment` から Repository を読み、`init` で ViewModel を作ってよい（例：`IntentTabContainerView`、`SettingsContainerView`）。
+- **View は描画だけ。** Repository の呼び出し、業務のロジック、非同期の処理を View に書かず、ViewModel に任せる。Container の View は `@Environment` から Repository を読み、`init` で ViewModel を作ってよい（例：`HistoryListContainerView`、`SettingsContainerView`）。
 - ここでは Repository の具体的な型（`SwiftData…Repository`）を参照しない。環境から受け取る `…RepositoryProtocol` を使う。編集のたびにフックが確かめる。
 - プロパティラッパー：`@State` は View の中の一時的な状態と、ViewModel を持つために使う。`@Binding` は親からの双方向の値。`@Environment` は Repository とアプリ全体の値。`@Query`、`@StateObject`、`@ObservedObject` は使わない。
 - 名前：画面は `{機能}View` / `{役割}View`、使い回す部品は `{用途}{種類}`（`TrackRowView`、`IntentBadgeView`）。
