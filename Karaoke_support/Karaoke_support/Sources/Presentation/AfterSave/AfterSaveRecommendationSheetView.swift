@@ -21,7 +21,7 @@ struct AfterSaveRecommendationSheetView: View {
 						.fixedSize(horizontal: false, vertical: true)
 					HStack(spacing: 10) {
 						IntentBadgeView(intent: content.saved.intent)
-						Text(isShowingChallenges ? "練習中の曲から選んでいます" : "直前の気分から選んでいます")
+						Text(isShowingChallenges ? "Practice の曲から選んでいます" : "直前の気分から選んでいます")
 							.font(.caption)
 							.foregroundStyle(AppColor.textSecondary)
 					}

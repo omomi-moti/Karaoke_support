@@ -42,18 +42,21 @@ final class AfterSaveRecommendationViewModel {
 		}
 		guard attempt == prepareGeneration else { return nil }
 
-		// Practice で保存したときは、練習中の曲を先に出し、足りなければ歌い切れなかった曲で埋める（#131）。
-		// 今保存した曲を勧めないよう、Practice でも今日歌った曲は出さない
-		let practice = NextTrackRecommender.practice(from: stats, now: now(), calendar: calendar)
-		let found = saved.intent == .practice
-			? Array((practice.practicing + practice.unfinished).filter { $0.daysSinceLastSung >= 1 }.prefix(Self.maxRecommendations))
-			: NextTrackRecommender.recommend(
+		let found: [TrackRecommendation]
+		if saved.intent == .practice {
+			// 練習中の曲を先に出し、足りなければ歌い切れなかった曲で埋める（#131）。
+			// 今保存した曲を勧めないよう、Practice でも今日歌った曲は出さない
+			let practice = NextTrackRecommender.practice(from: stats, now: now(), calendar: calendar)
+			found = Array((practice.practicing + practice.unfinished).filter { $0.daysSinceLastSung >= 1 }.prefix(Self.maxRecommendations))
+		} else {
+			found = NextTrackRecommender.recommend(
 				from: stats,
 				mood: saved.intent,
 				now: now(),
 				calendar: calendar,
 				limit: Self.maxRecommendations
 			)
+		}
 		guard !found.isEmpty else { return nil }
 		return AfterSaveSheetContent(saved: saved, recommendations: found)
 	}
