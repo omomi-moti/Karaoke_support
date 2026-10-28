@@ -10,6 +10,10 @@ struct RecordingSheetContentView: View {
     @Bindable var viewModel: RecordingSheetViewModel
     let onSaved: (SavedRecording) -> Void
 
+    /// 点数のテンキーを出している間は、保存の帯の代わりに「完了」を出す（#137）。
+    /// キーボードのツールバーで出すと、そのあと曲名のキーボードを出したときに保存の帯がキーボードに重なるため。
+    @FocusState private var isScoreFocused: Bool
+
     private var recordingTitle: String {
         viewModel.isEditingExistingSession ? "記録を編集" : "記録を追加"
     }
@@ -56,7 +60,8 @@ struct RecordingSheetContentView: View {
                     }
                     RecordingSheetScoreSection(
                         score: $viewModel.draft.score,
-                        isDisabled: isRetrying
+                        isDisabled: isRetrying,
+                        isFocused: $isScoreFocused
                     )
                     RecordingSheetIntentSection(
                         intent: $viewModel.draft.intent,
@@ -104,7 +109,13 @@ struct RecordingSheetContentView: View {
                     .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
         }
-        .safeAreaInset(edge: .bottom) { bottomCTA }
+        .safeAreaInset(edge: .bottom) {
+            if isScoreFocused {
+                scoreDoneBar
+            } else {
+                bottomCTA
+            }
+        }
         .interactiveDismissDisabled(viewModel.isSaving || viewModel.hasUnsavedChanges)
 
     }
@@ -136,6 +147,17 @@ struct RecordingSheetContentView: View {
         .padding(.top, 8)
         .padding(.bottom, 12)
         .background(.ultraThinMaterial)
+    }
+
+    private var scoreDoneBar: some View {
+        HStack {
+            Spacer()
+            Button("完了") { isScoreFocused = false }
+                .font(.headline)
+                .buttonStyle(.glass)
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
     }
 
     /// 編集では今の記録を書き換えるので、新規の「保存」と区別して「更新」と出す。
