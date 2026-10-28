@@ -1,8 +1,15 @@
 import SwiftUI
 
-/// 曲ごとの点数推移画面（I-019）。読み取り専用。編集は履歴のリードスワイプに一本化する。
+/// 曲ごとの点数推移画面（I-019）。記録の行は履歴と同じく、右へスワイプで編集、左へスワイプで削除（#135）。
 struct TrackDetailView: View {
 	let viewModel: TrackDetailViewModel
+
+	@Environment(\.dismiss) private var dismiss
+	@Environment(\.historyReloadTick) private var historyReloadTick
+	@Environment(\.navigateToEditRecording) private var navigateToEditRecording
+	@Environment(\.notifyRecordsChanged) private var notifyRecordsChanged
+	/// 削除の確認を出している記録。
+	@State private var pendingDeleteSessionId: UUID?
 
 	var body: some View {
 		ZStack {
@@ -10,7 +17,7 @@ struct TrackDetailView: View {
 			content
 		}
 		.navigationBarTitleDisplayMode(.inline)
-		.task {
+		.task(id: historyReloadTick) {
 			await viewModel.load()
 		}
 	}
@@ -21,8 +28,8 @@ struct TrackDetailView: View {
 			ProgressView()
 				.frame(maxWidth: .infinity, maxHeight: .infinity)
 		} else {
-			ScrollView {
-				VStack(alignment: .leading, spacing: 20) {
+			List {
+				Group {
 					heroHeader
 
 					if let message = viewModel.loadErrorMessage {
@@ -45,10 +52,22 @@ struct TrackDetailView: View {
 						emptyState
 					}
 				}
-				.padding(.horizontal, 16)
-				.padding(.bottom, 28)
+				.listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+				.listRowSeparator(.hidden)
+				.listRowBackground(Color.clear)
 			}
+			.listStyle(.plain)
+			.scrollContentBackground(.hidden)
 			.addRecordingButtonClearance()
+			.recordDeleteConfirmation(pendingSessionId: $pendingDeleteSessionId) { idToDelete in
+				Task {
+					await viewModel.deleteSession(id: idToDelete)
+					notifyRecordsChanged()
+					if viewModel.points.isEmpty {
+						dismiss()
+					}
+				}
+			}
 		}
 	}
 
@@ -121,14 +140,35 @@ struct TrackDetailView: View {
 	}
 
 	/// グラフは古い→新しい、リストは履歴タブと同じ新しい順。
+	@ViewBuilder
 	private var sessionList: some View {
-		VStack(alignment: .leading, spacing: 12) {
-			Text("履歴")
-				.font(.headline)
-				.foregroundStyle(AppColor.textPrimary)
-			ForEach(viewModel.points.reversed()) { point in
-				TrackDetailSessionRowView(point: point)
-			}
+		Text("履歴")
+			.font(.headline)
+			.foregroundStyle(AppColor.textPrimary)
+		if let message = viewModel.deleteErrorMessage {
+			Text(message)
+				.font(.subheadline)
+				.foregroundStyle(AppColor.semanticError)
+		}
+		ForEach(viewModel.points.reversed()) { point in
+			TrackDetailSessionRowView(point: point)
+				.listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+				.swipeActions(edge: .leading, allowsFullSwipe: true) {
+					Button {
+						navigateToEditRecording(point.id)
+					} label: {
+						Label("編集", systemImage: "pencil")
+					}
+					.tint(AppColor.editAccent)
+				}
+				.swipeActions(edge: .trailing, allowsFullSwipe: true) {
+					Button {
+						pendingDeleteSessionId = point.id
+					} label: {
+						Label("削除", systemImage: "trash")
+					}
+					.tint(.red)
+				}
 		}
 	}
 

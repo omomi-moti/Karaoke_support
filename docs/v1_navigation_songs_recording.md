@@ -72,16 +72,19 @@
 - `Sources/Presentation/Songs/SongsRootView.swift` — 選曲タブの `NavigationStack`（ルートのみ）。中身は `Sources/Presentation/Selection/` の選曲画面。記録は `onSelect` で `RootView` に委譲
 - `Sources/Presentation/Search/SearchContainerView.swift` — 検索タブ本体（`.searchable`）。選択は `onSelectTrack` で `RootView` に委譲
 - `Sources/App/Environment/HistoryReloadEnvironment.swift` — `historyReloadTick`
+- `Sources/App/Environment/RecordsChangeEnvironment.swift` — `notifyRecordsChanged`。曲詳細で記録を消したときに呼び、`historyReloadTick` を増やす（#135）
 - `Sources/Presentation/Recording/Sheet/RecordingSheetContainerView.swift` — `RootView` の記録シートの中身。新規・曲を選んだとき・履歴からの編集（`seed: .editSession`）のどれもここから開く（ADR 0022）
 - `Sources/Presentation/Recording/Sheet/RecordingSheetContentView.swift` — 保存成功時の `onSaved` と `dismiss()`
 
 ## 履歴タブのナビゲーション（I-014-C / I-019）
 
-履歴タブは `NavigationStack(path:)` + `navigationDestination(for: HistoryRoute.self)` の 1 経路。遷移先は曲詳細だけで、編集（リードスワイプ「編集」）は Environment の `navigateToEditRecording` で `RootView` の記録シートを開く（ADR 0022）。
+履歴タブは `NavigationStack(path:)` + `navigationDestination(for: HistoryRoute.self)` の 1 経路。画面の積み方（`[HistoryRoute]`）は `RootView` が持つ（ADR 0047）。遷移先は曲詳細だけで、編集（リードスワイプ「編集」）は Environment の `navigateToEditRecording` で `RootView` の記録シートを開く（ADR 0022）。曲詳細の記録の行にも、履歴と同じスワイプ（右へ「編集」・左へ「削除」）がある（ADR 0047）。
 
 | ケース | 起点 | 遷移先 |
 |--------|------|--------|
-| `trackDetail(trackId:title:)` | 行タップ（`NavigationLink(value:)`） | `TrackDetailContainerView`（読み取り専用） |
+| `trackDetail(trackId:title:)` | 行タップ（`NavigationLink(value:)`） | `TrackDetailContainerView`（記録の編集・削除。＋でこの曲を記録。ADR 0047） |
 
 - 曲名は行のスナップショットから `title` としてルートに載せる。曲詳細のヘッダーを追加クエリなしで描画するため
 - 編集の保存後は、新規と同じく `RootView` がシートを閉じて `historyReloadTick` を増やし、一覧を読み込み直す。保存直後のシートは出さない
+- 曲詳細も `.task(id: historyReloadTick)` で読み直す。曲詳細で消したときは、記録シートを通らないので `notifyRecordsChanged` で `historyReloadTick` を増やし、後ろの履歴の一覧も読み直す。その曲の記録が 0 件になったら、履歴に戻る
+- 曲詳細を開いているときに＋を押すと、`RootView` が積み方のいちばん上の曲名を入れて記録シートを開く。気分は決めず、入口は手で付けた記録になる。保存のあとは、曲詳細に留まったまま読み直し、候補があれば保存直後のシートを出す
