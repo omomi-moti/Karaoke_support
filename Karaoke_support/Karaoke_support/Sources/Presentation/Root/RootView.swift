@@ -44,6 +44,8 @@ struct RootView: View {
     @State private var historyReloadTick = 0
     /// タブの中身の下の安全領域（タブバー＋ホームインジケーター）。＋ボタンをタブバーの上に置くのに使う。
     @State private var tabBarInset: CGFloat = 0
+    /// 履歴タブの画面の積み方。＋を押したときに、曲詳細を開いているかを読む（ADR 0047）。
+    @State private var historyPath: [HistoryRoute] = []
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -53,7 +55,7 @@ struct RootView: View {
             }
 
             Tab("履歴", systemImage: "clock", value: .history) {
-                HistoryRootView()
+                HistoryRootView(navigationPath: $historyPath)
                     .modifier(TabBarInsetReader(inset: $tabBarInset))
             }
 
@@ -74,7 +76,10 @@ struct RootView: View {
         }
         .tabBarMinimizeBehavior(.onScrollDown)
         .overlay {
-            AddRecordingButton(action: presentManualRecording)
+            AddRecordingButton(
+                accessibilityLabel: trackOnScreen == nil ? "手動で記録" : "この曲を記録",
+                action: presentAddRecording
+            )
                 .padding(.trailing, AddRecordingButtonMetrics.margin)
                 .padding(.bottom, tabBarInset + AddRecordingButtonMetrics.margin)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
@@ -98,6 +103,7 @@ struct RootView: View {
         }
         .environment(\.navigateToManualRecording, presentManualRecording)
         .environment(\.navigateToEditRecording, presentEditRecording)
+        .environment(\.notifyRecordsChanged) { historyReloadTick += 1 }
         .environment(\.historyReloadTick, historyReloadTick)
     }
 
@@ -105,6 +111,21 @@ struct RootView: View {
     /// タブバーの高さを測るまでは、位置が決まらないので出さない。
     private var isAddButtonVisible: Bool {
         (selectedTab == .songs || selectedTab == .history) && tabBarInset > 0
+    }
+
+    /// 履歴タブで曲詳細を開いているときの曲。ほかの画面では `nil`。
+    private var trackOnScreen: SelectedTrack? {
+        guard selectedTab == .history, case .trackDetail(_, let title)? = historyPath.last else { return nil }
+        return SelectedTrack(spotifyTrackId: nil, userEnteredName: title)
+    }
+
+    /// ＋は、曲詳細ではその曲名を入れて、ほかの画面では空で記録シートを開く（ADR 0047）。
+    private func presentAddRecording() {
+        if let trackOnScreen {
+            presentRecording(trackOnScreen)
+        } else {
+            presentManualRecording()
+        }
     }
 
     private func presentManualRecording() {
@@ -231,6 +252,7 @@ struct RootView: View {
 }
 
 private struct AddRecordingButton: View {
+    let accessibilityLabel: String
     let action: () -> Void
 
     var body: some View {
@@ -242,7 +264,7 @@ private struct AddRecordingButton: View {
         .buttonStyle(.glassProminent)
         .tint(AppColor.addButton)
         .buttonBorderShape(.circle)
-        .accessibilityLabel("手動で記録")
+        .accessibilityLabel(accessibilityLabel)
     }
 }
 

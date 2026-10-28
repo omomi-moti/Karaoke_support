@@ -7,10 +7,12 @@ import SwiftUI
 struct HistoryListContainerView: View {
 	private let sessionRepository: any SessionRepositoryProtocol
 	@State private var viewModel: HistoryViewModel
-	@State private var navigationPath = NavigationPath()
+	/// 画面の積み方は `RootView` が持つ。＋で、曲詳細を開いているかを読むため（ADR 0047）。
+	@Binding private var navigationPath: [HistoryRoute]
 
-	init(sessionRepository: any SessionRepositoryProtocol) {
+	init(sessionRepository: any SessionRepositoryProtocol, navigationPath: Binding<[HistoryRoute]>) {
 		self.sessionRepository = sessionRepository
+		_navigationPath = navigationPath
 		_viewModel = State(initialValue: HistoryViewModel(sessionRepository: sessionRepository))
 	}
 
@@ -32,6 +34,6 @@ struct HistoryListContainerView: View {
 }
 
 #Preview {
-	HistoryListContainerView(sessionRepository: PreviewSessionRepository())
+	HistoryListContainerView(sessionRepository: PreviewSessionRepository(), navigationPath: .constant([]))
 		.environment(\.navigateToManualRecording) {}
 }

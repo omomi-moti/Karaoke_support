@@ -16,6 +16,7 @@ final class TrackDetailViewModel {
 	/// 生成直後は「初回ロード中」扱いにして、`.task` 発火前の 1 フレームに空状態が挟まるのを防ぐ。
 	private(set) var isLoading = true
 	private(set) var loadErrorMessage: String?
+	private(set) var deleteErrorMessage: String?
 
 	/// `.task` の外（再試行ボタン等）から呼ばれた 2 本目を弾く。
 	/// `isLoading` は初期値が `true` のため、これを再入判定に流用すると初回ロードが即 return する。
@@ -73,6 +74,21 @@ final class TrackDetailViewModel {
 			points = []
 			summary = nil
 			loadErrorMessage = "読み込みに失敗しました。もう一度お試しください"
+		}
+	}
+
+	/// 記録を消す。先に一覧から外し、DB から消すのに失敗したら元に戻す（#135。履歴の削除と同じ考え方）。
+	func deleteSession(id: UUID) async {
+		deleteErrorMessage = nil
+		let snapshot = points
+		points.removeAll { $0.id == id }
+		summary = TrackScoreSummary(points: points)
+		do {
+			try await sessionRepository.deleteRecordingSession(uuid: id)
+		} catch {
+			points = snapshot
+			summary = TrackScoreSummary(points: snapshot)
+			deleteErrorMessage = "削除に失敗しました。もう一度お試しください"
 		}
 	}
 }

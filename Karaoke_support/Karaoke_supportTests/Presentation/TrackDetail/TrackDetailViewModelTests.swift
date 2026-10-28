@@ -7,10 +7,15 @@ import Testing
 private final class TrackDetailSessionRepositoryStub: SessionRepositoryProtocol {
 	var sessionsToReturn: [SingingSession] = []
 	var errorToThrow: Error?
+	var deleteErrorToThrow: Error?
+	private(set) var deletedIds: [UUID] = []
 
 	func saveNewRecordingSession(_ session: SingingSession) async throws {}
 	func updateRecordingSession(_ session: SingingSession) async throws {}
-	func deleteRecordingSession(uuid: UUID) async throws {}
+	func deleteRecordingSession(uuid: UUID) async throws {
+		if let deleteErrorToThrow { throw deleteErrorToThrow }
+		deletedIds.append(uuid)
+	}
 	func fetchAll(limit: Int, offset: Int) async throws -> [SingingSession] { [] }
 	func fetchByIntent(_ intent: Intent, limit: Int, offset: Int) async throws -> [SingingSession] { [] }
 	func exists(uuid: UUID) async throws -> Bool { false }
@@ -211,5 +216,56 @@ struct TrackDetailViewModelTests {
 		#expect(vm.summary == nil)
 		#expect(vm.loadErrorMessage == nil)
 		#expect(vm.isLoading)
+	}
+
+	@Test("削除すると一覧と統計から外れ、DB の削除が呼ばれる")
+	func deleteRemovesSession() async {
+		let track = Track(userEnteredName: "削除")
+		let older = SingingSession(track: track, intent: .shout, performedAt: Date(timeIntervalSince1970: 100), score: 80)
+		let newer = SingingSession(track: track, intent: .emo, performedAt: Date(timeIntervalSince1970: 200), score: 90)
+		let stub = TrackDetailSessionRepositoryStub()
+		stub.sessionsToReturn = [older, newer]
+		let vm = TrackDetailViewModel(sessionRepository: stub, trackId: track.id, trackTitle: "削除")
+		await vm.load()
+
+		await vm.deleteSession(id: newer.id)
+
+		#expect(vm.points.map(\.id) == [older.id])
+		#expect(vm.summary?.count == 1)
+		#expect(stub.deletedIds == [newer.id])
+		#expect(vm.deleteErrorMessage == nil)
+	}
+
+	@Test("最後の記録を消すと、一覧が空になり統計もなくなる")
+	func deleteLastSessionEmptiesList() async {
+		let track = Track(userEnteredName: "最後")
+		let only = SingingSession(track: track, intent: .shout, performedAt: Date(timeIntervalSince1970: 100), score: 80)
+		let stub = TrackDetailSessionRepositoryStub()
+		stub.sessionsToReturn = [only]
+		let vm = TrackDetailViewModel(sessionRepository: stub, trackId: track.id, trackTitle: "最後")
+		await vm.load()
+
+		await vm.deleteSession(id: only.id)
+
+		#expect(vm.points.isEmpty)
+		#expect(vm.summary == nil)
+	}
+
+	@Test("削除に失敗すると、一覧と統計が元に戻り、エラーを出す")
+	func deleteFailureRestores() async {
+		struct StubError: Error {}
+		let track = Track(userEnteredName: "失敗")
+		let session = SingingSession(track: track, intent: .shout, performedAt: Date(timeIntervalSince1970: 100), score: 80)
+		let stub = TrackDetailSessionRepositoryStub()
+		stub.sessionsToReturn = [session]
+		stub.deleteErrorToThrow = StubError()
+		let vm = TrackDetailViewModel(sessionRepository: stub, trackId: track.id, trackTitle: "失敗")
+		await vm.load()
+
+		await vm.deleteSession(id: session.id)
+
+		#expect(vm.points.map(\.id) == [session.id])
+		#expect(vm.summary?.count == 1)
+		#expect(vm.deleteErrorMessage != nil)
 	}
 }

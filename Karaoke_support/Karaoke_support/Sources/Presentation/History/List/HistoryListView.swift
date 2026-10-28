@@ -3,7 +3,7 @@ import SwiftUI
 /// 履歴タブの本体（一覧 + フィルター）。`HistoryViewModel` を `@Bindable` で受け取る。
 struct HistoryListView: View {
 	@Bindable var viewModel: HistoryViewModel
-	@Binding var navigationPath: NavigationPath
+	@Binding var navigationPath: [HistoryRoute]
 	@Environment(\.navigateToManualRecording) private var navigateToManualRecording
 	@Environment(\.navigateToEditRecording) private var navigateToEditRecording
 	/// 削除の確認を出している記録。
@@ -152,7 +152,7 @@ struct HistoryListView: View {
 }
 
 #Preview {
-	@Previewable @State var path = NavigationPath()
+	@Previewable @State var path: [HistoryRoute] = []
 	return NavigationStack(path: $path) {
 		HistoryListView(viewModel: HistoryViewModel(sessionRepository: PreviewSessionRepository()), navigationPath: $path)
 			.navigationDestination(for: HistoryRoute.self) { _ in

@@ -52,6 +52,7 @@
 | [0044](0044-split-practice-into-practicing-and-unfinished.md) | Practice は「練習中の曲」と「歌い切れなかった曲」に分けて出す | 承認 |
 | [0045](0045-practice-keeps-today-and-hearts-first.md) | Practice では今日歌った曲を消さずに下へ回し、ハート付きを上に出す | 承認 |
 | [0046](0046-confirm-before-losing-records.md) | 記録を消す前と、入力を捨てる前に確認する | 承認 |
+| [0047](0047-track-detail-actions.md) | 曲詳細から記録を直し・消し、＋でその曲を記録できるようにする | 承認 |
 
 ## 書き方
 
