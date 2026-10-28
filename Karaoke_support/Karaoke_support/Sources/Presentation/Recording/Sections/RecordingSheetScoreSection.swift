@@ -3,15 +3,17 @@ import SwiftUI
 struct RecordingSheetScoreSection: View {
 	@Binding var score: ScoreDigitInput
 	let isDisabled: Bool
+	/// 点数を入力中か。テンキーには閉じるボタンがないので、記録シートが入力中は下の帯を「完了」に替える（#137）。
+	let isFocused: FocusState<Bool>.Binding
 
 	/// 見えない入力欄が持つ、打った数字だけの文字列（`92345`）。
 	/// 入力欄の文字を `92.345` に書き換えながら打つと、速く打ったときに数字が抜けるため、表示は別の `Text` で整える。
 	@State private var digits: String
-	@FocusState private var isFocused: Bool
 
-	init(score: Binding<ScoreDigitInput>, isDisabled: Bool) {
+	init(score: Binding<ScoreDigitInput>, isDisabled: Bool, isFocused: FocusState<Bool>.Binding) {
 		_score = score
 		self.isDisabled = isDisabled
+		self.isFocused = isFocused
 		_digits = State(initialValue: score.wrappedValue.enteredDigits)
 	}
 
@@ -24,18 +26,9 @@ struct RecordingSheetScoreSection: View {
 			ZStack {
 				TextField("", text: $digits)
 					.keyboardType(.numberPad)
-					.focused($isFocused)
+					.focused(isFocused)
 					.opacity(0)
 					.accessibilityHidden(true)
-					.toolbar {
-						// キーボードのツールバーはシート内のどの入力欄でも出るため、点数を入力中のときだけ出す
-						ToolbarItemGroup(placement: .keyboard) {
-							if isFocused {
-								Spacer()
-								Button("完了") { isFocused = false }
-							}
-						}
-					}
 
 				HStack(spacing: 4) {
 					Text(score.displayText ?? "--.---")
@@ -53,14 +46,14 @@ struct RecordingSheetScoreSection: View {
 						} animation: { _ in
 							.easeInOut(duration: 0.5)
 						}
-						.opacity(isFocused ? 1 : 0)
+						.opacity(isFocused.wrappedValue ? 1 : 0)
 				}
 				.frame(maxWidth: .infinity)
 			}
 			.contentShape(Rectangle())
 			.onTapGesture {
 				guard !isDisabled else { return }
-				isFocused = true
+				isFocused.wrappedValue = true
 			}
 			.accessibilityElement(children: .ignore)
 			.accessibilityLabel("カラオケスコア")
@@ -78,7 +71,7 @@ struct RecordingSheetScoreSection: View {
 			syncDigits()
 		}
 		.onChange(of: isDisabled) { _, disabled in
-			if disabled { isFocused = false }
+			if disabled { isFocused.wrappedValue = false }
 		}
 	}
 
@@ -92,12 +85,14 @@ struct RecordingSheetScoreSection: View {
 
 #Preview("未入力") {
 	@Previewable @State var score = ScoreDigitInput()
-	return RecordingSheetScoreSection(score: $score, isDisabled: false)
+	@Previewable @FocusState var isFocused: Bool
+	return RecordingSheetScoreSection(score: $score, isDisabled: false, isFocused: $isFocused)
 		.padding()
 }
 
 #Preview("入力済み") {
 	@Previewable @State var score = ScoreDigitInput(score: 92.345)
-	return RecordingSheetScoreSection(score: $score, isDisabled: false)
+	@Previewable @FocusState var isFocused: Bool
+	return RecordingSheetScoreSection(score: $score, isDisabled: false, isFocused: $isFocused)
 		.padding()
 }
