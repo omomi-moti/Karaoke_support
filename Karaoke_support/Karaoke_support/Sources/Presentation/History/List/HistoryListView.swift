@@ -6,6 +6,8 @@ struct HistoryListView: View {
 	@Binding var navigationPath: NavigationPath
 	@Environment(\.navigateToManualRecording) private var navigateToManualRecording
 	@Environment(\.navigateToEditRecording) private var navigateToEditRecording
+	/// 削除の確認を出している記録。
+	@State private var pendingDeleteSessionId: UUID?
 	@Environment(\.historyReloadTick) private var historyReloadTick
 
 	var body: some View {
@@ -66,12 +68,12 @@ struct HistoryListView: View {
 								.tint(AppColor.editAccent)
 							}
 							.swipeActions(edge: .trailing, allowsFullSwipe: true) {
-								Button(role: .destructive) {
-									let idToDelete = session.id
-									Task { await viewModel.deleteSession(id: idToDelete) }
+								Button {
+									pendingDeleteSessionId = session.id
 								} label: {
 									Label("削除", systemImage: "trash")
 								}
+								.tint(.red)
 							}
 						}
 						if viewModel.isLoadingNextPage {
@@ -84,10 +86,11 @@ struct HistoryListView: View {
 							.listRowBackground(Color.clear)
 						}
 					}
-					// 削除で SwiftData インスタンスが無効化される前に、List のデフォルト削除アニメが古い行を触るのを抑える
-					.animation(nil, value: viewModel.sessions.map(\.id))
 					.listStyle(.plain)
 					.scrollContentBackground(.hidden)
+					.recordDeleteConfirmation(pendingSessionId: $pendingDeleteSessionId) { idToDelete in
+						Task { await viewModel.deleteSession(id: idToDelete) }
+					}
 					.addRecordingButtonClearance()
 					.frame(maxWidth: .infinity, maxHeight: .infinity)
 					.overlay {

@@ -3,12 +3,16 @@ import SwiftUI
 struct TrackInputSectionView: View {
 	@Binding var state: TrackInputState
 	let isDisabled: Bool
+	/// 開いたときに曲名の欄にカーソルを置くか（#133）。
+	var focusesOnAppear = false
 	/// 既存の記録の編集中。曲は差し替えられないので、入力欄ではなく読むだけの表示にする。
 	var isLockedForEdit = false
 	let suggestionState: TrackSuggestionState
 	/// 入力が変わってから新しい検索結果が出るまでの間。候補や「候補はありません」を薄く表示し、候補は押せなくする。
 	let isSuggestionStale: Bool
 	let onSelectSuggestion: (TrackSuggestion) -> Void
+
+	@FocusState private var isNameFocused: Bool
 
 	var body: some View {
 		VStack(alignment: .leading, spacing: 10) {
@@ -19,6 +23,10 @@ struct TrackInputSectionView: View {
 				lockedTrackName
 			} else if state.isEditable {
 				TextField("曲名", text: $state.manualName)
+					.focused($isNameFocused)
+					.task {
+						if focusesOnAppear { isNameFocused = true }
+					}
 					.textInputAutocapitalization(.never)
 					.autocorrectionDisabled(true)
 					.textFieldStyle(.roundedBorder)

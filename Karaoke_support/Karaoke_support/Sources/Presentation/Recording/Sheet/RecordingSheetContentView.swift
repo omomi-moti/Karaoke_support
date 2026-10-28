@@ -23,7 +23,11 @@ struct RecordingSheetContentView: View {
 
             ScrollView {
                 VStack(spacing: 16) {
-                    SheetHeaderView(title: recordingTitle, isDisabled: viewModel.isSaving) {
+                    SheetHeaderView(
+                        title: recordingTitle,
+                        isDisabled: viewModel.isSaving,
+                        confirmsDiscard: viewModel.hasUnsavedChanges
+                    ) {
                         dismiss()
                     }
 
@@ -41,6 +45,7 @@ struct RecordingSheetContentView: View {
                     TrackInputSectionView(
                         state: $viewModel.trackState,
                         isDisabled: trackSectionDisabled,
+                        focusesOnAppear: viewModel.focusesTrackNameOnOpen,
                         isLockedForEdit: viewModel.isTrackInputLockedForEdit,
                         suggestionState: trackSectionDisabled ? .hidden : viewModel.trackSuggestionState,
                         isSuggestionStale: viewModel.isTrackSuggestionStale,
@@ -100,7 +105,8 @@ struct RecordingSheetContentView: View {
             }
         }
         .safeAreaInset(edge: .bottom) { bottomCTA }
-        .interactiveDismissDisabled(viewModel.isSaving)
+        .interactiveDismissDisabled(viewModel.isSaving || viewModel.hasUnsavedChanges)
+
     }
 
     private var bottomCTA: some View {

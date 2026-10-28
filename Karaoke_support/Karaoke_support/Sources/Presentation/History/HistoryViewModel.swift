@@ -158,7 +158,7 @@ final class HistoryViewModel {
 		let requestedFilter = filter
 		let snapshot = sessions
 		// 先に表示用スナップショット（値型）から除外。DB 削除の成否と独立して一覧を更新できる。
-		withAnimation(nil) {
+		withAnimation {
 			sessions = sessions.filter { $0.id != id }
 		}
 		do {
