@@ -24,10 +24,12 @@ struct SheetHeaderView: View {
         self.onDismiss = onDismiss
     }
     var body : some View{
-        HStack{
+        ZStack {
             Text(title)
-                .font(.title3.bold())
-            Spacer()
+                .font(.headline)
+                .lineLimit(1)
+                .padding(.horizontal, 56)
+                .accessibilityAddTraits(.isHeader)
             Button {
                 if confirmsDiscard {
                     isConfirmingDiscard = true
@@ -45,6 +47,7 @@ struct SheetHeaderView: View {
             .confirmationDialog("変更内容を破棄しますか？", isPresented: $isConfirmingDiscard) {
                 Button("変更内容を破棄", role: .destructive, action: onDismiss)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.vertical, 6)
     }
