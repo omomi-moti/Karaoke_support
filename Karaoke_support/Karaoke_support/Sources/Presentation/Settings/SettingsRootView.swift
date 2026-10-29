@@ -1,10 +1,8 @@
 import SwiftUI
 
 struct SettingsRootView: View {
-	@Environment(\.insightRepository) private var insightRepository
-
 	var body: some View {
-		SettingsContainerView(insightRepository: insightRepository)
+		SettingsContainerView()
 			.frame(maxWidth: .infinity, maxHeight: .infinity)
 			.appBackgroundGradient()
 			.navigationTitle("設定")
@@ -16,5 +14,4 @@ struct SettingsRootView: View {
 	NavigationStack {
 		SettingsRootView()
 	}
-	.environment(\.insightRepository, PreviewInsightRepository())
 }
