@@ -25,6 +25,7 @@
 | 文書 | 内容 |
 |---|---|
 | [screenshots/](screenshots/) | 画面のスクリーンショット（README で使う） |
+| [privacy.md](privacy.md)・[support.md](support.md) | App Store Connect に入れるプライバシーポリシーとサポートのページ（GitHub Pages で公開する。URL は `/privacy/` と `/support/`） |
 | [app_store/screenshots/](app_store/screenshots/) | App Store Connect に出すスクリーンショット（iPhone 6.9 インチ、1320×2868。曲名は架空） |
 
 ## アーカイブ（更新していない）
