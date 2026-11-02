@@ -53,6 +53,8 @@
 | [0045](0045-practice-keeps-today-and-hearts-first.md) | Practice では今日歌った曲を消さずに下へ回し、ハート付きを上に出す | 承認 |
 | [0046](0046-confirm-before-losing-records.md) | 記録を消す前と、入力を捨てる前に確認する | 承認 |
 | [0047](0047-track-detail-actions.md) | 曲詳細から記録を直し・消し、＋でその曲を記録できるようにする | 承認 |
+| [0048](0048-introduce-go-server.md) | 端末を超えて記録を残すために自前のサーバーを入れ、Go と Docker で作って Cloud Run と Neon に置く | 承認 |
+| [0049](0049-account-and-full-backup.md) | C1 のアカウントは Apple の ID だけで作り、バックアップはメモを除いた全件を置き換えで送る | 承認 |
 
 ## 書き方
 
