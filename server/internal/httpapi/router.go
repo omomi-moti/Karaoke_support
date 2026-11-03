@@ -4,9 +4,9 @@ import (
 	"net/http"
 )
 
-// 全部の API の振り分けを持つハンドラーを返す関数。
-func NewRouter() http.Handler {
+// NewRouter は、全部の API の振り分けを持つハンドラーを返す。
+func NewRouter(db Pinger) http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /health", handleHealth)
+	mux.Handle("GET /health", handleHealth(db))
 	return mux
 }
