@@ -56,6 +56,7 @@
 | [0048](0048-introduce-go-server.md) | 端末を超えて記録を残すために自前のサーバーを入れ、Go と Docker で作って Cloud Run と Neon に置く | 承認 |
 | [0049](0049-account-and-full-backup.md) | C1 のアカウントは Apple の ID だけで作り、バックアップはメモを除いた全件を置き換えで送る | 承認 |
 | [0050](0050-postgres-on-neon.md) | DB は Postgres にし、Neon の無料枠に置く | 承認 |
+| [0051](0051-public-cloud-run-with-caps.md) | Cloud Run は公開し、台数と支出に上限を付ける | 承認 |
 
 ## 書き方
 
