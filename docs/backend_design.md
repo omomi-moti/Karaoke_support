@@ -2,7 +2,7 @@
 
 端末を超えて記録を残すためのサーバー（Go）と、曲名の入力を助ける MusicKit の設計。要件・構成・API・データの流れ・責任の分け方をまとめる。
 
-この文書は全体の地図。正はタスク・仕様が GitHub Issues、判断が ADR（[0048](adr/0048-introduce-go-server.md)・[0049](adr/0049-account-and-full-backup.md)・[0050](adr/0050-postgres-on-neon.md)）で、最上位は[憲法](constitution.md)。Issue を 1 つ終えるたびに、作ったものに合わせてこの文書を直す。
+この文書は全体の地図。正はタスク・仕様が GitHub Issues、判断が ADR（[0048](adr/0048-introduce-go-server.md)・[0049](adr/0049-account-and-full-backup.md)・[0050](adr/0050-postgres-on-neon.md)・[0051](adr/0051-public-cloud-run-with-caps.md)）で、最上位は[憲法](constitution.md)。Issue を 1 つ終えるたびに、作ったものに合わせてこの文書を直す。
 
 ---
 
@@ -41,7 +41,7 @@ MVP の間、アカウントとバックアップの機能はデバッグのビ�
 | NFR-3 | プライバシー | サーバーのログとエラーの返事に、記録の中身（曲名・点数・気分）も、Apple のトークン・サーバーのトークン・`Authorization` ヘッダーも出さない |
 | NFR-4 | セキュリティ | Apple のトークンは、署名（`RS256` だけを受け付ける）・発行者・宛先（バンドル ID）・期限と、iOS が作った nonce が一致するかを検証する。サーバーが出すトークンはハッシュにして DB に保存し、iOS は Keychain に端末だけの設定（`ThisDeviceOnly`）で置く。通信は HTTPS だけで、DB とも TLS（`sslmode=require` 以上）でつなぐ |
 | NFR-5 | セキュリティ | 1 回のリクエストの大きさに上限を設ける（5MB） |
-| NFR-6 | 費用 | 月 0 円を目指す。Cloud Run のインスタンスの数に上限を設け、予算のアラートを入れる |
+| NFR-6 | 費用 | 月 0 円を目指す。Cloud Run のインスタンスの数の上限を 1 にし、予算のアラート（月 500 円）と Cloud Run の支出の上限（月 300 円）を入れる（[ADR 0051](adr/0051-public-cloud-run-with-caps.md)） |
 | NFR-7 | 互換性 | API のパスに `/v1/` を付ける。バックアップに `schemaVersion` を持たせ、アプリのモデルが変わっても古いバックアップを読めるようにする |
 | NFR-8 | 性能 | 記録 1000 件のバックアップと取り込みが数秒で終わる。インスタンスが止まっていた後の 1〜2 秒の遅れは許す |
 | NFR-9 | 保守性 | Go は標準ライブラリを中心にし、handler・service をテストで確かめられるようにする。iOS 側は今と同じく、プロトコルでモックに差し替えられる |
@@ -109,9 +109,10 @@ Go は標準の `net/http`（1.22 以降のルーティング）と `pgx` を使
 | production | MVP では作らない | — | — | — |
 
 - iOS は xcconfig の `API_BASE_URL` を Info.plist から読む。Debug のビルドは staging につなぐ。スキームの環境変数 `KARAOKE_API_BASE_URL` で local に上書きできる（`KARAOKE_SIMULATE_DATA_LOAD_FAILURE` と同じやり方）
-- MVP の間は手でデプロイし、デプロイの前にマイグレーションを手で流す。手順は `server/README.md` に書く。GitHub Actions は MVP の後
-- DB の URL などの秘密の値はリポジトリに入れず、Cloud Run の環境変数（Secret Manager）に置く
-- `/health` は毎回 DB につなぐので、叩かれ続けると Neon の無料枠を使い切って月末まで止まる。外部テスターに配る前に、DB を見ない確認と分けるかを決める
+- MVP の間は手でデプロイし、デプロイの前にマイグレーションを手で流す。イメージは手元で作って Artifact Registry に送る。手順は [server/README.md](../server/README.md)。GitHub Actions は MVP の後
+- DB の URL などの秘密の値はリポジトリに入れず、Secret Manager に置いて Cloud Run の環境変数として渡す
+- Cloud Run は誰でも呼べるようにし、専用のサービスアカウントで動かす。このアカウントは DB の URL を読む権限だけを持つ（[ADR 0051](adr/0051-public-cloud-run-with-caps.md)）
+- `/health` は毎回 DB につなぐので、叩かれ続けると Neon の無料枠を使い切って月末まで止まる。外部テスターに配る前に、DB を見ない確認と分けるかを決め、IP ごとのレート制限を入れる（ADR 0051）
 
 ## DB
 

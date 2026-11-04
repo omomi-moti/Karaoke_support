@@ -20,7 +20,7 @@
 | [design/color_tokens_v1.md](design/color_tokens_v1.md) | カラートークン（Color Set）の一覧と使い分け |
 | [design/track_matching.md](design/track_matching.md) | 曲名の一致・候補の並べ方 |
 | [backend_design.md](backend_design.md) | サーバー（Go）と MusicKit の設計：要件・構成・API・データの流れ・責任の分け方 |
-| [../server/README.md](../server/README.md) | サーバーを手元で動かす手順・マイグレーション・環境変数 |
+| [../server/README.md](../server/README.md) | サーバーを手元で動かす手順・マイグレーション・環境変数・staging へのデプロイ |
 
 ## 記録
 
