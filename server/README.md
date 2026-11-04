@@ -7,7 +7,7 @@
 ## 要るもの
 
 - Go 1.27
-- Docker Desktop（手元の Postgres を動かす）
+- Docker Desktop（手元の Postgres を動かす・イメージを作る）
 - goose v3.29.0（マイグレーション）
 - Google Cloud CLI（staging へのデプロイだけ。`brew install --cask gcloud-cli`）
 
@@ -109,6 +109,7 @@ DB は要らない。ハンドラーは偽物の DB（`Pinger`）で確かめる
 | イメージの置き場（Artifact Registry） | `karaoke` |
 | Cloud Run のサービス | `karaoke-api-staging`（インスタンスの上限 1、誰でも呼べる） |
 | サービスアカウント | `karaoke-api-staging`（`database-url-staging` を読む権限だけ） |
+| DB（Neon） | `staging` ブランチ（シンガポール） |
 | 秘密（Secret Manager） | `database-url-staging`（Neon の `staging` ブランチの URL） |
 | お金の守り | 予算のアラート（月 500 円）と、Cloud Run の支出の上限（月 300 円）。GCP の画面の「お支払い → 予算とアラート」 |
 
