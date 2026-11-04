@@ -60,7 +60,7 @@ flowchart LR
 | OS / 実行 | macOS、**Xcode**（ビルド・シミュレーター・実機・デバッグ） |
 | AI | **Claude Code**（デスクトップアプリ）。調査・実装案・実装・テスト・シミュレーターでの確認・レビュー・文書を任せる。決めること、実機での確認、コミットとマージは人が行う |
 | AI 向けの文書 | [`CLAUDE.md`](../CLAUDE.md)（毎回読み込まれる入口。作業の約束、ビルドの方法、アーキテクチャ、Git の決まり、守る制約）と、最上位のルールの[憲法](constitution.md) |
-| フォルダごとの決まり | `.claude/rules/`（SwiftData・Presentation・テスト。そのフォルダのファイルを触ったときだけ読み込まれる） |
+| フォルダごとの決まり | `.claude/rules/`（SwiftData・Presentation・テスト・サーバー。そのフォルダのファイルを触ったときだけ読み込まれる） |
 | 設定とフック | `.claude/settings.json`（よく使うコマンドの許可）と `.claude/hooks/`（main への push、`project.pbxproj` の追加、Presentation の具体的な Repository の型を止める） |
 | レビュー | `.claude/skills/karaoke-review/`（プロジェクト用のレビューのスキル） |
 

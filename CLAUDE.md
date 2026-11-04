@@ -25,7 +25,7 @@
 
 ## ビルドとテスト
 
-外部のパッケージマネージャーはない Xcode のプロジェクト。ビルドとテストは Xcode か `xcodebuild` で行う。
+iOS のアプリは、外部のパッケージマネージャーはない Xcode のプロジェクト。ビルドとテストは Xcode か `xcodebuild` で行う。サーバー（`server/`）の動かし方・テスト・デプロイは `server/README.md`。
 
 ```bash
 # ビルド（シミュレーター）
@@ -48,7 +48,7 @@ xcodebuild test \
   -only-testing:Karaoke_supportTests/HistoryViewModelPaginationTests
 ```
 
-リンターはない。Swift コンパイラの警告をリントの代わりにする。
+iOS にリンターはない。Swift コンパイラの警告をリントの代わりにする。サーバーは `gofmt` と `go vet` を流す。
 
 ---
 
@@ -67,6 +67,8 @@ Sources/
 ```
 
 **依存の向き**：`Presentation → Domain のプロトコル`。`Data` は Domain のプロトコルを実装し、起動時に注入する。`Presentation` は `Data` の型を参照しない。
+
+**サーバー**：`server/` に記録のバックアップの API（Go、Cloud Run と Neon の Postgres）がある。設計は `docs/backend_design.md`、決まりは `.claude/rules/server.md`。
 
 ### DI の配線
 
@@ -124,5 +126,5 @@ Sources/
 - docs/constitution.md — プロジェクトの最上位のルール
 - docs/adr/ — 技術判断の記録。書き方は docs/adr/README.md
 - docs/README.md — docs の目次と、どれが正か
-- .claude/rules/ — フォルダごとの決まり（SwiftData・Presentation・テスト）
+- .claude/rules/ — フォルダごとの決まり（SwiftData・Presentation・テスト・サーバー）
 - .claude/skills/karaoke-review/ — このプロジェクト用のコードレビュー
