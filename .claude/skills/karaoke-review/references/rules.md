@@ -12,6 +12,14 @@
 - [Repository を経由しない DB 書き込み](#repository-を経由しない-db-書き込み)
 - [Presentation への具体 Repository 型の漏れ](#presentation-への具体-repository-型の漏れ)
 
+サーバー（`server/`）
+
+- [他人の記録に届く SQL](#他人の記録に届く-sql)
+- [メモがサーバーに渡る](#メモがサーバーに渡る)
+- [秘密がリポジトリに入る](#秘密がリポジトリに入る)
+- [流し済みのマイグレーションの書き換え](#流し済みのマイグレーションの書き換え)
+- [ログやエラーの返事に記録の中身や秘密が出る](#ログやエラーの返事に記録の中身や秘密が出る)
+
 ---
 
 ## Spotify メタデータの永続化
@@ -326,3 +334,152 @@ grep -rn 'SwiftData[A-Z][A-Za-z]*Repository' Sources/Presentation
 
 このチェックは決定論的なので、将来はビルドフェーズのスクリプトに移すほうが確実で速い。
 レビューで見るのは、文脈込みで判断したい場合に限る。
+
+---
+
+## 他人の記録に届く SQL
+
+### 不変条件
+
+記録・バックアップ・トークンなど、利用者ごとの行を読む・書く・消す SQL は、
+認証で分かった自分の `user_id` で必ず絞る。
+`user_id` は、リクエストの本文・URL・クエリから受け取らない。
+
+### 破れたときの症状
+
+ある利用者が、ほかの利用者のバックアップを取り込めてしまう、または上書き・削除できてしまう。
+
+### 検出手順
+
+```bash
+grep -rn -i -E 'SELECT|UPDATE|DELETE|INSERT' server/internal
+```
+
+ヒットした SQL ごとに、`WHERE`（`INSERT` なら入れる値）に `user_id` があり、
+その値が認証のミドルウェアが置いたものから来ているかを、呼び出し元までたどって確かめる。
+handler で `r.PathValue`・`r.URL.Query()`・本文の JSON から `user_id` を読んでいたら違反。
+
+### 誤検知しやすいケース
+
+- ログインのときに `users` を `apple_user_id` で引くのは正しい（まだ `user_id` が分からない段階）
+- `migrations/` の SQL は対象外
+- `/health` の Ping は利用者の行に触らない
+
+---
+
+## メモがサーバーに渡る
+
+### 不変条件
+
+記録のメモは端末の外に出さない（憲法、ADR 0049）。
+iOS の送る中身（`BackupSnapshot`）にメモの項目がなく、
+サーバーのリクエストの型・テーブルにもメモの列がない。
+Apple Music の曲名などのメタデータも、サーバーに持たない。
+
+### 破れたときの症状
+
+利用者が端末にだけ残ると思って書いたメモが、サーバーの DB とバックアップに残る。
+
+### 検出手順
+
+```bash
+grep -rn -i -E 'memo|note' server/ Karaoke_support/Karaoke_support/Sources/Domain Karaoke_support/Karaoke_support/Sources/Data
+```
+
+`BackupSnapshot` と、その変換（SwiftData → `BackupSnapshot`）に、メモを写す行がないかを読む。
+サーバーの JSON の型とマイグレーションに、メモの列がないかを読む。
+
+### 誤検知しやすいケース
+
+- `SingingSession` のメモそのもの（端末の中の `@Model`）は正しい
+- コメントや文書の「メモは送らない」という記述
+
+---
+
+## 秘密がリポジトリに入る
+
+### 不変条件
+
+staging・本番の DB の URL、パスワード、鍵、トークンは、コード・テスト・文書・設定ファイルのどれにも入らない。
+Secret Manager や手元の `server/.env`（コミットされない）に置く。
+
+### 破れたときの症状
+
+公開リポジトリなので、コミットした時点で誰でも DB に入れる。
+後のコミットで消しても履歴に残るので、パスワードの変更が要る。
+
+### 検出手順
+
+```bash
+git diff main...HEAD | grep -E '^\+' | grep -c -i -E 'neon\.tech|npg_|postgres(ql)?://[^@ ]+@|BEGIN [A-Z ]*PRIVATE KEY'
+```
+
+まず件数だけを数える（値を画面に出さない）。0 でなければ、
+`git diff main...HEAD --stat` と合わせてどのファイルかを絞り、その行を読んで本物の値かどうかを判断する。
+`.env` 以外の設定ファイルを足したときは、`password`・`secret`・`token` という名前の値も読む。
+**報告には値を書き写さない。** `file:line` と種類だけを書く。
+
+### 誤検知しやすいケース
+
+- `server/compose.yaml` と `server/README.md` の手元の Postgres（`karaoke:karaoke@localhost` や `@db`）は、手元専用で公開してよい値
+- `server/README.md` の `gcloud secrets ...` のコマンドは、秘密の名前であって値ではない
+- テストの偽物の値（`"db is down"` など）
+- このファイルの検出手順そのもの（`npg_` などの検索の文字列）
+
+---
+
+## 流し済みのマイグレーションの書き換え
+
+### 不変条件
+
+`main` に入っている `server/migrations/` のファイルは、変更も削除もしない。
+直すときは新しい番号のファイルを足す。
+
+### 破れたときの症状
+
+staging の DB は流し済みの番号を覚えているので、書き換えた中身は流れない。
+手元では動くのに、staging では列やテーブルがなくて API が 500 を返す。
+
+### 検出手順
+
+```bash
+git diff main...HEAD --name-status -- server/migrations
+```
+
+`A`（足した）だけなら正常。`M`（変えた）・`D`（消した）・`R`（名前を変えた）があれば違反。
+足したファイルの番号が、今ある最後の番号の次になっているかも見る。
+
+### 誤検知しやすいケース
+
+- このブランチで足して、まだ `main` に入っていないファイルを直すのはよい。
+  ただし、staging にすでに流していたら同じ問題が起きるので、本人に確かめる
+
+---
+
+## ログやエラーの返事に記録の中身や秘密が出る
+
+### 不変条件
+
+ログ（`slog`）とエラーの返事に、記録の中身（曲名・点数・気分）、
+Apple のトークン・サーバーのトークン・`Authorization` ヘッダー、DB の URL を出さない（NFR-3）。
+エラーの返事は決まった短い文にし、`err.Error()` をそのまま返さない。
+
+### 破れたときの症状
+
+Cloud Logging に利用者の曲名やトークンが残る。
+エラーの返事から、DB の構成や内部の作りが外に見える。
+
+### 検出手順
+
+```bash
+grep -rn -E 'slog\.|log\.Print|http\.Error|err\.Error\(\)|r\.Header|json\.Marshal' server/internal server/cmd
+```
+
+ログに渡している値が、リクエストの本文・ヘッダー・記録の型そのものでないかを読む。
+エラーの返事（`http.Error` や `w.Write`）に `err` の中身が入っていないかを読む。
+
+### 誤検知しやすいケース
+
+- `health.go` で Ping のエラーをログに出すのは許している。
+  pgx の接続のエラーにはユーザー名・DB 名・ホストが入るが、パスワードは入らない
+- 件数・処理時間・ステータスコードのような、中身でない値のログ

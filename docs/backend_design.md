@@ -2,7 +2,7 @@
 
 端末を超えて記録を残すためのサーバー（Go）と、曲名の入力を助ける MusicKit の設計。要件・構成・API・データの流れ・責任の分け方をまとめる。
 
-この文書は全体の地図。正はタスク・仕様が GitHub Issues、判断が ADR（[0048](adr/0048-introduce-go-server.md)・[0049](adr/0049-account-and-full-backup.md)）で、最上位は[憲法](constitution.md)。Issue を 1 つ終えるたびに、作ったものに合わせてこの文書を直す。
+この文書は全体の地図。正はタスク・仕様が GitHub Issues、判断が ADR（[0048](adr/0048-introduce-go-server.md)・[0049](adr/0049-account-and-full-backup.md)・[0050](adr/0050-postgres-on-neon.md)・[0051](adr/0051-public-cloud-run-with-caps.md)）で、最上位は[憲法](constitution.md)。Issue を 1 つ終えるたびに、作ったものに合わせてこの文書を直す。
 
 ---
 
@@ -18,6 +18,8 @@
 | — | App Store に出す準備（Apple のトークンの取り消し・プライバシーのラベルとポリシー・本番の環境） | 後 |
 
 MVP の間、アカウントとバックアップの機能はデバッグのビルドでだけ出す（`#if DEBUG`）。リリースのビルドと TestFlight には出さない。
+
+> 2026-11-02 に範囲を広げた（C1 を TestFlight の外部テスターに配り、MusicKit は M2 まで入れる）。この節と ADR 0049 の 6 は、別の Issue で新しい ADR にしてから直す。TestFlight のビルドはリリースのビルドなので、そのときに憲法 II の「端末内に保存」の表示もあわせて決める。
 
 ## 機能要件
 
@@ -35,14 +37,15 @@ MVP の間、アカウントとバックアップの機能はデバッグのビ�
 | 番号 | 種類 | 要件 |
 |---|---|---|
 | NFR-1 | オフラインファースト | サーバーが止まっていても、記録・履歴・選曲はすべて動く。正は端末の SwiftData で、サーバーは本人が頼んだときだけ使う控え |
-| NFR-2 | プライバシー | サーバーに置くのは Apple のユーザー ID（`sub`）と、メモを除いた記録だけ。メールアドレスも名前も受け取らない |
-| NFR-3 | プライバシー | サーバーのログに記録の中身（曲名・点数・気分）を出さない |
-| NFR-4 | セキュリティ | Apple のトークンは、署名・発行者・宛先（バンドル ID）・期限を検証する。サーバーが出すトークンはハッシュにして DB に保存する。通信は HTTPS だけ |
+| NFR-2 | プライバシー | サーバーに置くのは Apple のユーザー ID（`sub`）と、メモを除いた記録だけ。メールアドレスも名前も受け取らない。Cloud Run のリクエストのログには IP アドレスと User-Agent が残るので、保存の期間を確かめてプライバシーポリシーに書く |
+| NFR-3 | プライバシー | サーバーのログとエラーの返事に、記録の中身（曲名・点数・気分）も、Apple のトークン・サーバーのトークン・`Authorization` ヘッダーも出さない |
+| NFR-4 | セキュリティ | Apple のトークンは、署名（`RS256` だけを受け付ける）・発行者・宛先（バンドル ID）・期限と、iOS が作った nonce が一致するかを検証する。サーバーが出すトークンはハッシュにして DB に保存し、iOS は Keychain に端末だけの設定（`ThisDeviceOnly`）で置く。通信は HTTPS だけで、DB とも TLS（`sslmode=require` 以上）でつなぐ |
 | NFR-5 | セキュリティ | 1 回のリクエストの大きさに上限を設ける（5MB） |
-| NFR-6 | 費用 | 月 0 円を目指す。Cloud Run のインスタンスの数に上限を設け、予算のアラートを入れる |
+| NFR-6 | 費用 | 月 0 円を目指す。Cloud Run のインスタンスの数の上限を 1 にし、予算のアラート（月 500 円）と Cloud Run の支出の上限（月 300 円）を入れる（[ADR 0051](adr/0051-public-cloud-run-with-caps.md)） |
 | NFR-7 | 互換性 | API のパスに `/v1/` を付ける。バックアップに `schemaVersion` を持たせ、アプリのモデルが変わっても古いバックアップを読めるようにする |
 | NFR-8 | 性能 | 記録 1000 件のバックアップと取り込みが数秒で終わる。インスタンスが止まっていた後の 1〜2 秒の遅れは許す |
 | NFR-9 | 保守性 | Go は標準ライブラリを中心にし、handler・service をテストで確かめられるようにする。iOS 側は今と同じく、プロトコルでモックに差し替えられる |
+| NFR-10 | 可用性 | サーバーは止まってもよい（NFR-1 から）。使わないと止まる無料枠と、起きるまでの数秒の待ちを受け入れる。DB は標準の Postgres だけを使い、つなぎ先を `DATABASE_URL` で渡して、URL を替えるだけで移れるようにする |
 
 ---
 
@@ -101,21 +104,23 @@ Go は標準の `net/http`（1.22 以降のルーティング）と `pgx` を使
 
 | 環境 | サーバー | DB | 使う端末 | データ |
 |---|---|---|---|---|
-| local | 手元で `go run` | Docker の Postgres | シミュレーター（`localhost` で届く） | いつでも消してよい |
-| staging | Cloud Run `karaoke-api-staging` | Neon の `staging` ブランチ | Xcode から入れた実機 | 自分の試し用。消してもよい |
+| local | 手元で `go run` か Docker のイメージ | Docker の Postgres（`127.0.0.1` でだけ待ち受ける） | シミュレーター（`localhost` で届く） | いつでも消してよい |
+| staging | Cloud Run `karaoke-api-staging`（東京 `asia-northeast1`） | Neon の `staging` ブランチ（シンガポール。Neon に東京はない、ADR 0050） | Xcode から入れた実機 | 自分の試し用。消してもよい |
 | production | MVP では作らない | — | — | — |
 
 - iOS は xcconfig の `API_BASE_URL` を Info.plist から読む。Debug のビルドは staging につなぐ。スキームの環境変数 `KARAOKE_API_BASE_URL` で local に上書きできる（`KARAOKE_SIMULATE_DATA_LOAD_FAILURE` と同じやり方）
-- MVP の間は手でデプロイし、デプロイの前にマイグレーションを手で流す。手順は `server/README.md` に書く。GitHub Actions は MVP の後
-- DB の URL などの秘密の値はリポジトリに入れず、Cloud Run の環境変数（Secret Manager）に置く
+- MVP の間は手でデプロイし、デプロイの前にマイグレーションを手で流す。イメージは手元で作って Artifact Registry に送る。手順は [server/README.md](../server/README.md)。GitHub Actions は MVP の後
+- DB の URL などの秘密の値はリポジトリに入れず、Secret Manager に置いて Cloud Run の環境変数として渡す
+- Cloud Run は誰でも呼べるようにし、専用のサービスアカウントで動かす。このアカウントは DB の URL を読む権限だけを持つ（[ADR 0051](adr/0051-public-cloud-run-with-caps.md)）
+- `/health` は毎回 DB につなぐので、叩かれ続けると Neon の無料枠を使い切って月末まで止まる。外部テスターに配る前に、DB を見ない確認と分けるかを決め、IP ごとのレート制限を入れる（ADR 0051）
 
 ## DB
 
 | テーブル | 列 | メモ |
 |---|---|---|
-| `users` | `id`, `apple_sub`（一意）, `created_at` | Apple の `sub` だけを持つ |
+| `users` | `id`, `apple_user_id`（一意）, `created_at` | Apple の `sub` だけを `apple_user_id` として持つ（iOS の `ASAuthorizationAppleIDCredential.user` と同じ値） |
 | `auth_tokens` | `token_hash`, `user_id`, `expires_at`, `created_at` | トークンはハッシュだけを持つ。ユーザーを消すと一緒に消える |
-| `backups` | `user_id`（1 人 1 行）, `schema_version`, `payload`（jsonb）, `track_count`, `session_count`, `updated_at` | サーバーは `payload` の中身を読まない。ユーザーを消すと一緒に消える |
+| `backups` | `user_id`（1 人 1 行）, `schema_version`, `payload`（jsonb）, `track_count`, `session_count`, `updated_at` | サーバーは `payload` の中身を読まない。件数は iOS が数えて一緒に送り、サーバーはそのまま保存する。ユーザーを消すと一緒に消える |
 
 ## API
 
@@ -135,7 +140,7 @@ Go は標準の `net/http`（1.22 以降のルーティング）と `pgx` を使
 | | 持つもの | 持たないもの |
 |---|---|---|
 | 全体 | `schemaVersion` | |
-| 曲 | `id`, `userEnteredName`, `spotifyTrackId`, `appleMusicSongId`（M1 から）, `singCount`, `createdAt`, `updatedAt` | Apple Music の曲名・アーティスト名・アートワーク |
+| 曲 | `id`, `userEnteredName`, `appleMusicSongId`（M1 から）, `createdAt`, `updatedAt` | Apple Music の曲名・アーティスト名・アートワーク、`singCount`（取り込むときに記録の件数から数え直す）、`spotifyTrackId`（今は常に空） |
 | 記録 | `id`, `trackId`, `intent`, `performedAt`, `score`, `recordedSource`, `recordedWantAgain`, `recordedIsCompleted` | **メモ** |
 
 保存する値（`recorded…`）は空のまま送り、読むときの解釈（ADR 0034）はアプリに任せる。
@@ -157,7 +162,7 @@ sequenceDiagram
     VM->>R: signIn(identityToken:)
     R->>S: POST /v1/auth/apple
     S->>A: 公開鍵を取る（キャッシュ）
-    S->>S: 署名・発行者・宛先・期限を検証し、sub でユーザーを探す（なければ作る）
+    S->>S: 署名・発行者・宛先・期限・nonce を検証し、sub でユーザーを探す（なければ作る）
     S-->>R: サーバーのトークン
     R->>R: Keychain に保存
     R-->>VM: ログイン済み
@@ -167,13 +172,13 @@ sequenceDiagram
 
 1. ボタン → ViewModel → `BackupRepository.fetchRemoteSummary()`
 2. サーバーにバックアップがあれば、ViewModel が「N 件 → M 件」の確認を出す
-3. `uploadAll()`：SwiftData から全件を `BackupSnapshot` に詰め（メモは入れない）、JSON にして `PUT /v1/backup`
+3. `uploadAll()`：SwiftData から全件を `BackupSnapshot` に詰め（メモは入れない）、曲と記録の件数と一緒に JSON にして `PUT /v1/backup`
 4. サーバーは大きさと `schemaVersion` を確かめ、1 つのトランザクションで置き換えて、日時を返す
 
 ### 取り込み
 
 1. ログインした後、端末に記録がなく、`fetchRemoteSummary()` でバックアップがあると分かったら、取り込むかを聞く
-2. `restoreAll()`：`GET /v1/backup` → `schemaVersion` を確かめる → SwiftData に全部入れて 1 回だけ保存する（途中で失敗したら何も残さない）。UUID は元のまま使う
+2. `restoreAll()`：`GET /v1/backup` → `schemaVersion` を確かめる → 値を確かめる（点数は 0〜100、曲名は空でない、気分は知っている値）→ SwiftData に全部入れて 1 回だけ保存する（途中で失敗したら何も残さない）。UUID は元のまま使い、`singCount` は記録の件数から数える。`Track` と `SingingSession` の `init` は範囲外の値で止まる（`precondition`）ので、値はモデルを作る前に確かめ、1 件でもだめなら何も取り込まない
 3. `historyReloadTick` で画面を読み直す
 
 ### もしかして？
@@ -204,8 +209,8 @@ sequenceDiagram
 
 | 順 | Issue | 要件 | 状態 |
 |---|---|---|---|
-| 0 | サーバーと MusicKit の設計を決め、文書にする | — | 進行中 |
-| 1 | サーバーの土台を作り、staging にデプロイする | NFR-6・NFR-9 | 未着手 |
+| 0 | サーバーと MusicKit の設計を決め、文書にする（#144） | — | 済み |
+| 1 | サーバーの土台を作り、staging にデプロイする（#146） | NFR-6・NFR-9・NFR-10 | 済み |
 | 2 | Sign in with Apple でアカウントを作り、消せる | FR-1・FR-2・NFR-2〜4 | 未着手 |
 | 3 | 記録をサーバーにバックアップする | FR-3・FR-4・NFR-5・NFR-7・NFR-8 | 未着手 |
 | 4 | 別の端末で記録を取り込む | FR-5・NFR-7 | 未着手 |
