@@ -21,7 +21,7 @@
 |------|----------|--------|
 | 選曲・履歴タブ右下の ＋ ボタン | `presentManualRecording()` | `.mode(.manual)` |
 | 空状態の「手動で曲名を入力して歌う」（選曲・履歴） | `EnvironmentValues.navigateToManualRecording` → `presentManualRecording()` | `.mode(.manual)` |
-| 検索タブ（`Tab(role: .search)`）の結果行 | `SearchContainerView(onSelectTrack:)` → `presentRecording(_:)` | `.selectedTrack(SelectedTrack)` |
+| 検索タブ（`Tab(role: .search)`）の結果行・最近歌った曲の行（検索の候補を含む） | `SearchContainerView(onSelectTrack:)` → `presentRecording(_:)` | `.selectedTrack(SelectedTrack)` |
 | 選曲画面のカード | `SongsRootView(onSelect:)` → `recordFromSelectionScreen(_:intent:)` | `.selectedTrack(SelectedTrack, intent:, source: .selectionScreen)`（選んでいる気分を入れて開く。曲を変えずに保存すると、選曲画面からの記録になる・ADR 0040） |
 | 保存直後のシートの提案カード | `recordRecommendation(_:intent:)`（保存直後のシートを閉じてから開く） | `.selectedTrack(SelectedTrack, intent:, source: .suggestion)`（保存した記録の気分を入れて開く。曲を変えずに保存すると、提案からの記録になる・ADR 0034） |
 
