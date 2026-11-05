@@ -26,8 +26,13 @@ enum RecommendationReasonFormat {
 			let when = days < 1 ? "今日" : ago(days: days)
 			return "歌い切れず ・ \(when) ・ \(IntentLabel.title(stats.latestIntent))"
 		}
+		return "点数アップ ・ \(history(count: stats.sessionCount, days: days))"
+	}
+
+	/// 歌った回数と前回の日（#142）。例:「3回歌った ・ 前回は1週間前」。今日歌った曲は「3回歌った ・ 今日歌った」。
+	static func history(count: Int, days: Int) -> String {
 		let last = days < 1 ? "今日歌った" : "前回は\(ago(days: days))"
-		return "点数アップ ・ \(stats.sessionCount)回歌った ・ \(last)"
+		return "\(count)回歌った ・ \(last)"
 	}
 
 	private static func period(days: Int) -> String {
