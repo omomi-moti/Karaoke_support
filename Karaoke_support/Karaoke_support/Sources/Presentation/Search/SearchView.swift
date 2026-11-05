@@ -15,9 +15,13 @@ struct SearchView: View {
             } else if !viewModel.hasActiveQuery {
                 recent
             } else if !viewModel.result.isEmpty {
-                List(viewModel.result) { item in
-                    SearchResultRowView(item: item, onTap: { onSelectTrack(item) })
-                        .listRowBackground(Color.clear)
+                List {
+                    Section("検索結果") {
+                        ForEach(viewModel.result) { item in
+                            SearchResultRowView(item: item, onTap: { onSelectTrack(item) })
+                                .listRowBackground(Color.clear)
+                        }
+                    }
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
