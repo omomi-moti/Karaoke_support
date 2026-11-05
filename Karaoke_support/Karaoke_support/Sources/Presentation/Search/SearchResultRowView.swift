@@ -1,67 +1,73 @@
-//
-//  SearchResultRowView.swift
-//  Karaoke_support
-//
-//  Created by 鈴木聖也 on 2026/06/29.
-//
-
 import SwiftUI
 
+/// 検索タブの 1 行（#142）。右端の＋は、記録を追加する＋ボタンと同じ色で「この曲で記録する」を表す。
 struct SearchResultRowView: View {
-    let track : Track
-    
-    private var latestSession: SingingSession? {
-        track.sessions.max(by: { $0.performedAt < $1.performedAt })
-    }
-    
-    private static let dateFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "ja_JP")
-        f.dateStyle = .medium
-        f.timeStyle = .none
-        return f
-    }()
-    
-    var body : some View{
-        HStack{
-            VStack(alignment: .leading, spacing: 4){
-                Text(TrackDisplayTitle.primary(for: track))
-                    .font(.body)
-                    .foregroundStyle(AppColor.textPrimary)
-                    .lineLimit(1)
-                
-                HStack(spacing : 8){
-                    Label("\(track.singCount)回",systemImage:"music.mic")
-                        .font(.caption)
-                        .foregroundStyle(AppColor.textSecondary)
-                    
-                    if let session = latestSession{
-                        Text(Self.dateFormatter.string(from: session.performedAt))
-                            .font(.caption)
-                            .foregroundStyle(AppColor.textTertiary)
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            Image(systemName: "chevron.right")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(AppColor.textPrimary)
-        }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16,style: .continuous)
-                .fill(AppColor.surfaceCard)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(AppColor.borderSubtle, lineWidth: 1)
-        )
-        
-    }
+	let item: SearchResultDisplayItem
+	let onTap: () -> Void
+
+	var body: some View {
+		Button(action: onTap) {
+			HStack(spacing: 12) {
+				VStack(alignment: .leading, spacing: 2) {
+					HStack(spacing: 6) {
+						Text(item.title)
+							.font(.body.weight(.semibold))
+							.foregroundStyle(AppColor.textPrimary)
+							.lineLimit(1)
+						if item.isWantAgain {
+							Image(systemName: "heart.fill")
+								.font(.caption)
+								.foregroundStyle(AppColor.accentScore)
+						}
+					}
+					Text(item.subtitle)
+						.font(.subheadline)
+						.foregroundStyle(AppColor.textSecondary)
+						.lineLimit(1)
+				}
+				Spacer(minLength: 8)
+				Image(systemName: "plus.circle.fill")
+					.font(.title2)
+					.foregroundStyle(AppColor.addButton)
+			}
+			.padding(.vertical, 4)
+			.contentShape(Rectangle())
+		}
+		.buttonStyle(.plain)
+		.accessibilityElement(children: .combine)
+		.accessibilityLabel(accessibilityText)
+		.accessibilityHint("この曲で記録します")
+	}
+
+	private var accessibilityText: String {
+		var parts = [item.title, item.subtitle]
+		if item.isWantAgain { parts.append("また歌いたい") }
+		return parts.joined(separator: "、")
+	}
 }
 
 #Preview("Row") {
-    SearchResultRowView(track: Track(userEnteredName: "アイドル", singCount: 5))
-        .padding()
-        .background(AppColor.backgroundGradientEnd)
+	List {
+		SearchResultRowView(
+			item: SearchResultDisplayItem(
+				stats: TrackSingingStats(
+					trackId: UUID(),
+					spotifyTrackId: nil,
+					userEnteredName: "アイドル",
+					latestIntent: .shout,
+					lastPerformedAt: .now.addingTimeInterval(-5 * 86_400),
+					bestScore: 92.5,
+					sessionCount: 4,
+					latestWantAgain: true
+				),
+				now: .now,
+				calendar: .current
+			),
+			onTap: {}
+		)
+		SearchResultRowView(
+			item: SearchResultDisplayItem(track: Track(userEnteredName: "記録を消した曲"), now: .now, calendar: .current),
+			onTap: {}
+		)
+	}
 }
