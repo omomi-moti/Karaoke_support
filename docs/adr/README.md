@@ -57,6 +57,7 @@
 | [0049](0049-account-and-full-backup.md) | C1 のアカウントは Apple の ID だけで作り、バックアップはメモを除いた全件を置き換えで送る | 承認 |
 | [0050](0050-postgres-on-neon.md) | DB は Postgres にし、Neon の無料枠に置く | 承認 |
 | [0051](0051-public-cloud-run-with-caps.md) | Cloud Run は公開し、台数と支出に上限を付ける | 承認 |
+| [0052](0052-search-tab-tells-by-ui.md) | 検索タブは、説明の文字ではなく UI で「曲名で探す画面」だと伝える | 承認 |
 
 ## 書き方
 

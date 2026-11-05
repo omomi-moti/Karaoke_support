@@ -80,6 +80,12 @@ struct RecommendationReasonFormatTests {
 		#expect(RecommendationReasonFormat.challenge(challenge(intent: .shout, isCompleted: false, sessionCount: 1, days: 0)) == "歌い切れず ・ 今日 ・ Shout")
 	}
 
+	@Test("歌った回数と前回の日は「何回歌った ・ 前回は何日前」、今日なら「今日歌った」")
+	func history() {
+		#expect(RecommendationReasonFormat.history(count: 4, days: 5) == "4回歌った ・ 前回は5日前")
+		#expect(RecommendationReasonFormat.history(count: 2, days: 0) == "2回歌った ・ 今日歌った")
+	}
+
 	@Test("気分を付けると「気分 ・ 何日ぶり」になる")
 	func withIntent() {
 		#expect(RecommendationReasonFormat.sinceLastSung(days: 14, intent: .shout) == "Shout ・ 2週間ぶり")

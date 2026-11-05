@@ -69,6 +69,7 @@ struct RootView: View {
                 NavigationStack {
                     SearchContainerView(
                         trackRepository: trackRepository,
+                        trackStatsRepository: trackStatsRepository,
                         onSelectTrack: presentRecording
                     )
                 }
