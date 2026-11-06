@@ -132,7 +132,7 @@ flowchart LR
 
 ## データベース（SwiftData）
 
-記録はすべて端末の中の SwiftData に保存し、これを唯一の正（SSOT）とする。本人が頼んだときだけ、メモを除いた記録をサーバーにバックアップする（[backend_design.md](backend_design.md)。MVP の間はデバッグのビルドだけ）。
+記録はすべて端末の中の SwiftData に保存し、これを唯一の正（SSOT）とする。本人がバックアップをオンにしたときだけ、メモを除いた記録をサーバーにバックアップする（[backend_design.md](backend_design.md)。Debug と Beta のビルドだけ。ADR 0053）。
 
 ### 保存先と開き方
 
