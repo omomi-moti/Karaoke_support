@@ -54,10 +54,11 @@
 | [0046](0046-confirm-before-losing-records.md) | 記録を消す前と、入力を捨てる前に確認する | 承認 |
 | [0047](0047-track-detail-actions.md) | 曲詳細から記録を直し・消し、＋でその曲を記録できるようにする | 承認 |
 | [0048](0048-introduce-go-server.md) | 端末を超えて記録を残すために自前のサーバーを入れ、Go と Docker で作って Cloud Run と Neon に置く | 承認 |
-| [0049](0049-account-and-full-backup.md) | C1 のアカウントは Apple の ID だけで作り、バックアップはメモを除いた全件を置き換えで送る | 承認 |
+| [0049](0049-account-and-full-backup.md) | C1 のアカウントは Apple の ID だけで作り、バックアップはメモを除いた全件を置き換えで送る | 承認（6 は置き換え済み → 0053） |
 | [0050](0050-postgres-on-neon.md) | DB は Postgres にし、Neon の無料枠に置く | 承認 |
 | [0051](0051-public-cloud-run-with-caps.md) | Cloud Run は公開し、台数と支出に上限を付ける | 承認 |
 | [0052](0052-search-tab-tells-by-ui.md) | 検索タブは、説明の文字ではなく UI で「曲名で探す画面」だと伝える | 承認 |
+| [0053](0053-beta-testers-and-auto-backup.md) | 外部テスターには Beta のビルドで配り、バックアップは自動で取る | 承認 |
 
 ## 書き方
 
