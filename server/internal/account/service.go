@@ -8,13 +8,15 @@ import (
 	"time"
 
 	"github.com/omomi-moti/Karaoke_support/server/internal/appleauth"
+	"github.com/omomi-moti/Karaoke_support/server/internal/httpapi"
 )
 
 const tokenTTL = 90 * 24 * time.Hour
 
 // ErrUnauthorized は、利用者の側の理由で受け付けられないことを表す（401 にする）。
 // これ以外のエラーはサーバーの側の失敗として扱う（5xx にする）。
-var ErrUnauthorized = errors.New("unauthorized")
+// httpapi のミドルウェアが見分けられるように、httpapi.ErrUnauthorized と同じ値にする。
+var ErrUnauthorized = httpapi.ErrUnauthorized
 
 // AppleVerifier は、Apple のトークンを確かめ、Apple のユーザー ID を返すもの。
 type AppleVerifier interface {

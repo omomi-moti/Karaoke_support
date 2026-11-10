@@ -1,0 +1,105 @@
+package account
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"log/slog"
+	"net/http"
+	"time"
+
+	"github.com/omomi-moti/Karaoke_support/server/internal/httpapi"
+)
+
+const maxSignInBody = 16 << 10
+
+type accountService interface {
+	SignInWithApple(ctx context.Context, idToken, rawNonce string) (string, time.Time, error)
+	Me(ctx context.Context, userID string) (User, error)
+}
+
+// Handler は、アカウントの API の入出力を持つ。
+type Handler struct {
+	svc accountService
+}
+
+// NewHandler は、svc を呼ぶ Handler を返す。
+func NewHandler(svc *Service) *Handler {
+	return &Handler{svc: svc}
+}
+
+type signInRequest struct {
+	IdentityToken string `json:"identityToken"`
+	Nonce         string `json:"nonce"`
+}
+
+type signInResponse struct {
+	Token     string    `json:"token"`
+	ExpiresAt time.Time `json:"expiresAt"`
+}
+
+type meResponse struct {
+	ID        string    `json:"id"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+// SignInWithApple は POST /v1/auth/apple。Apple のトークンと nonce を受け取り、サーバーのトークンを返す。
+func (h *Handler) SignInWithApple(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxSignInBody)
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+
+	var req signInRequest
+	if err := dec.Decode(&req); err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			httpapi.WriteError(w, http.StatusRequestEntityTooLarge)
+			return
+		}
+		httpapi.WriteError(w, http.StatusBadRequest)
+		return
+	}
+	if req.IdentityToken == "" || req.Nonce == "" {
+		httpapi.WriteError(w, http.StatusBadRequest)
+		return
+	}
+
+	token, expiresAt, err := h.svc.SignInWithApple(r.Context(), req.IdentityToken, req.Nonce)
+	if errors.Is(err, ErrUnauthorized) {
+		slog.Warn("apple sign-in rejected", "err", err)
+		httpapi.WriteError(w, http.StatusUnauthorized)
+		return
+	}
+	if err != nil {
+		slog.Error("apple sign-in", "err", err)
+		httpapi.WriteError(w, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Cache-Control", "no-store")
+	httpapi.WriteJSON(w, http.StatusOK, signInResponse{Token: token, ExpiresAt: expiresAt.UTC()})
+}
+
+// Me は GET /v1/me。トークンの持ち主のアカウントを返す。httpapi.RequireAuth の内側で呼ぶ。
+func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
+	userID, ok := httpapi.UserID(r.Context())
+	if !ok {
+		slog.Error("me: no user id in context")
+		httpapi.WriteError(w, http.StatusInternalServerError)
+		return
+	}
+
+	u, err := h.svc.Me(r.Context(), userID)
+	if errors.Is(err, ErrUnauthorized) {
+		httpapi.WriteError(w, http.StatusUnauthorized)
+		return
+	}
+	if err != nil {
+		slog.Error("me", "err", err)
+		httpapi.WriteError(w, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Cache-Control", "no-store")
+	httpapi.WriteJSON(w, http.StatusOK, meResponse{ID: u.ID, CreatedAt: u.CreatedAt.UTC()})
+}
