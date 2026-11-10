@@ -21,6 +21,12 @@ paths:
 - ログとエラーの返事に、記録の中身（曲名・点数・気分）、トークン、`Authorization` ヘッダー、DB の URL を出さない（NFR-3）。エラーの返事は決まった短い文にし、詳しいことはログにだけ出す。
 - 本文を読む API は `http.MaxBytesReader` で大きさを抑える（NFR-5）。その API を足すときに、`http.Server` に `ReadTimeout`・`WriteTimeout`・`IdleTimeout` も付ける。
 
+## 認証
+
+- サインインは Sign in with Apple だけ。Apple のトークンは golang-jwt と keyfunc で確かめ、`RS256`・発行者・宛先・期限・発行時刻・nonce を全部見る（ADR 0054）。
+- サーバーのトークンは DB にハッシュだけを置き、`Authorization: Bearer` だけから読む。
+- 利用者の側の失敗は 401、サーバーの側の失敗は 5xx。エラーの返事は `{"error": "..."}` の形にする。
+
 ## マイグレーション
 
 - `migrations/` に 5 桁の連番で足す。コミットしたファイルは書き換えず、直すときは新しい番号を足す。
@@ -39,6 +45,8 @@ gofmt -l .
 go vet ./...
 go test ./...
 ```
+
+DB を使うテストは、手元の Postgres の URL を `TEST_DATABASE_URL` で受け取る。`DATABASE_URL` は使わない（シェルに staging の値が残っていても、テストが staging を書き換えないようにするため）。`TEST_DATABASE_URL` がないとき、または localhost 以外を指すときは、理由を出して飛ばす。流し方は karaoke-review の手順 1.5。
 
 ## このフォルダを変えたら見直す文書
 

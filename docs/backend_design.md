@@ -2,7 +2,7 @@
 
 端末を超えて記録を残すためのサーバー（Go）と、曲名の入力を助ける MusicKit の設計。要件・構成・API・データの流れ・責任の分け方をまとめる。
 
-この文書は全体の地図。正はタスク・仕様が GitHub Issues、判断が ADR（[0048](adr/0048-introduce-go-server.md)・[0049](adr/0049-account-and-full-backup.md)・[0050](adr/0050-postgres-on-neon.md)・[0051](adr/0051-public-cloud-run-with-caps.md)・[0053](adr/0053-beta-testers-and-auto-backup.md)）で、最上位は[憲法](constitution.md)。Issue を 1 つ終えるたびに、作ったものに合わせてこの文書を直す。
+この文書は全体の地図。正はタスク・仕様が GitHub Issues、判断が ADR（[0048](adr/0048-introduce-go-server.md)・[0049](adr/0049-account-and-full-backup.md)・[0050](adr/0050-postgres-on-neon.md)・[0051](adr/0051-public-cloud-run-with-caps.md)・[0053](adr/0053-beta-testers-and-auto-backup.md)・[0054](adr/0054-sign-in-and-server-tokens.md)）で、最上位は[憲法](constitution.md)。Issue を 1 つ終えるたびに、作ったものに合わせてこの文書を直す。
 
 ---
 
@@ -37,7 +37,7 @@
 | NFR-1 | オフラインファースト | サーバーが止まっていても、記録・履歴・選曲はすべて動く。正は端末の SwiftData で、サーバーは本人がオンにしたときだけ使う控え |
 | NFR-2 | プライバシー | サーバーに置くのは Apple のユーザー ID（`sub`）と、メモを除いた記録だけ。メールアドレスも名前も受け取らない。Cloud Run のリクエストのログには IP アドレスと User-Agent が残るので、保存の期間を確かめてプライバシーポリシーに書く |
 | NFR-3 | プライバシー | サーバーのログとエラーの返事に、記録の中身（曲名・点数・気分）も、Apple のトークン・サーバーのトークン・`Authorization` ヘッダーも出さない |
-| NFR-4 | セキュリティ | Apple のトークンは、署名（`RS256` だけを受け付ける）・発行者・宛先（バンドル ID）・期限と、iOS が作った nonce が一致するかを検証する。サーバーが出すトークンはハッシュにして DB に保存し、iOS は Keychain に端末だけの設定（`ThisDeviceOnly`）で置く。通信は HTTPS だけで、DB とも TLS（`sslmode=require` 以上）でつなぐ |
+| NFR-4 | セキュリティ | Apple のトークンは、署名（`RS256` だけを受け付ける）・発行者・宛先（バンドル ID）・期限・発行時刻と、iOS が作った nonce が一致するかを、golang-jwt と keyfunc で検証する。サーバーが出すトークンは `crypto/rand` で作ってハッシュにして DB に保存し、iOS は Keychain に `AfterFirstUnlockThisDeviceOnly` で置く（[ADR 0054](adr/0054-sign-in-and-server-tokens.md)）。通信は HTTPS だけで、DB とも TLS（`sslmode=require` 以上）でつなぐ |
 | NFR-5 | セキュリティ | 1 回のリクエストの大きさに上限を設ける（5MB） |
 | NFR-6 | 費用 | 月 0 円を目指す。Cloud Run のインスタンスの数の上限を 1 にし、予算のアラート（月 500 円）と Cloud Run の支出の上限（月 300 円）を入れる（[ADR 0051](adr/0051-public-cloud-run-with-caps.md)） |
 | NFR-7 | 互換性 | API のパスに `/v1/` を付ける。バックアップに `schemaVersion` を持たせ、アプリのモデルが変わっても古いバックアップを読めるようにする |
@@ -117,7 +117,7 @@ Go は標準の `net/http`（1.22 以降のルーティング）と `pgx` を使
 | テーブル | 列 | メモ |
 |---|---|---|
 | `users` | `id`, `apple_user_id`（一意）, `created_at` | Apple の `sub` だけを `apple_user_id` として持つ（iOS の `ASAuthorizationAppleIDCredential.user` と同じ値） |
-| `auth_tokens` | `token_hash`, `user_id`, `expires_at`, `created_at` | トークンはハッシュだけを持つ。ユーザーを消すと一緒に消える |
+| `auth_tokens` | `token_hash`, `user_id`, `expires_at`, `created_at` | トークンはハッシュだけを持つ。ユーザーを消すと一緒に消える。期限切れの行は、その人がサインインしたときに消す |
 | `backups` | `user_id`（1 人 1 行）, `schema_version`, `payload`（jsonb）, `track_count`, `session_count`, `updated_at` | サーバーは `payload` の中身を読まない。件数は iOS が数えて一緒に送り、サーバーはそのまま保存する。ユーザーを消すと一緒に消える。送った端末を見分ける列は Issue 3 の ADR で決める（FR-4） |
 
 ## API
@@ -132,6 +132,8 @@ Go は標準の `net/http`（1.22 以降のルーティング）と `pgx` を使
 | GET | `/v1/backup/summary` | バックアップの件数と日時。なければ 404 | 要る |
 | PUT | `/v1/backup` | バックアップを丸ごと置き換える | 要る |
 | GET | `/v1/backup` | バックアップを読む | 要る |
+
+失敗したときは、トークンが偽物・期限切れなど利用者の側の失敗は 401、Apple や DB に届かないなどサーバーの側の失敗は 5xx を返す。返事の本文は `{"error": "..."}` の形にし、詳しい理由はログにだけ出す（ADR 0054）。
 
 ### バックアップの中身（`BackupSnapshot`）
 
@@ -159,8 +161,8 @@ sequenceDiagram
     V->>VM: Sign in with Apple の結果（identityToken）
     VM->>R: signIn(identityToken:)
     R->>S: POST /v1/auth/apple
-    S->>A: 公開鍵を取る（キャッシュ）
-    S->>S: 署名・発行者・宛先・期限・nonce を検証し、sub でユーザーを探す（なければ作る）
+    S->>A: 公開鍵を取る（キャッシュ。知らない鍵の ID のときだけ取り直す）
+    S->>S: 署名・発行者・宛先・期限・発行時刻・nonce を検証し、sub でユーザーを探す（なければ作る）
     S-->>R: サーバーのトークン
     R->>R: Keychain に保存
     R-->>VM: ログイン済み
@@ -209,7 +211,10 @@ sequenceDiagram
 |---|---|---|---|
 | 0 | サーバーと MusicKit の設計を決め、文書にする（#144） | — | 済み |
 | 1 | サーバーの土台を作り、staging にデプロイする（#146） | NFR-6・NFR-9・NFR-10 | 済み |
-| 2 | Sign in with Apple でアカウントを作り、消せる（Apple のトークンも取り消す） | FR-1・FR-2・NFR-2〜4 | 未着手 |
+| 2-1 | サインインとサーバーのトークンの設計を決める（#151） | NFR-4 | 済み |
+| 2-2 | Sign in with Apple でサインインできるようにする（#152） | FR-1・NFR-2〜4 | 未着手 |
+| 2-3 | ログアウトと、失敗したときの備えを作る（#153） | FR-1・NFR-2〜4 | 未着手 |
+| 2-4 | アカウントを消せるようにする（Apple のトークンも取り消す） | FR-2 | 未着手 |
 | 3 | 記録をサーバーにバックアップする（オンにした後は自動で） | FR-3・FR-4・NFR-5・NFR-7・NFR-8 | 未着手 |
 | 4 | 別の端末で記録を取り込む | FR-5・NFR-7 | 未着手 |
 | 5 | Beta のビルドを作り、外部テスターに配る（レート制限・`/health` の分割・プライバシーポリシー） | NFR-2・NFR-6 | 未着手 |
