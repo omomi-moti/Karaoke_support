@@ -1,6 +1,6 @@
 # server
 
-からログの記録をバックアップする API サーバー（Go）。設計は [docs/backend_design.md](../docs/backend_design.md)、判断は [ADR 0048](../docs/adr/0048-introduce-go-server.md)・[0049](../docs/adr/0049-account-and-full-backup.md)・[0050](../docs/adr/0050-postgres-on-neon.md)・[0051](../docs/adr/0051-public-cloud-run-with-caps.md)。
+からログの記録をバックアップする API サーバー（Go）。設計は [docs/backend_design.md](../docs/backend_design.md)、判断は [ADR 0048](../docs/adr/0048-introduce-go-server.md)・[0049](../docs/adr/0049-account-and-full-backup.md)・[0050](../docs/adr/0050-postgres-on-neon.md)・[0051](../docs/adr/0051-public-cloud-run-with-caps.md)・[0054](../docs/adr/0054-sign-in-and-server-tokens.md)。
 
 コマンドは、とくに書いていなければ `server/` の中で打つ。
 
@@ -31,10 +31,11 @@ echo 'export PATH="$HOME/go/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
    docker compose up -d
    ```
 
-2. DB の URL を入れる。値はそのターミナルのタブの中だけで有効
+2. DB の URL とアプリのバンドル ID を入れる。値はそのターミナルのタブの中だけで有効
 
    ```bash
    export DATABASE_URL='postgres://karaoke:karaoke@localhost:5432/karaoke?sslmode=disable'
+   export APPLE_BUNDLE_ID=com.omomimoti.hitokaralog
    ```
 
 3. マイグレーションを流す
@@ -49,10 +50,11 @@ echo 'export PATH="$HOME/go/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
    go run ./cmd/api
    ```
 
-5. 別のタブで確かめる。DB につながれば `200`、つながらなければ `503`
+5. 別のタブで確かめる。DB につながれば `200`、つながらなければ `503`。トークンなしで `/v1/me` を呼ぶと `401`
 
    ```bash
    curl -i localhost:8080/health
+   curl -i localhost:8080/v1/me
    ```
 
 止めるときは、サーバーを `Ctrl + C`、Postgres を `docker compose stop`。`docker compose down -v` はデータも消す。
@@ -65,7 +67,7 @@ staging に出すのと同じイメージを手元で確かめる。Postgres は
 
 ```bash
 docker build -t karaoke-api .
-docker run --rm -p 8080:8080 --network server_default -e DATABASE_URL='postgres://karaoke:karaoke@db:5432/karaoke?sslmode=disable' karaoke-api
+docker run --rm -p 8080:8080 --network server_default -e DATABASE_URL='postgres://karaoke:karaoke@db:5432/karaoke?sslmode=disable' -e APPLE_BUNDLE_ID=com.omomimoti.hitokaralog karaoke-api
 ```
 
 ## テスト
@@ -74,7 +76,16 @@ docker run --rm -p 8080:8080 --network server_default -e DATABASE_URL='postgres:
 go test ./...
 ```
 
-DB は要らない。ハンドラーは偽物の DB（`Pinger`）で確かめる。
+DB を使わないテスト（ハンドラー・service・Apple のトークンの検証）は、偽物に差し替えて確かめる。
+
+store の SQL のテストは、手元の Postgres の URL を `TEST_DATABASE_URL` で渡したときだけ流れる。ないとき・localhost 以外を指すとき・つながらないときは、理由を出して飛ばす。`DATABASE_URL` は使わない（staging の値がシェルに残っていても、テストが staging を書き換えないようにするため）
+
+```bash
+docker compose up -d
+export TEST_DATABASE_URL='postgres://karaoke:karaoke@localhost:5432/karaoke?sslmode=disable'
+goose -dir migrations postgres "$TEST_DATABASE_URL" up
+go test -count=1 ./...
+```
 
 ## マイグレーション
 
@@ -94,6 +105,7 @@ DB は要らない。ハンドラーは偽物の DB（`Pinger`）で確かめる
 |---|---|---|
 | `PORT` | 待ち受けるポート。Cloud Run が渡す | `8080` |
 | `DATABASE_URL` | Postgres の URL | なし（なければ起動しない） |
+| `APPLE_BUNDLE_ID` | アプリのバンドル ID。Apple のトークンの宛先がこれと一致するかを見る。秘密ではない | なし（なければ起動しない） |
 
 秘密の値を `server/.env` に書くときは、コミットされない（`server/.gitignore`）。staging の値はリポジトリにも打ったコマンドの記録にも残さず、Secret Manager に置く。
 
@@ -147,6 +159,7 @@ gcloud auth configure-docker asia-northeast1-docker.pkg.dev
      --region asia-northeast1 \
      --service-account karaoke-api-staging@karaoke-staging-513712.iam.gserviceaccount.com \
      --set-secrets DATABASE_URL=database-url-staging:latest \
+     --set-env-vars APPLE_BUNDLE_ID=com.omomimoti.hitokaralog \
      --max-instances 1 \
      --allow-unauthenticated
    ```
