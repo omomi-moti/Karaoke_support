@@ -123,6 +123,7 @@ go test -count=1 ./...
 | サービスアカウント | `karaoke-api-staging`（`database-url-staging` を読む権限だけ） |
 | DB（Neon） | `staging` ブランチ（シンガポール） |
 | 秘密（Secret Manager） | `database-url-staging`（Neon の `staging` ブランチの URL） |
+| 秘密ではない環境変数 | `APPLE_BUNDLE_ID`（`com.omomimoti.hitokaralog`） |
 | お金の守り | 予算のアラート（月 500 円）と、Cloud Run の支出の上限（月 300 円）。GCP の画面の「お支払い → 予算とアラート」 |
 
 ### 初めての Mac で 1 回だけ
