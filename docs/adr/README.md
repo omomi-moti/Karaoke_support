@@ -59,6 +59,7 @@
 | [0051](0051-public-cloud-run-with-caps.md) | Cloud Run は公開し、台数と支出に上限を付ける | 承認 |
 | [0052](0052-search-tab-tells-by-ui.md) | 検索タブは、説明の文字ではなく UI で「曲名で探す画面」だと伝える | 承認 |
 | [0053](0053-beta-testers-and-auto-backup.md) | 外部テスターには Beta のビルドで配り、バックアップは自動で取る | 承認 |
+| [0054](0054-sign-in-and-server-tokens.md) | サインインは Apple だけにし、サーバーのトークンはハッシュにして持つ | 承認 |
 
 ## 書き方
 
