@@ -37,7 +37,7 @@
 | NFR-1 | オフラインファースト | サーバーが止まっていても、記録・履歴・選曲はすべて動く。正は端末の SwiftData で、サーバーは本人がオンにしたときだけ使う控え |
 | NFR-2 | プライバシー | サーバーに置くのは Apple のユーザー ID（`sub`）と、メモを除いた記録だけ。メールアドレスも名前も受け取らない。Cloud Run のリクエストのログには IP アドレスと User-Agent が残るので、保存の期間を確かめてプライバシーポリシーに書く |
 | NFR-3 | プライバシー | サーバーのログとエラーの返事に、記録の中身（曲名・点数・気分）も、Apple のトークン・サーバーのトークン・`Authorization` ヘッダーも出さない |
-| NFR-4 | セキュリティ | Apple のトークンは、署名（`RS256` だけを受け付ける）・発行者・宛先（バンドル ID）・期限・発行時刻と、iOS が作った nonce が一致するかを、golang-jwt と keyfunc で検証する。サーバーが出すトークンは `crypto/rand` で作ってハッシュにして DB に保存し、iOS は Keychain に `AfterFirstUnlockThisDeviceOnly` で置く（[ADR 0054](adr/0054-sign-in-and-server-tokens.md)）。通信は HTTPS だけで、DB とも TLS（`sslmode=require` 以上）でつなぐ |
+| NFR-4 | セキュリティ | Apple のトークンは、署名（`RS256` だけを受け付ける）・発行者・宛先（バンドル ID だけ。ほかの宛先が混ざっていたら拒否）・期限・発行時刻と、iOS が作った nonce が一致するかを、golang-jwt と keyfunc で検証する。確かめる項目は、Apple の「Verifying a user」の手順と、OpenID Connect Core 1.0 の 3.1.3.7（ID Token Validation）に沿う。サーバーが出すトークンは `crypto/rand` で作ってハッシュにして DB に保存し、iOS は Keychain に `AfterFirstUnlockThisDeviceOnly` で置く（[ADR 0054](adr/0054-sign-in-and-server-tokens.md)）。通信は HTTPS だけで、DB とも TLS（`sslmode=require` 以上）でつなぐ |
 | NFR-5 | セキュリティ | 1 回のリクエストの大きさに上限を設ける（5MB） |
 | NFR-6 | 費用 | 月 0 円を目指す。Cloud Run のインスタンスの数の上限を 1 にし、予算のアラート（月 500 円）と Cloud Run の支出の上限（月 300 円）を入れる（[ADR 0051](adr/0051-public-cloud-run-with-caps.md)） |
 | NFR-7 | 互換性 | API のパスに `/v1/` を付ける。バックアップに `schemaVersion` を持たせ、アプリのモデルが変わっても古いバックアップを読めるようにする |
