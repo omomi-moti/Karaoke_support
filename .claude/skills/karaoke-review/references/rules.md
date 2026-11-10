@@ -424,7 +424,7 @@ git diff main...HEAD | grep -E '^\+' | grep -c -i -E 'neon\.tech|npg_|postgres(q
 
 ### 誤検知しやすいケース
 
-- `server/compose.yaml` と `server/README.md` の手元の Postgres（`karaoke:karaoke@localhost` や `@db`）は、手元専用で公開してよい値
+- `server/compose.yaml`・`server/README.md`・`.claude/skills/karaoke-review/SKILL.md` の手元の Postgres（`karaoke:karaoke@localhost` や `@db`）は、手元専用で公開してよい値
 - `server/README.md` の `gcloud secrets ...` のコマンドは、秘密の名前であって値ではない
 - テストの偽物の値（`"db is down"` など）
 - このファイルの検出手順そのもの（`npg_` などの検索の文字列）
@@ -532,7 +532,7 @@ grep -rn -E 'math/rand|crypto/rand|Bearer|expires_at|no-store|token' server/inte
 `POST /v1/auth/apple` は、Apple が今このアプリのために出したトークンだけを受け付ける（ADR 0054）。
 
 - 署名は `RS256` だけを受け付ける（`jwt.WithValidMethods`）
-- 発行者が `https://appleid.apple.com`、宛先が設定のバンドル ID、期限があって切れていない、発行時刻が古すぎない。時計のずれの許容は 1 分まで
+- 発行者が `https://appleid.apple.com`、宛先が設定のバンドル ID、期限があって切れていない、発行時刻が 10 分以内。時計のずれの許容は 1 分まで
 - 受け取った nonce の SHA-256 が、Apple のトークンの `nonce` と一致する
 - 公開鍵は Apple の JWKS から keyfunc で取り、通信にタイムアウトがあり、知らない鍵の ID での取り直しに回数の制限がある
 - 検証から先に渡すのは `sub` だけ
@@ -550,6 +550,7 @@ grep -rn -E 'jwt\.(Parse|NewParser)|WithValidMethods|WithIssuer|WithAudience|Wit
 ```
 
 検証の関数を読み、上の条件が全部設定されているかを確かめる。
+`jwt.WithIssuedAt` は未来の発行時刻をはじくための設定なので、それとは別に、発行時刻の古さを比べるコードがあるかを読む。
 テストを読み、失敗する場合が 1 つずつテストになっているかを確かめる。
 
 ### 誤検知しやすいケース
