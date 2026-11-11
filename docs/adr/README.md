@@ -60,6 +60,7 @@
 | [0052](0052-search-tab-tells-by-ui.md) | 検索タブは、説明の文字ではなく UI で「曲名で探す画面」だと伝える | 承認 |
 | [0053](0053-beta-testers-and-auto-backup.md) | 外部テスターには Beta のビルドで配り、バックアップは自動で取る | 承認 |
 | [0054](0054-sign-in-and-server-tokens.md) | サインインは Apple だけにし、サーバーのトークンはハッシュにして持つ | 承認 |
+| [0055](0055-local-api-base-url-and-optional-account.md) | staging のつなぎ先は手元の xcconfig に置き、ないときはアカウントの機能を出さない | 承認 |
 
 ## 書き方
 
