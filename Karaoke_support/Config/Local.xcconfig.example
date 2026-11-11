@@ -1,0 +1,3 @@
+// このファイルを Local.xcconfig という名前で写し、ホスト名を staging の Cloud Run のものに替える。
+// xcconfig では // から後ろがコメントになるので、https:/$()/ と書いて // を切る。
+API_BASE_URL = https:/$()/karaoke-api-staging-XXXXXXXXXXXX.asia-northeast1.run.app

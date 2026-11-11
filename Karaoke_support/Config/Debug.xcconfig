@@ -1,0 +1,4 @@
+// Debug のビルドだけに効く設定。
+// staging のつなぎ先は、コミットしない Local.xcconfig に書く（作り方は Local.xcconfig.example）。
+// Local.xcconfig がなければ API_BASE_URL は空になり、アカウントの欄は出ない。
+#include? "Local.xcconfig"

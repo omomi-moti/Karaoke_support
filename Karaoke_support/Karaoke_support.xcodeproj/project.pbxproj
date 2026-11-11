@@ -27,6 +27,7 @@
 		BE7A7EB32F655C5500F38E64 /* Karaoke_support.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Karaoke_support.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BE7A7EC02F655C5600F38E64 /* Karaoke_supportTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Karaoke_supportTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BE7A7ECA2F655C5600F38E64 /* Karaoke_supportUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Karaoke_supportUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BEA5360E30A4634700AA25B6 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Config/Debug.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -88,6 +89,7 @@
 		BE7A7EAA2F655C5500F38E64 = {
 			isa = PBXGroup;
 			children = (
+				BEA5360E30A4634700AA25B6 /* Debug.xcconfig */,
 				BE7A7EB52F655C5500F38E64 /* Karaoke_support */,
 				BE7A7EC32F655C5600F38E64 /* Karaoke_supportTests */,
 				BE7A7ECD2F655C5600F38E64 /* Karaoke_supportUITests */,
@@ -398,6 +400,7 @@
 		};
 		BE7A7ED52F655C5600F38E64 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = BEA5360E30A4634700AA25B6 /* Debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
