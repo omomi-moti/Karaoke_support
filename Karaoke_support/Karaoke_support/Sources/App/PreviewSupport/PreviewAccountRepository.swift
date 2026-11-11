@@ -5,7 +5,7 @@ import Foundation
 final class PreviewAccountRepository: AccountRepositoryProtocol {
 	private(set) var isSignedIn: Bool
 
-	/// 環境キーの初期値として、メインアクターの外で作られることがあるため（ADR 0027）。
+	/// ほかのプレビュー用の Repository とそろえる（ADR 0027）。環境の初期値は nil なので、これは使わない（ADR 0055）。
 	nonisolated init(isSignedIn: Bool = false) {
 		self.isSignedIn = isSignedIn
 	}
