@@ -266,6 +266,63 @@ struct RemoteAccountRepositoryTests {
 		#expect(log.count == 0)
 	}
 
+	@Test("アカウントを消すと、Bearer と Apple の 3 つの値を DELETE /v1/me に送り、端末のトークンも消す")
+	func deleteAccountSendsBodyAndClearsToken() async throws {
+		let tokenStore = InMemoryTokenStore(token: "klog_saved")
+		let log = RequestLog()
+		let repository = makeRepository(tokenStore: tokenStore, log: log) { _ in (204, "") }
+
+		try await repository.deleteAccount(identityToken: "apple-id-token", authorizationCode: "apple-code", rawNonce: "raw-nonce")
+
+		#expect(try tokenStore.read() == nil)
+		let (request, body) = try #require(log.last)
+		#expect(request.httpMethod == "DELETE")
+		#expect(request.url?.path == "/v1/me")
+		#expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer klog_saved")
+		let sent = try JSONSerialization.jsonObject(with: try #require(body)) as? [String: String]
+		#expect(sent == ["identityToken": "apple-id-token", "authorizationCode": "apple-code", "nonce": "raw-nonce"])
+	}
+
+	@Test("アカウントを消せなければ種類ごとのエラーになり、401 のときだけ端末のトークンを消す", arguments: [
+		(401, AccountRepositoryError.unauthorized, true),
+		(403, AccountRepositoryError.appleAccountMismatch, false),
+		(400, AccountRepositoryError.appleCredentialRejected, false),
+		(500, AccountRepositoryError.server, false),
+		(0, AccountRepositoryError.unreachable, false),
+	])
+	func deleteAccountFailures(status: Int, expected: AccountRepositoryError, clearsToken: Bool) async throws {
+		let tokenStore = InMemoryTokenStore(token: "klog_saved")
+		let repository = makeRepository(tokenStore: tokenStore) { _ in
+			if status == 0 { throw URLError(.notConnectedToInternet) }
+			return (status, #"{"error":"x"}"#)
+		}
+
+		await #expect(throws: expected) {
+			try await repository.deleteAccount(identityToken: "apple-id-token", authorizationCode: "apple-code", rawNonce: "raw-nonce")
+		}
+		#expect((try tokenStore.read() == nil) == clearsToken)
+	}
+
+	@Test("アカウントの削除で、トークンがなければ通信せずに unauthorized")
+	func deleteAccountWithoutToken() async throws {
+		let log = RequestLog()
+		let repository = makeRepository(log: log) { _ in (204, "") }
+
+		await #expect(throws: AccountRepositoryError.unauthorized) {
+			try await repository.deleteAccount(identityToken: "apple-id-token", authorizationCode: "apple-code", rawNonce: "raw-nonce")
+		}
+		#expect(log.count == 0)
+	}
+
+	@Test("サインインの 400 は、Apple の確認の失敗ではなくサーバーの失敗のまま")
+	func signInBadRequestStaysServer() async throws {
+		let repository = makeRepository { _ in (400, #"{"error":"invalid_request"}"#) }
+
+		await #expect(throws: AccountRepositoryError.server) {
+			try await repository.signInWithApple(identityToken: "apple-id-token", rawNonce: "raw-nonce")
+		}
+	}
+
 	@Test("端末のトークンを消せなければ tokenStorage")
 	func signOutTokenStorageFailure() async throws {
 		let repository = makeRepository(tokenStore: InMemoryTokenStore(token: "klog_saved", isFailingToDelete: true)) { _ in (204, "") }

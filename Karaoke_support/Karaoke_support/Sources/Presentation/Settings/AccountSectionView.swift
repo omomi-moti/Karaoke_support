@@ -3,6 +3,7 @@ import AuthenticationServices
 import SwiftUI
 
 /// 設定のアカウントの欄（#152）。サーバーのつなぎ先があるときだけ出す（ADR 0055）。
+/// ログアウトと削除は、設定の一番下の ``AccountActionsSectionView`` に置く。
 struct AccountSectionView: View {
 	let viewModel: AccountSectionViewModel
 	@Environment(\.colorScheme) private var colorScheme
@@ -14,6 +15,9 @@ struct AccountSectionView: View {
 				ProgressView()
 					.frame(maxWidth: .infinity)
 			case .signedOut:
+				if viewModel.hasDeletedAccount {
+					Label("アカウントを削除しました", systemImage: "checkmark.circle")
+				}
 				SignInWithAppleButton(.signIn) { request in
 					request.requestedScopes = []
 					request.nonce = viewModel.makeHashedNonce()
@@ -29,11 +33,8 @@ struct AccountSectionView: View {
 				.signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
 				.frame(height: 44)
 			case .signedIn(let account):
-				Label("サインイン中", systemImage: "checkmark.circle")
+				Label("Apple でサインイン中", systemImage: "checkmark.circle")
 				LabeledContent("アカウント ID", value: "\(account.id.prefix(8))…")
-				Button("ログアウト", role: .destructive) {
-					Task { await viewModel.signOut() }
-				}
 			case .failed(let message):
 				VStack(alignment: .leading, spacing: 8) {
 					Text(message)
@@ -46,7 +47,7 @@ struct AccountSectionView: View {
 		} header: {
 			Text("アカウント（開発中）")
 		} footer: {
-			Text("Apple のアカウントでサインインします。名前とメールアドレスは受け取りません。")
+			Text("Apple のアカウントでサインインします。今後、記録をバックアップできるようになります。名前とメールアドレスは受け取りません。")
 		}
 	}
 }
@@ -65,5 +66,16 @@ struct AccountSectionView: View {
 		AccountSectionView(viewModel: viewModel)
 	}
 	.task { await viewModel.load() }
+}
+
+#Preview("削除のあと") {
+	@Previewable @State var viewModel = AccountSectionViewModel(accountRepository: PreviewAccountRepository(isSignedIn: true))
+	List {
+		AccountSectionView(viewModel: viewModel)
+	}
+	.task {
+		_ = viewModel.makeHashedNonce()
+		await viewModel.deleteAccount(identityToken: Data("preview".utf8), authorizationCode: Data("preview".utf8))
+	}
 }
 #endif

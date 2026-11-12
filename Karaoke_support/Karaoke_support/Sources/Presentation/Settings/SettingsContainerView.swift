@@ -25,6 +25,11 @@ struct SettingsContainerView: View {
 			} footer: {
 				Text("記録・気分・メモは外部に送信されません。アプリを削除すると、記録も消えます。")
 			}
+			#if DEBUG || BETA
+			if let accountViewModel {
+				AccountActionsSectionView(viewModel: accountViewModel)
+			}
+			#endif
 		}
 		.scrollContentBackground(.hidden)
 		#if DEBUG || BETA

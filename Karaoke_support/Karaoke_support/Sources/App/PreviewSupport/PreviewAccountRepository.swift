@@ -22,5 +22,9 @@ final class PreviewAccountRepository: AccountRepositoryProtocol {
 	func signOut() async throws {
 		isSignedIn = false
 	}
+
+	func deleteAccount(identityToken: String, authorizationCode: String, rawNonce: String) async throws {
+		isSignedIn = false
+	}
 }
 #endif

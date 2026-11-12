@@ -234,3 +234,51 @@ func TestGetUser(t *testing.T) {
 		t.Fatalf("いないユーザー: err = %v, want ErrNotFound", err)
 	}
 }
+
+func TestAppleUserID(t *testing.T) {
+	s := NewStore(testDB(t))
+	ctx := context.Background()
+	appleUserID, userID := newTestUser(t, s)
+
+	if got, err := s.AppleUserID(ctx, userID); err != nil || got != appleUserID {
+		t.Fatalf("got (%q, %v), want (%q, nil)", got, err, appleUserID)
+	}
+	if _, err := s.AppleUserID(ctx, "00000000-0000-0000-0000-000000000000"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("いないユーザー: err = %v, want ErrNotFound", err)
+	}
+}
+
+func TestDeleteUser(t *testing.T) {
+	s := NewStore(testDB(t))
+	ctx := context.Background()
+	_, userID := newTestUser(t, s)
+	_, otherUserID := newTestUser(t, s)
+
+	_, mine := newToken()
+	_, others := newToken()
+	if err := s.CreateToken(ctx, mine, userID, time.Now().Add(time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.CreateToken(ctx, others, otherUserID, time.Now().Add(time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := s.DeleteUser(ctx, userID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.GetUser(ctx, userID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("消したユーザー: err = %v, want ErrNotFound", err)
+	}
+	if tokenRowExists(t, s, mine) {
+		t.Fatal("消したユーザーのトークンが残っている")
+	}
+	if _, err := s.GetUser(ctx, otherUserID); err != nil {
+		t.Fatalf("ほかのユーザーまで消えた: %v", err)
+	}
+	if !tokenRowExists(t, s, others) {
+		t.Fatal("ほかのユーザーのトークンまで消えた")
+	}
+	if err := s.DeleteUser(ctx, userID); err != nil {
+		t.Fatalf("消した後にもう一度消す: %v", err)
+	}
+}

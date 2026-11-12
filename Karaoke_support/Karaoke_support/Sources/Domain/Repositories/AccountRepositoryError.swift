@@ -11,5 +11,9 @@ enum AccountRepositoryError: Error, Equatable {
 	case server
 	/// 端末にトークンを保存できなかった。
 	case tokenStorage
+	/// アカウントの削除で、もう一度サインインした Apple ID が今のアカウントのものと違った（403、ADR 0057）。
+	case appleAccountMismatch
+	/// アカウントの削除で、サーバーが Apple のトークンか認可コードを受け付けなかった（400、ADR 0057）。
+	case appleCredentialRejected
 }
 #endif

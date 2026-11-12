@@ -76,7 +76,7 @@ func TestRequireAuth(t *testing.T) {
 
 func TestRouterAuth(t *testing.T) {
 	ok := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
-	router := NewRouter(fakePinger{}, &fakeAuth{err: ErrUnauthorized}, Handlers{SignInWithApple: ok, SignOut: ok, Me: ok})
+	router := NewRouter(fakePinger{}, &fakeAuth{err: ErrUnauthorized}, Handlers{SignInWithApple: ok, SignOut: ok, Me: ok, DeleteMe: ok})
 
 	tests := []struct {
 		method, path string
@@ -85,6 +85,7 @@ func TestRouterAuth(t *testing.T) {
 		{http.MethodPost, "/v1/auth/apple", http.StatusOK},
 		{http.MethodDelete, "/v1/auth/session", http.StatusUnauthorized},
 		{http.MethodGet, "/v1/me", http.StatusUnauthorized},
+		{http.MethodDelete, "/v1/me", http.StatusUnauthorized},
 	}
 	for _, tt := range tests {
 		t.Run(tt.method+" "+tt.path, func(t *testing.T) {

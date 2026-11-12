@@ -18,9 +18,21 @@ const tokenTTL = 90 * 24 * time.Hour
 // httpapi のミドルウェアが見分けられるように、httpapi.ErrUnauthorized と同じ値にする。
 var ErrUnauthorized = httpapi.ErrUnauthorized
 
+// ErrInvalidAppleCredential は、アカウントの削除で、Apple のトークンか認可コードを受け付けられないことを表す（400 にする）。
+// サーバーのトークンは通っているので、ErrUnauthorized とは分ける（ADR 0057）。
+var ErrInvalidAppleCredential = errors.New("invalid apple credential")
+
+// ErrAppleAccountMismatch は、アカウントの削除で、もう一度サインインした Apple ID が今のアカウントのものと違うことを表す（403 にする）。
+var ErrAppleAccountMismatch = errors.New("apple account does not match")
+
 // AppleVerifier は、Apple のトークンを確かめ、Apple のユーザー ID を返すもの。
 type AppleVerifier interface {
 	Verify(ctx context.Context, idToken, rawNonce string) (string, error)
+}
+
+// AppleRevoker は、認可コードで Apple のトークンを取り消すもの。
+type AppleRevoker interface {
+	RevokeWithCode(ctx context.Context, code string) error
 }
 
 type storage interface {
@@ -30,18 +42,21 @@ type storage interface {
 	DeleteExpiredTokens(ctx context.Context, userID string) error
 	FindUserIDByTokenHash(ctx context.Context, hash []byte) (string, error)
 	GetUser(ctx context.Context, userID string) (User, error)
+	AppleUserID(ctx context.Context, userID string) (string, error)
+	DeleteUser(ctx context.Context, userID string) error
 }
 
-// Service は、サインイン・認証・自分の情報のルールを持つ。
+// Service は、サインイン・認証・自分の情報・アカウントの削除のルールを持つ。
 type Service struct {
-	apple AppleVerifier
-	store storage
-	now   func() time.Time
+	apple   AppleVerifier
+	revoker AppleRevoker
+	store   storage
+	now     func() time.Time
 }
 
-// NewService は、apple で Apple のトークンを確かめ、store に保存する Service を返す。
-func NewService(apple AppleVerifier, store *Store) *Service {
-	return &Service{apple: apple, store: store, now: time.Now}
+// NewService は、apple で Apple のトークンを確かめ、revoker で取り消し、store に保存する Service を返す。
+func NewService(apple AppleVerifier, revoker AppleRevoker, store *Store) *Service {
+	return &Service{apple: apple, revoker: revoker, store: store, now: time.Now}
 }
 
 // SignInWithApple は、Apple のトークンを確かめ、サーバーのトークンを発行する。
@@ -100,4 +115,36 @@ func (s *Service) Me(ctx context.Context, userID string) (User, error) {
 		return User{}, ErrUnauthorized
 	}
 	return u, err
+}
+
+// DeleteAccount は、もう一度サインインした Apple ID が userID のものかを確かめ、
+// Apple のトークンを取り消せたときだけ、アカウントを消す（ADR 0057）。
+// Apple の側で失敗したときは、アカウントを消さずにエラーを返す。
+func (s *Service) DeleteAccount(ctx context.Context, userID, idToken, rawNonce, code string) error {
+	appleUserID, err := s.apple.Verify(ctx, idToken, rawNonce)
+	if errors.Is(err, appleauth.ErrInvalidToken) {
+		return fmt.Errorf("%w: %w", ErrInvalidAppleCredential, err)
+	}
+	if err != nil {
+		return err
+	}
+
+	owner, err := s.store.AppleUserID(ctx, userID)
+	if errors.Is(err, ErrNotFound) {
+		return ErrUnauthorized
+	}
+	if err != nil {
+		return err
+	}
+	if owner != appleUserID {
+		return ErrAppleAccountMismatch
+	}
+
+	if err := s.revoker.RevokeWithCode(ctx, code); err != nil {
+		if errors.Is(err, appleauth.ErrInvalidCode) {
+			return fmt.Errorf("%w: %w", ErrInvalidAppleCredential, err)
+		}
+		return err
+	}
+	return s.store.DeleteUser(ctx, userID)
 }

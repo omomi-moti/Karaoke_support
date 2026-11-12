@@ -33,6 +33,8 @@ type fakeStore struct {
 	users   map[string]User
 	tokens  []savedToken
 	failing error
+	// failingDelete は、DeleteUser だけを失敗させる。
+	failingDelete error
 	// cleanedUserIDs は、DeleteExpiredTokens に渡されたユーザー ID の並び。
 	cleanedUserIDs []string
 }
@@ -89,6 +91,25 @@ func (f *fakeStore) FindUserIDByTokenHash(_ context.Context, hash []byte) (strin
 	return "", ErrNotFound
 }
 
+func (f *fakeStore) AppleUserID(_ context.Context, userID string) (string, error) {
+	if f.failing != nil {
+		return "", f.failing
+	}
+	if _, ok := f.users[userID]; !ok {
+		return "", ErrNotFound
+	}
+	return strings.TrimPrefix(userID, "user-"), nil
+}
+
+func (f *fakeStore) DeleteUser(_ context.Context, userID string) error {
+	if f.failingDelete != nil {
+		return f.failingDelete
+	}
+	delete(f.users, userID)
+	f.tokens = slices.DeleteFunc(f.tokens, func(t savedToken) bool { return t.userID == userID })
+	return nil
+}
+
 func (f *fakeStore) GetUser(_ context.Context, userID string) (User, error) {
 	if f.failing != nil {
 		return User{}, f.failing
@@ -98,6 +119,17 @@ func (f *fakeStore) GetUser(_ context.Context, userID string) (User, error) {
 		return User{}, ErrNotFound
 	}
 	return u, nil
+}
+
+// fakeRevoker は、Apple のトークンの取り消しの偽物。受け取った認可コードを覚える。
+type fakeRevoker struct {
+	err      error
+	gotCodes []string
+}
+
+func (f *fakeRevoker) RevokeWithCode(_ context.Context, code string) error {
+	f.gotCodes = append(f.gotCodes, code)
+	return f.err
 }
 
 var (
@@ -286,5 +318,93 @@ func TestMe(t *testing.T) {
 	store.failing = errDBDown
 	if _, err := s.Me(ctxForTest, userID); err == nil || errors.Is(err, ErrUnauthorized) {
 		t.Fatalf("DB が失敗: err = %v, want an error that is not ErrUnauthorized", err)
+	}
+}
+
+func TestDeleteAccount(t *testing.T) {
+	store := newFakeStore()
+	s := newTestService(fakeApple{sub: "apple-1"}, store)
+	revoker := &fakeRevoker{}
+	s.revoker = revoker
+	token, _, err := s.SignInWithApple(ctxForTest, "id-token", "nonce")
+	if err != nil {
+		t.Fatal(err)
+	}
+	other, _ := store.UpsertUserByAppleID(ctxForTest, "apple-2")
+
+	if err := s.DeleteAccount(ctxForTest, "user-apple-1", "id-token", "nonce", "auth-code"); err != nil {
+		t.Fatal(err)
+	}
+
+	if !slices.Equal(revoker.gotCodes, []string{"auth-code"}) {
+		t.Fatalf("取り消しに渡したコード = %v, want [auth-code]", revoker.gotCodes)
+	}
+	if _, err := s.Me(ctxForTest, "user-apple-1"); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("消したアカウント: err = %v, want ErrUnauthorized", err)
+	}
+	if _, err := s.Authenticate(ctxForTest, token); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("消したアカウントのトークン: err = %v, want ErrUnauthorized", err)
+	}
+	if _, err := s.Me(ctxForTest, other); err != nil {
+		t.Fatalf("ほかのアカウントまで消えた: %v", err)
+	}
+}
+
+func TestDeleteAccountFailures(t *testing.T) {
+	invalidToken := fmt.Errorf("%w: nonce mismatch", appleauth.ErrInvalidToken)
+	invalidCode := fmt.Errorf("exchange code: %w", appleauth.ErrInvalidCode)
+
+	tests := []struct {
+		name           string
+		apple          fakeApple
+		revokeErr      error
+		storeErr       error
+		deleteErr      error
+		userID         string
+		wantErr        error
+		wantRevoked    bool
+		wantStillThere bool
+	}{
+		{"Apple のトークンを受け付けない", fakeApple{err: invalidToken}, nil, nil, nil, "user-apple-1", ErrInvalidAppleCredential, false, true},
+		{"Apple の検証がほかの理由で失敗", fakeApple{err: errors.New("keys unavailable")}, nil, nil, nil, "user-apple-1", nil, false, true},
+		{"違う Apple ID でサインインした", fakeApple{sub: "apple-2"}, nil, nil, nil, "user-apple-1", ErrAppleAccountMismatch, false, true},
+		{"アカウントがもうない", fakeApple{sub: "apple-1"}, nil, nil, nil, "user-gone", ErrUnauthorized, false, true},
+		{"DB が失敗", fakeApple{sub: "apple-1"}, nil, errDBDown, nil, "user-apple-1", nil, false, true},
+		{"認可コードの期限切れ", fakeApple{sub: "apple-1"}, invalidCode, nil, nil, "user-apple-1", ErrInvalidAppleCredential, true, true},
+		{"Apple に届かない", fakeApple{sub: "apple-1"}, errors.New("request apple: timeout"), nil, nil, "user-apple-1", nil, true, true},
+		{"取り消せたが消せない", fakeApple{sub: "apple-1"}, nil, nil, errDBDown, "user-apple-1", nil, true, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := newFakeStore()
+			store.UpsertUserByAppleID(ctxForTest, "apple-1")
+			store.UpsertUserByAppleID(ctxForTest, "apple-2")
+			store.failing = tt.storeErr
+			store.failingDelete = tt.deleteErr
+			revoker := &fakeRevoker{err: tt.revokeErr}
+			s := newTestService(tt.apple, store)
+			s.revoker = revoker
+
+			err := s.DeleteAccount(ctxForTest, tt.userID, "id-token", "nonce", "auth-code")
+			if err == nil {
+				t.Fatal("err = nil, want an error")
+			}
+			if tt.wantErr != nil && !errors.Is(err, tt.wantErr) {
+				t.Fatalf("err = %v, want %v", err, tt.wantErr)
+			}
+			if tt.wantErr == nil {
+				for _, sentinel := range []error{ErrUnauthorized, ErrInvalidAppleCredential, ErrAppleAccountMismatch} {
+					if errors.Is(err, sentinel) {
+						t.Fatalf("サーバーの側の失敗なのに %v になった: %v", sentinel, err)
+					}
+				}
+			}
+			if got := len(revoker.gotCodes) > 0; got != tt.wantRevoked {
+				t.Fatalf("取り消しを呼んだか = %v, want %v", got, tt.wantRevoked)
+			}
+			if _, ok := store.users["user-apple-1"]; ok != tt.wantStillThere {
+				t.Fatalf("アカウントが残っているか = %v, want %v", ok, tt.wantStillThere)
+			}
+		})
 	}
 }

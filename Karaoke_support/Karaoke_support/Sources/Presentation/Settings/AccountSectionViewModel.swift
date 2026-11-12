@@ -21,6 +21,8 @@ final class AccountSectionViewModel {
 	@ObservationIgnored private var pendingNonce: SignInNonce?
 
 	private(set) var status: Status = .loading
+	/// アカウントを消し終えたら `true`。サインインし直すまで、消し終えたことを出す。
+	private(set) var hasDeletedAccount = false
 
 	init(accountRepository: any AccountRepositoryProtocol) {
 		self.accountRepository = accountRepository
@@ -50,6 +52,7 @@ final class AccountSectionViewModel {
 			status = .failed(message: Self.signInFailedMessage)
 			return
 		}
+		hasDeletedAccount = false
 		status = .loading
 		do {
 			try await accountRepository.signInWithApple(identityToken: token, rawNonce: nonce.raw)
@@ -83,7 +86,41 @@ final class AccountSectionViewModel {
 		}
 	}
 
+	/// もう一度 Apple でサインインして受け取った値で、アカウントを消す（ADR 0057）。
+	/// 届かない・サーバーの失敗のときは、アカウントは消えていないと伝える。
+	func deleteAccount(identityToken: Data?, authorizationCode: Data?) async {
+		let nonce = pendingNonce
+		pendingNonce = nil
+		guard let nonce,
+			let identityToken, let token = String(data: identityToken, encoding: .utf8),
+			let authorizationCode, let code = String(data: authorizationCode, encoding: .utf8)
+		else {
+			status = .failed(message: Self.appleCredentialRejectedMessage)
+			return
+		}
+		status = .loading
+		do {
+			try await accountRepository.deleteAccount(identityToken: token, authorizationCode: code, rawNonce: nonce.raw)
+			hasDeletedAccount = true
+			status = .signedOut
+		} catch AccountRepositoryError.unreachable, AccountRepositoryError.server {
+			status = .failed(message: "アカウントは消えていません。時間をおいてもう一度お試しください")
+		} catch {
+			show(error)
+		}
+	}
+
+	/// 削除の前の Apple の確認が失敗で閉じたとき。利用者がキャンセルしたときは、サインイン中のままにする。
+	func deletionAuthorizationFailed(_ error: Error) {
+		pendingNonce = nil
+		if let authorizationError = error as? ASAuthorizationError, authorizationError.code == .canceled {
+			return
+		}
+		status = .failed(message: Self.appleCredentialRejectedMessage)
+	}
+
 	private static let signInFailedMessage = "サインインできませんでした。もう一度お試しください"
+	private static let appleCredentialRejectedMessage = "Apple での確認ができませんでした。もう一度お試しください"
 
 	private func fetchAccount() async {
 		do {
@@ -105,6 +142,10 @@ final class AccountSectionViewModel {
 			status = .failed(message: "サーバーに届きませんでした。通信できる場所でもう一度お試しください")
 		case .tokenStorage:
 			status = .failed(message: "サインインの情報をこの iPhone に保存できませんでした")
+		case .appleAccountMismatch:
+			status = .failed(message: "サインインしている Apple ID と違うものが選ばれました。同じ Apple ID でもう一度お試しください")
+		case .appleCredentialRejected:
+			status = .failed(message: Self.appleCredentialRejectedMessage)
 		case .server, nil:
 			status = .failed(message: "サーバーで問題が起きました。時間をおいてもう一度お試しください")
 		}

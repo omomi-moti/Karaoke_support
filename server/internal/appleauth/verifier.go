@@ -1,4 +1,4 @@
-// Package appleauth は、Sign in with Apple のトークンを確かめる（ADR 0054）。
+// Package appleauth は、Sign in with Apple のトークンを確かめ（ADR 0054）、取り消す（ADR 0057）。
 package appleauth
 
 import (

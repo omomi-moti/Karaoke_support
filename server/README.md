@@ -38,6 +38,13 @@ echo 'export PATH="$HOME/go/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
    export APPLE_BUNDLE_ID=com.omomimoti.hitokaralog
    ```
 
+   Apple の鍵は、手元では使い捨ての鍵をその場で作って入れる。本物の鍵ではないので、手元でアカウントを消そうとすると Apple に断られて 500 になる（ADR 0057）
+
+   ```bash
+   export APPLE_TEAM_ID=LOCALTEAM0 APPLE_KEY_ID=LOCALKEY00
+   export APPLE_SIGNIN_KEY="$(openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256)"
+   ```
+
 3. マイグレーションを流す
 
    ```bash
@@ -67,7 +74,7 @@ staging に出すのと同じイメージを手元で確かめる。Postgres は
 
 ```bash
 docker build -t karaoke-api .
-docker run --rm -p 8080:8080 --network server_default -e DATABASE_URL='postgres://karaoke:karaoke@db:5432/karaoke?sslmode=disable' -e APPLE_BUNDLE_ID=com.omomimoti.hitokaralog karaoke-api
+docker run --rm -p 8080:8080 --network server_default -e DATABASE_URL='postgres://karaoke:karaoke@db:5432/karaoke?sslmode=disable' -e APPLE_BUNDLE_ID=com.omomimoti.hitokaralog -e APPLE_TEAM_ID -e APPLE_KEY_ID -e APPLE_SIGNIN_KEY karaoke-api
 ```
 
 ## テスト
@@ -76,9 +83,9 @@ docker run --rm -p 8080:8080 --network server_default -e DATABASE_URL='postgres:
 go test ./...
 ```
 
-DB を使わないテスト（ハンドラー・service・Apple のトークンの検証）は、偽物に差し替えて確かめる。
+DB を使わないテスト（ハンドラー・service・Apple のトークンの検証と取り消し）は、偽物に差し替えて確かめる。Apple のトークンの取り消しは、`httptest` で立てた偽の Apple に送り、送る項目と `client_secret` の中身を確かめる。
 
-store の SQL のテストと、サインインからログアウトまでを本物の DB で通すテストは、手元の Postgres の URL を `TEST_DATABASE_URL` で渡したときだけ流れる。ないとき・localhost 以外を指すとき・つながらないときは、理由を出して飛ばす。`DATABASE_URL` は使わない（staging の値がシェルに残っていても、テストが staging を書き換えないようにするため）
+store の SQL のテストと、サインインからログアウトまで・アカウントの削除までを本物の DB で通すテストは、手元の Postgres の URL を `TEST_DATABASE_URL` で渡したときだけ流れる。ないとき・localhost 以外を指すとき・つながらないときは、理由を出して飛ばす。`DATABASE_URL` は使わない（staging の値がシェルに残っていても、テストが staging を書き換えないようにするため）
 
 ```bash
 docker compose up -d
@@ -105,7 +112,10 @@ go test -count=1 ./...
 |---|---|---|
 | `PORT` | 待ち受けるポート。Cloud Run が渡す | `8080` |
 | `DATABASE_URL` | Postgres の URL | なし（なければ起動しない） |
-| `APPLE_BUNDLE_ID` | アプリのバンドル ID。Apple のトークンの宛先がこれと一致するかを見る。秘密ではない | なし（なければ起動しない） |
+| `APPLE_BUNDLE_ID` | アプリのバンドル ID。Apple のトークンの宛先がこれと一致するかを見る。Apple のトークンを取り消すときの `client_id` にも使う。秘密ではない | なし（なければ起動しない） |
+| `APPLE_TEAM_ID` | Apple Developer のチームの ID（10 文字）。秘密ではない | なし（なければ起動しない） |
+| `APPLE_KEY_ID` | Sign in with Apple の鍵の ID（10 文字）。秘密ではない | なし（なければ起動しない） |
+| `APPLE_SIGNIN_KEY` | Sign in with Apple の鍵（.p8 の中身、PEM）。アカウントを消すときに Apple のトークンを取り消すのに使う。**秘密**。staging では Secret Manager から渡す | なし（なければ起動しない） |
 
 秘密の値を `server/.env` に書くときは、コミットされない（`server/.gitignore`）。staging の値はリポジトリにも打ったコマンドの記録にも残さず、Secret Manager に置く。
 
@@ -120,10 +130,10 @@ go test -count=1 ./...
 | GCP のプロジェクト | `karaoke-staging-513712`（地域は `asia-northeast1`） |
 | イメージの置き場（Artifact Registry） | `karaoke` |
 | Cloud Run のサービス | `karaoke-api-staging`（インスタンスの上限 1、誰でも呼べる） |
-| サービスアカウント | `karaoke-api-staging`（`database-url-staging` を読む権限だけ） |
+| サービスアカウント | `karaoke-api-staging`（`database-url-staging` と `apple-signin-key-staging` を読む権限だけ） |
 | DB（Neon） | `staging` ブランチ（シンガポール） |
-| 秘密（Secret Manager） | `database-url-staging`（Neon の `staging` ブランチの URL） |
-| 秘密ではない環境変数 | `APPLE_BUNDLE_ID`（`com.omomimoti.hitokaralog`） |
+| 秘密（Secret Manager） | `database-url-staging`（Neon の `staging` ブランチの URL）、`apple-signin-key-staging`（Sign in with Apple の鍵 .p8。Apple Developer の Keys で作った。もう一度はダウンロードできない） |
+| 秘密ではない環境変数 | `APPLE_BUNDLE_ID`（`com.omomimoti.hitokaralog`）、`APPLE_TEAM_ID`（Apple Developer の Membership details）、`APPLE_KEY_ID`（Apple Developer の Keys） |
 | お金の守り | 予算のアラート（月 500 円）と、Cloud Run の支出の上限（月 300 円）。GCP の画面の「お支払い → 予算とアラート」 |
 
 ### 初めての Mac で 1 回だけ
@@ -159,8 +169,8 @@ gcloud auth configure-docker asia-northeast1-docker.pkg.dev
      --image asia-northeast1-docker.pkg.dev/karaoke-staging-513712/karaoke/api:$TAG \
      --region asia-northeast1 \
      --service-account karaoke-api-staging@karaoke-staging-513712.iam.gserviceaccount.com \
-     --set-secrets DATABASE_URL=database-url-staging:latest \
-     --set-env-vars APPLE_BUNDLE_ID=com.omomimoti.hitokaralog \
+     --set-secrets DATABASE_URL=database-url-staging:latest,APPLE_SIGNIN_KEY=apple-signin-key-staging:latest \
+     --set-env-vars APPLE_BUNDLE_ID=com.omomimoti.hitokaralog,APPLE_TEAM_ID=チームのID,APPLE_KEY_ID=鍵のID \
      --max-instances 1 \
      --allow-unauthenticated
    ```

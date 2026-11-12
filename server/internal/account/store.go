@@ -99,3 +99,27 @@ func (s *Store) GetUser(ctx context.Context, userID string) (User, error) {
 	}
 	return u, nil
 }
+
+// AppleUserID は、userID のアカウントの Apple のユーザー ID を返す。見つからないときは ErrNotFound を返す。
+func (s *Store) AppleUserID(ctx context.Context, userID string) (string, error) {
+	const q = `SELECT apple_user_id FROM users WHERE id = $1`
+	var appleUserID string
+	err := s.db.QueryRow(ctx, q, userID).Scan(&appleUserID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", ErrNotFound
+	}
+	if err != nil {
+		return "", fmt.Errorf("get apple user id: %w", err)
+	}
+	return appleUserID, nil
+}
+
+// DeleteUser は、userID のアカウントを消す。トークンなど、その人の行は ON DELETE CASCADE で一緒に消える。
+// 行がなくてもエラーにしない。
+func (s *Store) DeleteUser(ctx context.Context, userID string) error {
+	const q = `DELETE FROM users WHERE id = $1`
+	if _, err := s.db.Exec(ctx, q, userID); err != nil {
+		return fmt.Errorf("delete user: %w", err)
+	}
+	return nil
+}

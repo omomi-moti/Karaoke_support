@@ -128,7 +128,7 @@ Go は標準の `net/http`（1.22 以降のルーティング）と `pgx` を使
 | POST | `/v1/auth/apple` | Apple のトークンを受け取り、サーバーのトークン（期限 90 日）を返す。ユーザーがいなければ作る。その人の期限切れのトークンの行を消す | なし |
 | DELETE | `/v1/auth/session` | ログアウト（今のトークンの行だけを消し、204 を返す。ほかの端末のトークンは残す） | 要る |
 | GET | `/v1/me` | 自分の情報（サーバーのユーザー ID と作った日時だけ。Apple のユーザー ID は返さない） | 要る |
-| DELETE | `/v1/me` | Apple の認可コードを受け取り、Apple のトークンを取り消してから、アカウントとデータを全部消す | 要る |
+| DELETE | `/v1/me` | Apple の identity token・nonce・認可コードを受け取る。Apple ID が本人のものかを確かめ、Apple のトークンを取り消せたときだけ、アカウントとデータを全部消して 204 を返す（[ADR 0057](adr/0057-delete-account-and-revoke-apple-token.md)） | 要る |
 | GET | `/v1/backup/summary` | バックアップの件数と日時。なければ 404 | 要る |
 | PUT | `/v1/backup` | バックアップを丸ごと置き換える | 要る |
 | GET | `/v1/backup` | バックアップを読む | 要る |
@@ -180,6 +180,18 @@ sequenceDiagram
 3. サーバーが失敗しても届かなくても、Keychain のトークンは消す。消せなかったときだけ失敗を出す。サーバーに残った行は、期限が来れば使えなくなる
 4. `GET /v1/me` が 401 を返したとき（期限切れ・ほかで消された）も、Keychain のトークンを消し、サインインしていない状態に戻す。届かないときや 5xx では消さない
 
+### アカウントの削除
+
+[ADR 0057](adr/0057-delete-account-and-revoke-apple-token.md) で決めた。
+
+1. 設定の一番下の「アカウントを削除」→ 確認の alert で「削除する」
+2. View が `authorizationController` で Apple の確認のシートを出す（nonce のハッシュを渡す）。キャンセルしたら何も出さず、サインイン中のままにする
+3. `AccountRepository.deleteAccount(identityToken:authorizationCode:rawNonce:)` → `DELETE /v1/me`（Bearer と、identity token・認可コード・元の nonce の JSON）
+4. サーバーは、identity token をサインインと同じ手順で確かめ、その `sub` が Bearer の本人の Apple ID と同じかを比べる。違えば 403 で、何も消さない
+5. 認可コードを Apple の `/auth/token` で引き換え、`/auth/revoke` でトークンを取り消す。`client_secret` は Secret Manager の鍵で、呼ぶたびに作る（期限 5 分）。Apple が断ったら 400、届かないなどは 500 で、どちらもアカウントは消さない
+6. 取り消せたら `users` の行を消す。`auth_tokens` は一緒に消える（`ON DELETE CASCADE`）。`backups` も Issue 3 で同じ形で作る。204 を返す
+7. iOS は 204 で Keychain のトークンを消し、「アカウントを削除しました」と出す。401 ならトークンを消してサインインしていない状態に戻す。403・400 は Apple ID の違い・Apple の確認の失敗として出し、届かない・5xx では「アカウントは消えていません」と出す（トークンは残す）
+
 ### バックアップ
 
 1. アプリを閉じたとき（オンのとき）か「今すぐバックアップ」のボタン → `BackupRepository.fetchRemoteSummary()`
@@ -226,7 +238,7 @@ sequenceDiagram
 | 2-1 | サインインとサーバーのトークンの設計を決める（#151） | NFR-4 | 済み |
 | 2-2 | Sign in with Apple でサインインできるようにする（#152） | FR-1・NFR-2〜4 | 済み |
 | 2-3 | ログアウトと、失敗したときの備えを作る（#153） | FR-1・NFR-2〜4 | 済み |
-| 2-4 | アカウントを消せるようにする（Apple のトークンも取り消す） | FR-2 | 未着手 |
+| 2-4 | アカウントを消せるようにする（Apple のトークンも取り消す）（#157） | FR-2 | 済み |
 | 3 | 記録をサーバーにバックアップする（オンにした後は自動で） | FR-3・FR-4・NFR-5・NFR-7・NFR-8 | 未着手 |
 | 4 | 別の端末で記録を取り込む | FR-5・NFR-7 | 未着手 |
 | 5 | Beta のビルドを作り、外部テスターに配る（レート制限・`/health` の分割・プライバシーポリシー） | NFR-2・NFR-6 | 未着手 |

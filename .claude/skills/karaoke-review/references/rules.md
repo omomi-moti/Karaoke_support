@@ -365,6 +365,7 @@ handler で `r.PathValue`・`r.URL.Query()`・本文の JSON から `user_id` �
 
 - ログインのときに `users` を `apple_user_id` で引くのは正しい（まだ `user_id` が分からない段階）
 - ミドルウェアとログアウトで `auth_tokens` をトークンのハッシュで引く・消すのは正しい（送られたトークンそのものが本人の証明になる）
+- アカウントの削除で `users` を `id` で引く・消すのは正しい（`users` の `id` がその人の `user_id`）。その値がミドルウェアから来ているかは、ほかと同じく確かめる
 - `migrations/` の SQL は対象外
 - `/health` の Ping は利用者の行に触らない
 
@@ -529,7 +530,7 @@ grep -rn -E 'math/rand|crypto/rand|Bearer|expires_at|no-store|token' server/inte
 
 ### 不変条件
 
-`POST /v1/auth/apple` は、Apple が今このアプリのために出したトークンだけを受け付ける（ADR 0054）。
+`POST /v1/auth/apple` と `DELETE /v1/me` は、Apple が今このアプリのために出したトークンだけを受け付ける（ADR 0054・0057）。
 根拠は Apple の「Verifying a user」の手順と、OpenID Connect Core 1.0 の 3.1.3.7（ID Token Validation）。
 
 - 署名は `RS256` だけを受け付ける（`jwt.WithValidMethods`）
@@ -538,11 +539,16 @@ grep -rn -E 'math/rand|crypto/rand|Bearer|expires_at|no-store|token' server/inte
 - 公開鍵は Apple の JWKS から keyfunc で取り、通信にタイムアウトがあり、知らない鍵の ID での取り直しに回数の制限がある
 - 検証から先に渡すのは `sub` だけ
 - 偽のトークン（ほかの鍵の署名・`RS256` 以外・発行者・宛先・期限・発行時刻・nonce の違い）がどれも失敗することを、テストで確かめている
+- `DELETE /v1/me` は、サインインと同じ検証を通した `sub` が、Bearer の本人の `apple_user_id` と同じときだけ先に進む。違えば 403 で、何も消さない
+- `DELETE /v1/me` は、Apple のトークンを取り消せたときだけ `users` の行を消す。取り消しに失敗したら消さずに 4xx・5xx を返す（順番は「照合 → 取り消し → 削除」）
+- Apple に送る認可コードと、Apple から受け取ったトークンは、ログにもエラーの返事にも出さない
 
 ### 破れたときの症状
 
 ほかのアプリ向けや古い Apple のトークン、自分で作った偽のトークンでサインインでき、
 ほかの利用者になりすましてバックアップを読める。
+削除では、サーバーのトークンを盗んだ人が、本人の Apple の確認なしにアカウントを消せる。
+または、Apple の側のつながりが残ったまま、サーバーのアカウントだけが消える。
 
 ### 検出手順
 
@@ -551,6 +557,7 @@ grep -rn -E 'jwt\.(Parse|NewParser)|WithValidMethods|WithIssuer|WithAudience|Wit
 ```
 
 検証の関数を読み、上の条件が全部設定されているかを確かめる。
+アカウントの削除では、`server/internal/account/service.go` の削除の関数を読み、照合・取り消し・削除の順番と、途中で失敗したら戻ることを確かめる。
 `jwt.WithIssuedAt` は未来の発行時刻をはじくための設定なので、それとは別に、発行時刻の古さを比べるコードがあるかを読む。
 テストを読み、失敗する場合が 1 つずつテストになっているかを確かめる。
 

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -21,6 +22,12 @@ type fakeService struct {
 	gotUserID       string
 	gotSignOutToken string
 	signInCalls     int
+	gotDelete       []string
+}
+
+func (f *fakeService) DeleteAccount(_ context.Context, userID, idToken, rawNonce, code string) error {
+	f.gotDelete = []string{userID, idToken, rawNonce, code}
+	return f.err
 }
 
 func (f *fakeService) SignOut(_ context.Context, rawToken string) error {
@@ -204,6 +211,74 @@ func TestSignOutHandler(t *testing.T) {
 		}
 		if svc.gotSignOutToken != "" {
 			t.Fatal("トークンがないのに service を呼んだ")
+		}
+	})
+}
+
+func TestDeleteMeHandler(t *testing.T) {
+	valid := `{"identityToken":"id-token","authorizationCode":"auth-code","nonce":"raw-nonce"}`
+
+	tests := []struct {
+		name       string
+		body       string
+		svcErr     error
+		wantStatus int
+		wantError  string
+	}{
+		{"通る", valid, nil, http.StatusNoContent, ""},
+		{"JSON ではない", `not json`, nil, http.StatusBadRequest, "invalid_request"},
+		{"認可コードがない", `{"identityToken":"id-token","nonce":"raw-nonce"}`, nil, http.StatusBadRequest, "invalid_request"},
+		{"identityToken がない", `{"authorizationCode":"auth-code","nonce":"raw-nonce"}`, nil, http.StatusBadRequest, "invalid_request"},
+		{"nonce がない", `{"identityToken":"id-token","authorizationCode":"auth-code"}`, nil, http.StatusBadRequest, "invalid_request"},
+		{"知らない項目がある", `{"identityToken":"id-token","authorizationCode":"auth-code","nonce":"raw-nonce","userId":"x"}`, nil, http.StatusBadRequest, "invalid_request"},
+		{"16 KB を超える", `{"identityToken":"` + strings.Repeat("a", maxSignInBody) + `","authorizationCode":"auth-code","nonce":"raw-nonce"}`, nil, http.StatusRequestEntityTooLarge, "request_too_large"},
+		{"Apple のトークンかコードを断られる", valid, fmt.Errorf("%w: expired", ErrInvalidAppleCredential), http.StatusBadRequest, "invalid_request"},
+		{"違う Apple ID", valid, ErrAppleAccountMismatch, http.StatusForbidden, "forbidden"},
+		{"アカウントがもうない", valid, ErrUnauthorized, http.StatusUnauthorized, "unauthorized"},
+		{"Apple に届かない", valid, errors.New("request apple: timeout"), http.StatusInternalServerError, "internal"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := &fakeService{err: tt.svcErr}
+			h := &Handler{svc: svc}
+			req := httptest.NewRequest(http.MethodDelete, "/v1/me", strings.NewReader(tt.body))
+			req.Header.Set("Authorization", "Bearer klog_abc")
+			rec := httptest.NewRecorder()
+			httpapi.RequireAuth(fakeAuthenticator{}, http.HandlerFunc(h.DeleteMe)).ServeHTTP(rec, req)
+
+			if rec.Code != tt.wantStatus {
+				t.Fatalf("status = %d, want %d（body = %s）", rec.Code, tt.wantStatus, rec.Body)
+			}
+			if tt.svcErr == nil && tt.wantStatus != http.StatusNoContent {
+				if svc.gotDelete != nil {
+					t.Fatal("本文が正しくないのに service を呼んだ")
+				}
+				assertError(t, rec, tt.wantError)
+				return
+			}
+			if want := []string{"user-1", "id-token", "raw-nonce", "auth-code"}; !slices.Equal(svc.gotDelete, want) {
+				t.Fatalf("service に渡した値 = %v, want %v", svc.gotDelete, want)
+			}
+			if tt.wantStatus == http.StatusNoContent {
+				if rec.Body.Len() != 0 {
+					t.Fatalf("204 なのに本文がある: %s", rec.Body)
+				}
+				return
+			}
+			assertError(t, rec, tt.wantError)
+		})
+	}
+
+	t.Run("RequireAuth を通っていない", func(t *testing.T) {
+		svc := &fakeService{}
+		h := &Handler{svc: svc}
+		rec := httptest.NewRecorder()
+		h.DeleteMe(rec, httptest.NewRequest(http.MethodDelete, "/v1/me", strings.NewReader(valid)))
+		if rec.Code != http.StatusInternalServerError {
+			t.Fatalf("status = %d, want 500", rec.Code)
+		}
+		if svc.gotDelete != nil {
+			t.Fatal("ユーザー ID がないのに service を呼んだ")
 		}
 	})
 }
