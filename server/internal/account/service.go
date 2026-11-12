@@ -26,6 +26,8 @@ type AppleVerifier interface {
 type storage interface {
 	UpsertUserByAppleID(ctx context.Context, appleUserID string) (string, error)
 	CreateToken(ctx context.Context, hash []byte, userID string, expiresAt time.Time) error
+	DeleteToken(ctx context.Context, hash []byte) error
+	DeleteExpiredTokens(ctx context.Context, userID string) error
 	FindUserIDByTokenHash(ctx context.Context, hash []byte) (string, error)
 	GetUser(ctx context.Context, userID string) (User, error)
 }
@@ -57,6 +59,9 @@ func (s *Service) SignInWithApple(ctx context.Context, idToken, rawNonce string)
 	if err != nil {
 		return "", time.Time{}, err
 	}
+	if err := s.store.DeleteExpiredTokens(ctx, userID); err != nil {
+		return "", time.Time{}, err
+	}
 
 	raw, hash := newToken()
 	expiresAt = s.now().Add(tokenTTL)
@@ -79,6 +84,12 @@ func (s *Service) Authenticate(ctx context.Context, rawToken string) (string, er
 		return "", err
 	}
 	return userID, nil
+}
+
+// SignOut は、rawToken の行だけを消し、そのトークンを使えなくする。ほかの端末のトークンは残す。
+// httpapi.RequireAuth を通った後に呼ぶ。
+func (s *Service) SignOut(ctx context.Context, rawToken string) error {
+	return s.store.DeleteToken(ctx, hashToken(rawToken))
 }
 
 // Me は、userID のアカウントを返す。

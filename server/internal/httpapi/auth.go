@@ -23,7 +23,7 @@ type userIDKey struct{}
 // 通ったユーザーの ID は UserID で読める。
 func RequireAuth(auth Authenticator, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token, ok := bearerToken(r)
+		token, ok := BearerToken(r)
 		if !ok {
 			writeUnauthorized(w)
 			return
@@ -48,7 +48,8 @@ func UserID(ctx context.Context) (string, bool) {
 	return id, ok
 }
 
-func bearerToken(r *http.Request) (string, bool) {
+// BearerToken は、Authorization: Bearer のトークンを返す。トークンはこのヘッダーからだけ読む。
+func BearerToken(r *http.Request) (string, bool) {
 	scheme, token, ok := strings.Cut(r.Header.Get("Authorization"), " ")
 	if !ok || !strings.EqualFold(scheme, "Bearer") || token == "" {
 		return "", false

@@ -15,6 +15,7 @@ const maxSignInBody = 16 << 10
 
 type accountService interface {
 	SignInWithApple(ctx context.Context, idToken, rawNonce string) (string, time.Time, error)
+	SignOut(ctx context.Context, rawToken string) error
 	Me(ctx context.Context, userID string) (User, error)
 }
 
@@ -78,6 +79,22 @@ func (h *Handler) SignInWithApple(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Cache-Control", "no-store")
 	httpapi.WriteJSON(w, http.StatusOK, signInResponse{Token: token, ExpiresAt: expiresAt.UTC()})
+}
+
+// SignOut は DELETE /v1/auth/session。送られたトークンを使えなくし、204 を返す。httpapi.RequireAuth の内側で呼ぶ。
+func (h *Handler) SignOut(w http.ResponseWriter, r *http.Request) {
+	token, ok := httpapi.BearerToken(r)
+	if !ok {
+		slog.Error("sign out: no bearer token")
+		httpapi.WriteError(w, http.StatusInternalServerError)
+		return
+	}
+	if err := h.svc.SignOut(r.Context(), token); err != nil {
+		slog.Error("sign out", "err", err)
+		httpapi.WriteError(w, http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // Me は GET /v1/me。トークンの持ち主のアカウントを返す。httpapi.RequireAuth の内側で呼ぶ。

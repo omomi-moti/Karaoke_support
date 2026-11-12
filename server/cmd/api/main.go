@@ -57,6 +57,7 @@ func run() error {
 		Addr: ":" + port,
 		Handler: httpapi.NewRouter(pool, accounts, httpapi.Handlers{
 			SignInWithApple: http.HandlerFunc(accountHandler.SignInWithApple),
+			SignOut:         http.HandlerFunc(accountHandler.SignOut),
 			Me:              http.HandlerFunc(accountHandler.Me),
 		}),
 		ReadHeaderTimeout: 5 * time.Second,
