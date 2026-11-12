@@ -83,9 +83,9 @@ docker run --rm -p 8080:8080 --network server_default -e DATABASE_URL='postgres:
 go test ./...
 ```
 
-DB を使わないテスト（ハンドラー・service・Apple のトークンの検証）は、偽物に差し替えて確かめる。
+DB を使わないテスト（ハンドラー・service・Apple のトークンの検証と取り消し）は、偽物に差し替えて確かめる。Apple のトークンの取り消しは、`httptest` で立てた偽の Apple に送り、送る項目と `client_secret` の中身を確かめる。
 
-store の SQL のテストと、サインインからログアウトまでを本物の DB で通すテストは、手元の Postgres の URL を `TEST_DATABASE_URL` で渡したときだけ流れる。ないとき・localhost 以外を指すとき・つながらないときは、理由を出して飛ばす。`DATABASE_URL` は使わない（staging の値がシェルに残っていても、テストが staging を書き換えないようにするため）
+store の SQL のテストと、サインインからログアウトまで・アカウントの削除までを本物の DB で通すテストは、手元の Postgres の URL を `TEST_DATABASE_URL` で渡したときだけ流れる。ないとき・localhost 以外を指すとき・つながらないときは、理由を出して飛ばす。`DATABASE_URL` は使わない（staging の値がシェルに残っていても、テストが staging を書き換えないようにするため）
 
 ```bash
 docker compose up -d

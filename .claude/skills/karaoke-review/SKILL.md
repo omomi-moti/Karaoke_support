@@ -55,7 +55,7 @@ go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
 | `server/migrations/` | 流し済みのマイグレーションの書き換え |
 | URL・鍵・パスワードらしい文字列、設定ファイル | 秘密がリポジトリに入る |
 | `server/` のトークン・ミドルウェア・ルーター・ログアウト | サーバーのトークンの扱い |
-| `server/` の Apple のトークンの検証・`POST /v1/auth/apple` | Apple のトークンの検証の抜け |
+| `server/` の Apple のトークンの検証・取り消し・`POST /v1/auth/apple`・`DELETE /v1/me` | Apple のトークンの検証の抜け |
 
 ### 3. 変更行だけでなく、囲むシンボル全体を読む
 
