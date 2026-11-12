@@ -73,10 +73,12 @@ private final class InMemoryTokenStore: ServerTokenStoring, @unchecked Sendable 
 	private let lock = NSLock()
 	private var token: String?
 	private let isFailingToSave: Bool
+	private let isFailingToDelete: Bool
 
-	init(token: String? = nil, isFailingToSave: Bool = false) {
+	init(token: String? = nil, isFailingToSave: Bool = false, isFailingToDelete: Bool = false) {
 		self.token = token
 		self.isFailingToSave = isFailingToSave
+		self.isFailingToDelete = isFailingToDelete
 	}
 
 	func read() throws -> String? { lock.withLock { token } }
@@ -86,7 +88,10 @@ private final class InMemoryTokenStore: ServerTokenStoring, @unchecked Sendable 
 		lock.withLock { self.token = token }
 	}
 
-	func delete() throws { lock.withLock { token = nil } }
+	func delete() throws {
+		if isFailingToDelete { throw KeychainError(status: errSecInteractionNotAllowed) }
+		lock.withLock { token = nil }
+	}
 }
 
 @Suite("RemoteAccountRepository")
@@ -194,14 +199,79 @@ struct RemoteAccountRepositoryTests {
 		#expect(log.count == 0)
 	}
 
-	@Test("自分の情報で 401 なら unauthorized")
+	@Test("自分の情報で 401 なら、端末のトークンを消して unauthorized")
 	func fetchMeUnauthorized() async throws {
-		let repository = makeRepository(tokenStore: InMemoryTokenStore(token: "klog_expired")) { _ in
+		let tokenStore = InMemoryTokenStore(token: "klog_expired")
+		let repository = makeRepository(tokenStore: tokenStore) { _ in
 			(401, #"{"error":"unauthorized"}"#)
 		}
 
 		await #expect(throws: AccountRepositoryError.unauthorized) {
 			_ = try await repository.fetchMe()
+		}
+		#expect(try tokenStore.read() == nil)
+		#expect(!repository.isSignedIn)
+	}
+
+	@Test("自分の情報が 401 以外で失敗したら、端末のトークンを残す", arguments: [500, 0])
+	func fetchMeFailureKeepsToken(status: Int) async throws {
+		let tokenStore = InMemoryTokenStore(token: "klog_saved")
+		let repository = makeRepository(tokenStore: tokenStore) { _ in
+			if status == 0 { throw URLError(.notConnectedToInternet) }
+			return (status, #"{"error":"x"}"#)
+		}
+
+		await #expect(throws: (any Error).self) {
+			_ = try await repository.fetchMe()
+		}
+		#expect(try tokenStore.read() == "klog_saved")
+	}
+
+	@Test("ログアウトすると、トークンを Bearer で送って消してもらい、端末のトークンも消す")
+	func signOutSendsDeleteAndClearsToken() async throws {
+		let tokenStore = InMemoryTokenStore(token: "klog_saved")
+		let log = RequestLog()
+		let repository = makeRepository(tokenStore: tokenStore, log: log) { _ in (204, "") }
+
+		try await repository.signOut()
+
+		#expect(try tokenStore.read() == nil)
+		#expect(!repository.isSignedIn)
+		let (request, _) = try #require(log.last)
+		#expect(request.httpMethod == "DELETE")
+		#expect(request.url?.path == "/v1/auth/session")
+		#expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer klog_saved")
+	}
+
+	@Test("サーバーが失敗しても届かなくても、端末のトークンは消してエラーにしない", arguments: [401, 500, 0])
+	func signOutClearsTokenEvenWhenServerFails(status: Int) async throws {
+		let tokenStore = InMemoryTokenStore(token: "klog_saved")
+		let repository = makeRepository(tokenStore: tokenStore) { _ in
+			if status == 0 { throw URLError(.notConnectedToInternet) }
+			return (status, #"{"error":"x"}"#)
+		}
+
+		try await repository.signOut()
+
+		#expect(try tokenStore.read() == nil)
+	}
+
+	@Test("トークンがなければ、通信せずに終わる")
+	func signOutWithoutToken() async throws {
+		let log = RequestLog()
+		let repository = makeRepository(log: log) { _ in (204, "") }
+
+		try await repository.signOut()
+
+		#expect(log.count == 0)
+	}
+
+	@Test("端末のトークンを消せなければ tokenStorage")
+	func signOutTokenStorageFailure() async throws {
+		let repository = makeRepository(tokenStore: InMemoryTokenStore(token: "klog_saved", isFailingToDelete: true)) { _ in (204, "") }
+
+		await #expect(throws: AccountRepositoryError.tokenStorage) {
+			try await repository.signOut()
 		}
 	}
 }

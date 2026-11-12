@@ -51,6 +51,10 @@ private final class StubAccountRepository: AccountRepositoryProtocol {
 		heldContinuation?.resume()
 		heldContinuation = nil
 	}
+
+	func signOut() async throws {
+		isSignedIn = false
+	}
 }
 
 @Suite("AccountSectionViewModel")
