@@ -54,6 +54,28 @@ final class RemoteAccountRepository: AccountRepositoryProtocol {
 		}
 	}
 
+	func deleteAccount(identityToken: String, authorizationCode: String, rawNonce: String) async throws {
+		guard let token = try? tokenStore.read() else {
+			throw AccountRepositoryError.unauthorized
+		}
+		let body = DeleteAccountRequest(identityToken: identityToken, authorizationCode: authorizationCode, nonce: rawNonce)
+		do {
+			try await call {
+				do {
+					try await client.sendExpectingNoContent("DELETE", "v1/me", body: body, bearer: token)
+				} catch APIError.status(403) {
+					throw AccountRepositoryError.appleAccountMismatch
+				} catch APIError.status(400) {
+					throw AccountRepositoryError.appleCredentialRejected
+				}
+			}
+		} catch AccountRepositoryError.unauthorized {
+			try? tokenStore.delete()
+			throw AccountRepositoryError.unauthorized
+		}
+		try? tokenStore.delete()
+	}
+
 	private func call<Response>(_ body: () async throws -> Response) async throws -> Response {
 		do {
 			return try await body()
@@ -61,6 +83,8 @@ final class RemoteAccountRepository: AccountRepositoryProtocol {
 			throw AccountRepositoryError.unauthorized
 		} catch APIError.unreachable {
 			throw AccountRepositoryError.unreachable
+		} catch let error as AccountRepositoryError {
+			throw error
 		} catch {
 			throw AccountRepositoryError.server
 		}

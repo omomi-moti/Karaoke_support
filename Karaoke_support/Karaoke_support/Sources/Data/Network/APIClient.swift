@@ -33,15 +33,24 @@ struct APIClient: Sendable {
 
 	/// `path` に `body` を JSON にして送り、返事を `Response` として読む。
 	func send<Response: Decodable>(_ method: String, _ path: String, body: some Encodable, bearer: String? = nil) async throws -> Response {
-		var request = makeRequest(method, path, bearer: bearer)
-		request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-		request.httpBody = try JSONEncoder().encode(body)
-		return try await send(request)
+		try await send(makeRequest(method, path, body: body, bearer: bearer))
 	}
 
 	/// `path` に本文なしで送り、成功のステータスかだけを確かめる。返事の本文は読まない（204 など）。
 	func sendExpectingNoContent(_ method: String, _ path: String, bearer: String? = nil) async throws {
 		_ = try await data(for: makeRequest(method, path, bearer: bearer))
+	}
+
+	/// `path` に `body` を JSON にして送り、成功のステータスかだけを確かめる。返事の本文は読まない（204 など）。
+	func sendExpectingNoContent(_ method: String, _ path: String, body: some Encodable, bearer: String? = nil) async throws {
+		_ = try await data(for: makeRequest(method, path, body: body, bearer: bearer))
+	}
+
+	private func makeRequest(_ method: String, _ path: String, body: some Encodable, bearer: String?) throws -> URLRequest {
+		var request = makeRequest(method, path, bearer: bearer)
+		request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+		request.httpBody = try JSONEncoder().encode(body)
+		return request
 	}
 
 	private func makeRequest(_ method: String, _ path: String, bearer: String?) -> URLRequest {

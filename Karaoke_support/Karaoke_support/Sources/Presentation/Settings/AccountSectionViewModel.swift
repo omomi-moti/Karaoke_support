@@ -105,6 +105,10 @@ final class AccountSectionViewModel {
 			status = .failed(message: "サーバーに届きませんでした。通信できる場所でもう一度お試しください")
 		case .tokenStorage:
 			status = .failed(message: "サインインの情報をこの iPhone に保存できませんでした")
+		case .appleAccountMismatch:
+			status = .failed(message: "サインインしている Apple ID と違うものが選ばれました。同じ Apple ID でもう一度お試しください")
+		case .appleCredentialRejected:
+			status = .failed(message: "Apple での確認ができませんでした。もう一度お試しください")
 		case .server, nil:
 			status = .failed(message: "サーバーで問題が起きました。時間をおいてもう一度お試しください")
 		}

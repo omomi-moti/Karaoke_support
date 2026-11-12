@@ -60,6 +60,10 @@ private final class StubAccountRepository: AccountRepositoryProtocol {
 		if let signOutError { throw signOutError }
 		isSignedIn = false
 	}
+
+	func deleteAccount(identityToken: String, authorizationCode: String, rawNonce: String) async throws {
+		isSignedIn = false
+	}
 }
 
 @Suite("AccountSectionViewModel")
