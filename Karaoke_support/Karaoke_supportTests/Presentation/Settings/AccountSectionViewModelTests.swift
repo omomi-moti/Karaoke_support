@@ -61,7 +61,12 @@ private final class StubAccountRepository: AccountRepositoryProtocol {
 		isSignedIn = false
 	}
 
+	var deleteError: Error?
+	private(set) var deleteCalls: [(identityToken: String, authorizationCode: String, rawNonce: String)] = []
+
 	func deleteAccount(identityToken: String, authorizationCode: String, rawNonce: String) async throws {
+		deleteCalls.append((identityToken, authorizationCode, rawNonce))
+		if let deleteError { throw deleteError }
 		isSignedIn = false
 	}
 }
@@ -260,6 +265,124 @@ struct AccountSectionViewModelTests {
 		await load.value
 
 		#expect(!isFailed(vm.status))
+	}
+
+	private func makeSignedInViewModel() async -> AccountSectionViewModel {
+		repository.isSignedIn = true
+		let vm = makeViewModel()
+		await vm.load()
+		return vm
+	}
+
+	@Test("削除を始めると確認の状態になり、やめるとサインイン中に戻る")
+	func beginAndCancelDeletion() async {
+		let vm = await makeSignedInViewModel()
+
+		vm.beginDeletion()
+		#expect(vm.status == .confirmingDeletion(repository.account))
+
+		vm.cancelDeletion()
+		#expect(vm.status == .signedIn(repository.account))
+	}
+
+	@Test("サインインしていないときは、削除を始めない")
+	func beginDeletionWhenSignedOut() async {
+		let vm = makeViewModel()
+		await vm.load()
+
+		vm.beginDeletion()
+
+		#expect(vm.status == .signedOut)
+	}
+
+	@Test("削除では、Apple に渡したハッシュの元の nonce と token と認可コードを送り、サインインしていないに戻す")
+	func deleteAccountSendsRawNonce() async throws {
+		let vm = await makeSignedInViewModel()
+		vm.beginDeletion()
+
+		let hashed = vm.makeHashedNonce()
+		await vm.deleteAccount(identityToken: Data("apple.identity.token".utf8), authorizationCode: Data("apple.code".utf8))
+
+		let call = try #require(repository.deleteCalls.first)
+		#expect(call.identityToken == "apple.identity.token")
+		#expect(call.authorizationCode == "apple.code")
+		#expect(SignInNonce(raw: call.rawNonce).hashed == hashed)
+		#expect(vm.status == .signedOut)
+	}
+
+	@Test("nonce を作っていない・token や認可コードがないときは、サーバーに送らずに失敗を出す")
+	func deleteAccountWithoutNonceOrValues() async {
+		let vm = await makeSignedInViewModel()
+		vm.beginDeletion()
+		let token = Data("apple.identity.token".utf8)
+		let code = Data("apple.code".utf8)
+
+		await vm.deleteAccount(identityToken: token, authorizationCode: code)
+		#expect(isFailed(vm.status))
+
+		_ = vm.makeHashedNonce()
+		await vm.deleteAccount(identityToken: nil, authorizationCode: code)
+		#expect(isFailed(vm.status))
+
+		_ = vm.makeHashedNonce()
+		await vm.deleteAccount(identityToken: token, authorizationCode: nil)
+		#expect(isFailed(vm.status))
+
+		#expect(repository.deleteCalls.isEmpty)
+	}
+
+	@Test("削除に失敗したら、失敗を出し、アカウントは残す", arguments: [
+		AccountRepositoryError.appleAccountMismatch, .appleCredentialRejected, .unreachable, .server,
+	])
+	func deleteAccountFailure(error: AccountRepositoryError) async {
+		repository.deleteError = error
+		let vm = await makeSignedInViewModel()
+		vm.beginDeletion()
+
+		_ = vm.makeHashedNonce()
+		await vm.deleteAccount(identityToken: Data("apple.identity.token".utf8), authorizationCode: Data("apple.code".utf8))
+
+		#expect(isFailed(vm.status))
+		#expect(repository.isSignedIn)
+	}
+
+	@Test("届かない・サーバーの失敗では、アカウントは消えていないと伝える", arguments: [AccountRepositoryError.unreachable, .server])
+	func deleteAccountFailureSaysNotDeleted(error: AccountRepositoryError) async {
+		repository.deleteError = error
+		let vm = await makeSignedInViewModel()
+		vm.beginDeletion()
+
+		_ = vm.makeHashedNonce()
+		await vm.deleteAccount(identityToken: Data("apple.identity.token".utf8), authorizationCode: Data("apple.code".utf8))
+
+		guard case .failed(let message) = vm.status else {
+			Issue.record("失敗を出していない")
+			return
+		}
+		#expect(message.contains("消えていません"))
+	}
+
+	@Test("サーバーがトークンを受け付けなければ、サインインしていないに戻す")
+	func deleteAccountUnauthorized() async {
+		repository.deleteError = AccountRepositoryError.unauthorized
+		let vm = await makeSignedInViewModel()
+		vm.beginDeletion()
+
+		_ = vm.makeHashedNonce()
+		await vm.deleteAccount(identityToken: Data("apple.identity.token".utf8), authorizationCode: Data("apple.code".utf8))
+
+		#expect(vm.status == .signedOut)
+	}
+
+	@Test("削除の確認で Apple の画面をキャンセルしたら、確認の状態のままにする")
+	func deleteAccountAppleCanceled() async {
+		let vm = await makeSignedInViewModel()
+		vm.beginDeletion()
+
+		_ = vm.makeHashedNonce()
+		vm.signInFailed(ASAuthorizationError(.canceled))
+
+		#expect(vm.status == .confirmingDeletion(repository.account))
 	}
 }
 #endif

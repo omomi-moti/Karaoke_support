@@ -12,6 +12,8 @@ final class AccountSectionViewModel {
 		case loading
 		case signedOut
 		case signedIn(Account)
+		/// アカウントを消す確認を受け、もう一度 Apple でサインインしてもらうのを待っている（ADR 0057）。
+		case confirmingDeletion(Account)
 		case failed(message: String)
 	}
 
@@ -83,7 +85,44 @@ final class AccountSectionViewModel {
 		}
 	}
 
+	/// 削除の確認を受けたら、もう一度 Apple でサインインしてもらう状態にする。
+	func beginDeletion() {
+		guard case .signedIn(let account) = status else { return }
+		status = .confirmingDeletion(account)
+	}
+
+	/// 削除をやめ、サインイン中に戻す。
+	func cancelDeletion() {
+		pendingNonce = nil
+		guard case .confirmingDeletion(let account) = status else { return }
+		status = .signedIn(account)
+	}
+
+	/// もう一度 Apple でサインインして受け取った値で、アカウントを消す（ADR 0057）。
+	/// 届かない・サーバーの失敗のときは、アカウントは消えていないと伝える。
+	func deleteAccount(identityToken: Data?, authorizationCode: Data?) async {
+		let nonce = pendingNonce
+		pendingNonce = nil
+		guard let nonce,
+			let identityToken, let token = String(data: identityToken, encoding: .utf8),
+			let authorizationCode, let code = String(data: authorizationCode, encoding: .utf8)
+		else {
+			status = .failed(message: Self.appleCredentialRejectedMessage)
+			return
+		}
+		status = .loading
+		do {
+			try await accountRepository.deleteAccount(identityToken: token, authorizationCode: code, rawNonce: nonce.raw)
+			status = .signedOut
+		} catch AccountRepositoryError.unreachable, AccountRepositoryError.server {
+			status = .failed(message: "アカウントは消えていません。時間をおいてもう一度お試しください")
+		} catch {
+			show(error)
+		}
+	}
+
 	private static let signInFailedMessage = "サインインできませんでした。もう一度お試しください"
+	private static let appleCredentialRejectedMessage = "Apple での確認ができませんでした。もう一度お試しください"
 
 	private func fetchAccount() async {
 		do {
@@ -108,7 +147,7 @@ final class AccountSectionViewModel {
 		case .appleAccountMismatch:
 			status = .failed(message: "サインインしている Apple ID と違うものが選ばれました。同じ Apple ID でもう一度お試しください")
 		case .appleCredentialRejected:
-			status = .failed(message: "Apple での確認ができませんでした。もう一度お試しください")
+			status = .failed(message: Self.appleCredentialRejectedMessage)
 		case .server, nil:
 			status = .failed(message: "サーバーで問題が起きました。時間をおいてもう一度お試しください")
 		}
