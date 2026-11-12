@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -73,6 +74,119 @@ func TestUpsertUserByAppleID(t *testing.T) {
 	_, other := newTestUser(t, s)
 	if other == first {
 		t.Fatal("違う Apple の ID で同じユーザーになった")
+	}
+}
+
+func TestUpsertUserByAppleIDConcurrently(t *testing.T) {
+	s := NewStore(testDB(t))
+	ctx := context.Background()
+	appleUserID := "test-" + rand.Text()
+	t.Cleanup(func() {
+		s.db.Exec(context.Background(), `DELETE FROM users WHERE apple_user_id = $1`, appleUserID)
+	})
+
+	const n = 10
+	ids := make([]string, n)
+	errs := make([]error, n)
+	var wg sync.WaitGroup
+	for i := range n {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			ids[i], errs[i] = s.UpsertUserByAppleID(ctx, appleUserID)
+		}()
+	}
+	wg.Wait()
+
+	for i := range n {
+		if errs[i] != nil {
+			t.Fatalf("%d 本目: %v", i, errs[i])
+		}
+		if ids[i] != ids[0] {
+			t.Fatalf("同時に呼んだら別のユーザーになった: %s, %s", ids[0], ids[i])
+		}
+	}
+	var count int
+	if err := s.db.QueryRow(ctx, `SELECT count(*) FROM users WHERE apple_user_id = $1`, appleUserID).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Fatalf("users の行が %d 行ある, want 1", count)
+	}
+}
+
+// tokenRowExists は、トークンのハッシュの行が、期限にかかわらず残っているかを返す。
+func tokenRowExists(t *testing.T, s *Store, hash []byte) bool {
+	t.Helper()
+	var exists bool
+	if err := s.db.QueryRow(context.Background(), `SELECT EXISTS (SELECT 1 FROM auth_tokens WHERE token_hash = $1)`, hash).Scan(&exists); err != nil {
+		t.Fatal(err)
+	}
+	return exists
+}
+
+func TestDeleteToken(t *testing.T) {
+	s := NewStore(testDB(t))
+	ctx := context.Background()
+	_, userID := newTestUser(t, s)
+
+	_, phone := newToken()
+	_, tablet := newToken()
+	for _, hash := range [][]byte{phone, tablet} {
+		if err := s.CreateToken(ctx, hash, userID, time.Now().Add(time.Hour)); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err := s.DeleteToken(ctx, phone); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.FindUserIDByTokenHash(ctx, phone); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("消したトークン: err = %v, want ErrNotFound", err)
+	}
+	if got, err := s.FindUserIDByTokenHash(ctx, tablet); err != nil || got != userID {
+		t.Fatalf("ほかの端末のトークン: got (%q, %v), want (%q, nil)", got, err, userID)
+	}
+	if err := s.DeleteToken(ctx, phone); err != nil {
+		t.Fatalf("消した後にもう一度消す: %v", err)
+	}
+}
+
+func TestDeleteExpiredTokens(t *testing.T) {
+	s := NewStore(testDB(t))
+	ctx := context.Background()
+	_, userID := newTestUser(t, s)
+	_, otherUserID := newTestUser(t, s)
+
+	_, valid := newToken()
+	_, expired := newToken()
+	_, othersExpired := newToken()
+	tokens := []struct {
+		hash      []byte
+		userID    string
+		expiresAt time.Time
+	}{
+		{valid, userID, time.Now().Add(time.Hour)},
+		{expired, userID, time.Now().Add(-time.Second)},
+		{othersExpired, otherUserID, time.Now().Add(-time.Second)},
+	}
+	for _, tk := range tokens {
+		if err := s.CreateToken(ctx, tk.hash, tk.userID, tk.expiresAt); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err := s.DeleteExpiredTokens(ctx, userID); err != nil {
+		t.Fatal(err)
+	}
+	if tokenRowExists(t, s, expired) {
+		t.Fatal("期限切れの行が残っている")
+	}
+	if !tokenRowExists(t, s, valid) {
+		t.Fatal("期限内の行まで消えた")
+	}
+	if !tokenRowExists(t, s, othersExpired) {
+		t.Fatal("ほかの人の期限切れの行まで消えた")
 	}
 }
 
