@@ -18,7 +18,7 @@ import (
 const (
 	appleBaseURL       = "https://appleid.apple.com"
 	clientSecretTTL    = 5 * time.Minute
-	revokerHTTPTimeout = 10 * time.Second
+	revokerHTTPTimeout = 5 * time.Second
 	maxAppleResponse   = 64 << 10
 )
 

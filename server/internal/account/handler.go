@@ -17,6 +17,7 @@ type accountService interface {
 	SignInWithApple(ctx context.Context, idToken, rawNonce string) (string, time.Time, error)
 	SignOut(ctx context.Context, rawToken string) error
 	Me(ctx context.Context, userID string) (User, error)
+	DeleteAccount(ctx context.Context, userID, idToken, rawNonce, code string) error
 }
 
 // Handler は、アカウントの API の入出力を持つ。
@@ -32,6 +33,12 @@ func NewHandler(svc *Service) *Handler {
 type signInRequest struct {
 	IdentityToken string `json:"identityToken"`
 	Nonce         string `json:"nonce"`
+}
+
+type deleteMeRequest struct {
+	IdentityToken     string `json:"identityToken"`
+	AuthorizationCode string `json:"authorizationCode"`
+	Nonce             string `json:"nonce"`
 }
 
 type signInResponse struct {
@@ -119,4 +126,50 @@ func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Cache-Control", "no-store")
 	httpapi.WriteJSON(w, http.StatusOK, meResponse{ID: u.ID, CreatedAt: u.CreatedAt.UTC()})
+}
+
+// DeleteMe は DELETE /v1/me。もう一度サインインした Apple のトークン・nonce・認可コードを受け取り、
+// Apple のトークンを取り消してから、トークンの持ち主のアカウントを消す。httpapi.RequireAuth の内側で呼ぶ（ADR 0057）。
+func (h *Handler) DeleteMe(w http.ResponseWriter, r *http.Request) {
+	userID, ok := httpapi.UserID(r.Context())
+	if !ok {
+		slog.Error("delete me: no user id in context")
+		httpapi.WriteError(w, http.StatusInternalServerError)
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, maxSignInBody)
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	var req deleteMeRequest
+	if err := dec.Decode(&req); err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			httpapi.WriteError(w, http.StatusRequestEntityTooLarge)
+			return
+		}
+		httpapi.WriteError(w, http.StatusBadRequest)
+		return
+	}
+	if req.IdentityToken == "" || req.AuthorizationCode == "" || req.Nonce == "" {
+		httpapi.WriteError(w, http.StatusBadRequest)
+		return
+	}
+
+	err := h.svc.DeleteAccount(r.Context(), userID, req.IdentityToken, req.Nonce, req.AuthorizationCode)
+	switch {
+	case err == nil:
+		w.WriteHeader(http.StatusNoContent)
+	case errors.Is(err, ErrInvalidAppleCredential):
+		slog.Warn("delete me: apple credential rejected", "err", err)
+		httpapi.WriteError(w, http.StatusBadRequest)
+	case errors.Is(err, ErrAppleAccountMismatch):
+		slog.Warn("delete me: apple account does not match")
+		httpapi.WriteError(w, http.StatusForbidden)
+	case errors.Is(err, ErrUnauthorized):
+		httpapi.WriteError(w, http.StatusUnauthorized)
+	default:
+		slog.Error("delete me", "err", err)
+		httpapi.WriteError(w, http.StatusInternalServerError)
+	}
 }

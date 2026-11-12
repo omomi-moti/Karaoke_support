@@ -38,6 +38,13 @@ echo 'export PATH="$HOME/go/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
    export APPLE_BUNDLE_ID=com.omomimoti.hitokaralog
    ```
 
+   Apple の鍵は、手元では使い捨ての鍵をその場で作って入れる。本物の鍵ではないので、手元でアカウントを消そうとすると Apple に断られて 500 になる（ADR 0057）
+
+   ```bash
+   export APPLE_TEAM_ID=LOCALTEAM0 APPLE_KEY_ID=LOCALKEY00
+   export APPLE_SIGNIN_KEY="$(openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256)"
+   ```
+
 3. マイグレーションを流す
 
    ```bash
@@ -67,7 +74,7 @@ staging に出すのと同じイメージを手元で確かめる。Postgres は
 
 ```bash
 docker build -t karaoke-api .
-docker run --rm -p 8080:8080 --network server_default -e DATABASE_URL='postgres://karaoke:karaoke@db:5432/karaoke?sslmode=disable' -e APPLE_BUNDLE_ID=com.omomimoti.hitokaralog karaoke-api
+docker run --rm -p 8080:8080 --network server_default -e DATABASE_URL='postgres://karaoke:karaoke@db:5432/karaoke?sslmode=disable' -e APPLE_BUNDLE_ID=com.omomimoti.hitokaralog -e APPLE_TEAM_ID -e APPLE_KEY_ID -e APPLE_SIGNIN_KEY karaoke-api
 ```
 
 ## テスト
@@ -105,7 +112,10 @@ go test -count=1 ./...
 |---|---|---|
 | `PORT` | 待ち受けるポート。Cloud Run が渡す | `8080` |
 | `DATABASE_URL` | Postgres の URL | なし（なければ起動しない） |
-| `APPLE_BUNDLE_ID` | アプリのバンドル ID。Apple のトークンの宛先がこれと一致するかを見る。秘密ではない | なし（なければ起動しない） |
+| `APPLE_BUNDLE_ID` | アプリのバンドル ID。Apple のトークンの宛先がこれと一致するかを見る。Apple のトークンを取り消すときの `client_id` にも使う。秘密ではない | なし（なければ起動しない） |
+| `APPLE_TEAM_ID` | Apple Developer のチームの ID（10 文字）。秘密ではない | なし（なければ起動しない） |
+| `APPLE_KEY_ID` | Sign in with Apple の鍵の ID（10 文字）。秘密ではない | なし（なければ起動しない） |
+| `APPLE_SIGNIN_KEY` | Sign in with Apple の鍵（.p8 の中身、PEM）。アカウントを消すときに Apple のトークンを取り消すのに使う。**秘密**。staging では Secret Manager から渡す | なし（なければ起動しない） |
 
 秘密の値を `server/.env` に書くときは、コミットされない（`server/.gitignore`）。staging の値はリポジトリにも打ったコマンドの記録にも残さず、Secret Manager に置く。
 

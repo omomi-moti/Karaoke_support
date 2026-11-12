@@ -39,6 +39,17 @@ func run() error {
 		return errors.New("APPLE_BUNDLE_ID is not set")
 	}
 
+	appleTeamID := os.Getenv("APPLE_TEAM_ID")
+	appleKeyID := os.Getenv("APPLE_KEY_ID")
+	appleSignInKey := os.Getenv("APPLE_SIGNIN_KEY")
+	if appleTeamID == "" || appleKeyID == "" || appleSignInKey == "" {
+		return errors.New("APPLE_TEAM_ID, APPLE_KEY_ID and APPLE_SIGNIN_KEY must all be set")
+	}
+	appleRevoker, err := appleauth.NewRevoker(appleBundleID, appleTeamID, appleKeyID, []byte(appleSignInKey))
+	if err != nil {
+		return err
+	}
+
 	ctx := context.Background()
 	pool, err := pgxpool.New(ctx, databaseURL)
 	if err != nil {
@@ -50,7 +61,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("create apple keys: %w", err)
 	}
-	accounts := account.NewService(appleauth.NewVerifier(appleKeys, appleBundleID), account.NewStore(pool))
+	accounts := account.NewService(appleauth.NewVerifier(appleKeys, appleBundleID), appleRevoker, account.NewStore(pool))
 	accountHandler := account.NewHandler(accounts)
 
 	srv := &http.Server{
@@ -59,6 +70,7 @@ func run() error {
 			SignInWithApple: http.HandlerFunc(accountHandler.SignInWithApple),
 			SignOut:         http.HandlerFunc(accountHandler.SignOut),
 			Me:              http.HandlerFunc(accountHandler.Me),
+			DeleteMe:        http.HandlerFunc(accountHandler.DeleteMe),
 		}),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,

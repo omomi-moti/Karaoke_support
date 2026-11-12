@@ -9,6 +9,7 @@ import (
 var errorCodes = map[int]string{
 	http.StatusBadRequest:            "invalid_request",
 	http.StatusUnauthorized:          "unauthorized",
+	http.StatusForbidden:             "forbidden",
 	http.StatusRequestEntityTooLarge: "request_too_large",
 	http.StatusInternalServerError:   "internal",
 }

@@ -9,6 +9,7 @@ type Handlers struct {
 	SignInWithApple http.Handler
 	SignOut         http.Handler
 	Me              http.Handler
+	DeleteMe        http.Handler
 }
 
 // NewRouter は、全部の API の振り分けを持つハンドラーを返す。
@@ -19,5 +20,6 @@ func NewRouter(db Pinger, auth Authenticator, h Handlers) http.Handler {
 	mux.Handle("POST /v1/auth/apple", h.SignInWithApple)
 	mux.Handle("DELETE /v1/auth/session", RequireAuth(auth, h.SignOut))
 	mux.Handle("GET /v1/me", RequireAuth(auth, h.Me))
+	mux.Handle("DELETE /v1/me", RequireAuth(auth, h.DeleteMe))
 	return mux
 }
