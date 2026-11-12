@@ -31,6 +31,9 @@ struct AccountSectionView: View {
 			case .signedIn(let account):
 				Label("サインイン中", systemImage: "checkmark.circle")
 				LabeledContent("アカウント ID", value: "\(account.id.prefix(8))…")
+				Button("ログアウト", role: .destructive) {
+					Task { await viewModel.signOut() }
+				}
 			case .failed(let message):
 				VStack(alignment: .leading, spacing: 8) {
 					Text(message)
