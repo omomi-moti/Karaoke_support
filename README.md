@@ -1,4 +1,4 @@
-# Hitokara Log — ヒトカラモバイルiOS
+# からログ（Karalog）
 
 > 一人カラオケの歌唱体験を記録・振り返り、次の選曲を支援する iOS アプリ。
 
@@ -6,7 +6,7 @@
 
 一人カラオケは「何を歌おう」と毎回迷い、歌った体験も記録されずリセットされる。既存のカラオケアプリは点数しか残さず、**なぜその曲を歌ったか（感情・文脈）が消える**。
 
-Hitokara Log は、歌唱の意図を **Intent（🔥 Shout / 🌙 Emo / 🎤 Practice）** で記録し、スコア・メモとともに蓄積することで、過去の歌唱から「次に歌う曲」を提案する。単発で終わりがちな一人カラオケを **積み重なる体験** に変えるのが目的。
+からログは、歌唱の意図を **Intent（🔥 Shout / 🌙 Emo / 🎤 Practice）** で記録し、スコア・メモとともに蓄積することで、過去の歌唱から「次に歌う曲」を提案する。単発で終わりがちな一人カラオケを **積み重なる体験** に変えるのが目的。
 
 - カラオケボックスの通信が不安定 → **オフラインファースト**（ローカルDB完結）
 - 体験の文脈が消える → **Intent** で感情をラベル化して永続化
@@ -26,6 +26,8 @@ Hitokara Log は、歌唱の意図を **Intent（🔥 Shout / 🌙 Emo / 🎤 Pr
 
 ## 技術スタック
 
+### iOS
+
 | カテゴリ | 技術 |
 |----------|------|
 | 言語 | Swift 6.2（Xcode 26 付属のコンパイラ。言語モードは 5.9、Approachable Concurrency を有効） |
@@ -34,8 +36,31 @@ Hitokara Log は、歌唱の意図を **Intent（🔥 Shout / 🌙 Emo / 🎤 Pr
 | 状態管理 | `@Observable`（Observation framework） |
 | 非同期処理 | Swift Concurrency（async/await） |
 | アーキテクチャ | MVVM + Repository、手動 DI（`@Environment`） |
+| 通信・認証 | URLSession、Sign in with Apple（AuthenticationServices）、サーバーのトークンは Keychain に置く |
 | テスト | Swift Testing・XCTest（ユニットテスト。UI テストは起動の確認だけ） |
 | 最低対応 OS | iOS 26.0 |
+
+外部のパッケージは使っていない。
+
+### サーバー
+
+| カテゴリ | 技術 |
+|----------|------|
+| 言語 | Go 1.27（`net/http`） |
+| DB | PostgreSQL（Neon）、pgx、マイグレーションは goose |
+| 実行環境 | Cloud Run（コンテナは Docker で作る） |
+| 認証 | Sign in with Apple の ID トークンを検証（golang-jwt・keyfunc）し、サーバーのトークンを発行 |
+
+---
+
+## サーバー（開発中）
+
+本人がオンにしたときだけ、メモ以外の記録を自前のサーバーにバックアップできるよう、サーバーを作っている。記録の正は端末の SwiftData のままで、サーバーにつながらなくても記録と履歴は動く。この機能は App Store に出すビルドには入れず、今は Debug のビルドだけで動く（ADR 0048・0049・0053）。
+
+- 済み：Sign in with Apple でのサインイン・ログアウト・アカウントの削除（Apple のトークンの取り消しを含む）
+- これから：記録のバックアップと別の端末への取り込み、TestFlight での外部テスターへの配布、Apple Music の曲の候補（MusicKit）
+
+設計は [`docs/backend_design.md`](docs/backend_design.md)、手元で動かす手順とデプロイは [`server/README.md`](server/README.md)。
 
 ---
 
@@ -64,7 +89,7 @@ Debug のビルドでサーバーのアカウント（開発中）を試すと�
 
 ```
 Sources/
-├── App/                  # @main、起動時の組み立て（AppDependencies）、DI（EnvironmentKey）、プレビュー用モック
+├── App/                  # @main、起動時の組み立て（AppDependencies）、サーバーのつなぎ先、DI（EnvironmentKey）、プレビュー用モック
 ├── Presentation/         # View + ViewModel（画面単位でサブフォルダ）
 │   ├── Recording/        # 歌唱記録シート
 │   ├── AfterSave/        # 保存直後のシート（次の 1 曲の提案）
@@ -73,17 +98,34 @@ Sources/
 │   ├── Songs/            # 選曲タブ
 │   ├── Selection/        # 選曲画面（また歌いたい・今の気分に合う曲）
 │   ├── Search/           # 検索タブ
-│   ├── Settings/         # 設定タブ
+│   ├── Settings/         # 設定タブ（アカウントの欄）
 │   ├── Root/             # TabView・シートの切り替え・DB を開けなかったときの画面
 │   ├── Common/           # 共通コンポーネント
 │   └── Theme/            # 色トークン
 ├── Domain/               # Protocol・Model（フレームワーク非依存）
 │   ├── Models/           # Track, SingingSession, Intent, RecordSource 等
-│   ├── Repositories/     # Session / Track / Insight / TrackStats の Repository
+│   ├── Repositories/     # Session / Track / Insight / TrackStats / Account の Repository
 │   └── Helpers/          # 次の 1 曲の計算、曲名の候補の並べ方 等
 └── Data/                 # 具体実装
     ├── SwiftData/        # Repository実装
-    └── Network/          # NetworkMonitor
+    ├── Account/          # アカウントの Repository 実装（サーバーとのやりとり）
+    ├── Keychain/         # サーバーのトークンの保存
+    └── Network/          # APIClient、NetworkMonitor
+```
+
+</details>
+
+<details>
+<summary>server/ ツリー（クリックで展開）</summary>
+
+```
+server/
+├── cmd/api/              # main（起動と配線）
+├── internal/
+│   ├── httpapi/          # ルーティング・認証・エラーの返し方・/health
+│   ├── account/          # アカウント（handler / service / store）とサーバーのトークン
+│   └── appleauth/        # Apple の ID トークンの検証とトークンの取り消し
+└── migrations/           # goose のマイグレーション
 ```
 
 </details>
@@ -113,6 +155,8 @@ xcodebuild test \
 | アカウント（Debug のビルドだけ） | サインインと自分の情報の送受信（送る項目・Bearer・401／届かない／サーバーの失敗の分け方・401 のときだけ端末のトークンを消す）・ログアウト（サーバーに消してもらい、失敗しても届かなくても端末のトークンは消す・トークンがなければ送らない）・アカウントの削除（送る項目・成功と 401 のときだけ端末のトークンを消す・403／400／サーバーの失敗／届かないの分け方・トークンがなければ送らない）・Keychain の保存と削除・nonce のハッシュ・設定のアカウントの欄（サーバーに元の nonce を送る・nonce は 1 回で使い切る・キャンセルでは何も出さない・再試行・サインインの途中で読み込んでもサインインの結果を残す・画面を離れたときに失敗を出さない・ログアウトで元に戻す・削除では元の nonce と token と認可コードを送る・値が欠けていれば送らない・Apple の確認でキャンセルしたら何も出さない・届かないときは消えていないと出す・削除のあとに知らせを出し、サインインし直したら消す） |
 | Domain ヘルパー・共通 | 次の 1 曲の計算（ハート付きを上に・挑戦中の曲を外す）・選曲画面のセクション分け・挑戦中の曲の判定と、練習中の曲と歌い切れなかった曲への分け方・曲名表示・曲名候補の並べ方・点数の右詰め入力と表示・Empty State 文言 |
 
+サーバーのテスト（`go test`、本物の DB を使うテストを含む）の流し方は [`server/README.md`](server/README.md)。
+
 ---
 
 ## ドキュメント
@@ -120,12 +164,15 @@ xcodebuild test \
 | 内容 | ファイル |
 |------|---------|
 | docs の目次（どれが正か） | [`docs/README.md`](docs/README.md) |
+| 最上位のルール（憲法） | [`docs/constitution.md`](docs/constitution.md) |
 | プロダクト概要・Intent設計 | [`docs/product_overview.md`](docs/product_overview.md) |
 | 技術判断の記録（ADR） | [`docs/adr/`](docs/adr/README.md) |
 | アーキテクチャ・データフロー | [`docs/architecture.md`](docs/architecture.md) |
 | 開発プロセス（Issue・ADR・AI 活用） | [`docs/development_process.md`](docs/development_process.md) |
 | V1 Issue一覧・完了チェック（アーカイブ） | [`docs/archive/v1_issues.md`](docs/archive/v1_issues.md) |
 | 画面遷移設計 | [`docs/v1_navigation_songs_recording.md`](docs/v1_navigation_songs_recording.md) |
+| サーバーと MusicKit の設計 | [`docs/backend_design.md`](docs/backend_design.md) |
+| サーバーの動かし方・デプロイ | [`server/README.md`](server/README.md) |
 
 ---
 

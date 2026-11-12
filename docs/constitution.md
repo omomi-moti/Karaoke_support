@@ -1,7 +1,7 @@
-# ヒトカラモバイルiOS Constitution
+# からログ Constitution
 
 > **Status: ACTIVE CONSTITUTION**  
-> このファイルはヒトカラモバイルiOS プロジェクトの開発原則と品質基準を定義します。
+> このファイルはからログのプロジェクトの開発原則と品質基準を定義します。
 
 ---
 
