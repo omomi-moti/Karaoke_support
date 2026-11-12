@@ -127,7 +127,7 @@ go test -count=1 ./...
 
 | もの | 名前 |
 |---|---|
-| GCP のプロジェクト | `karaoke-staging-513712`（地域は `asia-northeast1`） |
+| GCP のプロジェクト | 自分のプロジェクト ID（コミットしない。`gcloud projects list` で確かめる）。地域は `asia-northeast1` |
 | イメージの置き場（Artifact Registry） | `karaoke` |
 | Cloud Run のサービス | `karaoke-api-staging`（インスタンスの上限 1、誰でも呼べる） |
 | サービスアカウント | `karaoke-api-staging`（`database-url-staging` と `apple-signin-key-staging` を読む権限だけ） |
@@ -140,7 +140,7 @@ go test -count=1 ./...
 
 ```bash
 gcloud auth login
-gcloud config set project karaoke-staging-513712
+gcloud config set project プロジェクトのID
 gcloud auth configure-docker asia-northeast1-docker.pkg.dev
 ```
 
@@ -158,17 +158,18 @@ gcloud auth configure-docker asia-northeast1-docker.pkg.dev
 2. イメージを作って送る。Cloud Run は amd64 で動くので、ARM の Mac では `--platform` を付ける
 
    ```bash
+   PROJECT_ID=$(gcloud config get-value project)
    TAG=$(git rev-parse --short HEAD)
-   docker buildx build --platform linux/amd64 -t asia-northeast1-docker.pkg.dev/karaoke-staging-513712/karaoke/api:$TAG --push .
+   docker buildx build --platform linux/amd64 -t asia-northeast1-docker.pkg.dev/$PROJECT_ID/karaoke/api:$TAG --push .
    ```
 
 3. デプロイする。2 回目からも同じオプションを付ける
 
    ```bash
    gcloud run deploy karaoke-api-staging \
-     --image asia-northeast1-docker.pkg.dev/karaoke-staging-513712/karaoke/api:$TAG \
+     --image asia-northeast1-docker.pkg.dev/$PROJECT_ID/karaoke/api:$TAG \
      --region asia-northeast1 \
-     --service-account karaoke-api-staging@karaoke-staging-513712.iam.gserviceaccount.com \
+     --service-account karaoke-api-staging@$PROJECT_ID.iam.gserviceaccount.com \
      --set-secrets DATABASE_URL=database-url-staging:latest,APPLE_SIGNIN_KEY=apple-signin-key-staging:latest \
      --set-env-vars APPLE_BUNDLE_ID=com.omomimoti.hitokaralog,APPLE_TEAM_ID=チームのID,APPLE_KEY_ID=鍵のID \
      --max-instances 1 \
@@ -204,6 +205,7 @@ gcloud secrets versions destroy 古い版の番号 --secret=database-url-staging
 イメージの置き場は無料の容量を超えると課金される。動いているタグは消さない
 
 ```bash
-gcloud artifacts docker images list asia-northeast1-docker.pkg.dev/karaoke-staging-513712/karaoke --include-tags
-gcloud artifacts docker images delete asia-northeast1-docker.pkg.dev/karaoke-staging-513712/karaoke/api:消すタグ --delete-tags
+PROJECT_ID=$(gcloud config get-value project)
+gcloud artifacts docker images list asia-northeast1-docker.pkg.dev/$PROJECT_ID/karaoke --include-tags
+gcloud artifacts docker images delete asia-northeast1-docker.pkg.dev/$PROJECT_ID/karaoke/api:消すタグ --delete-tags
 ```
