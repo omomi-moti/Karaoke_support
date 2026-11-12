@@ -128,7 +128,7 @@ Go は標準の `net/http`（1.22 以降のルーティング）と `pgx` を使
 | POST | `/v1/auth/apple` | Apple のトークンを受け取り、サーバーのトークン（期限 90 日）を返す。ユーザーがいなければ作る。その人の期限切れのトークンの行を消す | なし |
 | DELETE | `/v1/auth/session` | ログアウト（今のトークンの行だけを消し、204 を返す。ほかの端末のトークンは残す） | 要る |
 | GET | `/v1/me` | 自分の情報（サーバーのユーザー ID と作った日時だけ。Apple のユーザー ID は返さない） | 要る |
-| DELETE | `/v1/me` | Apple の認可コードを受け取り、Apple のトークンを取り消してから、アカウントとデータを全部消す | 要る |
+| DELETE | `/v1/me` | Apple の identity token・nonce・認可コードを受け取る。Apple ID が本人のものかを確かめ、Apple のトークンを取り消せたときだけ、アカウントとデータを全部消して 204 を返す（[ADR 0057](adr/0057-delete-account-and-revoke-apple-token.md)） | 要る |
 | GET | `/v1/backup/summary` | バックアップの件数と日時。なければ 404 | 要る |
 | PUT | `/v1/backup` | バックアップを丸ごと置き換える | 要る |
 | GET | `/v1/backup` | バックアップを読む | 要る |
