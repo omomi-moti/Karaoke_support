@@ -130,10 +130,10 @@ go test -count=1 ./...
 | GCP のプロジェクト | `karaoke-staging-513712`（地域は `asia-northeast1`） |
 | イメージの置き場（Artifact Registry） | `karaoke` |
 | Cloud Run のサービス | `karaoke-api-staging`（インスタンスの上限 1、誰でも呼べる） |
-| サービスアカウント | `karaoke-api-staging`（`database-url-staging` を読む権限だけ） |
+| サービスアカウント | `karaoke-api-staging`（`database-url-staging` と `apple-signin-key-staging` を読む権限だけ） |
 | DB（Neon） | `staging` ブランチ（シンガポール） |
-| 秘密（Secret Manager） | `database-url-staging`（Neon の `staging` ブランチの URL） |
-| 秘密ではない環境変数 | `APPLE_BUNDLE_ID`（`com.omomimoti.hitokaralog`） |
+| 秘密（Secret Manager） | `database-url-staging`（Neon の `staging` ブランチの URL）、`apple-signin-key-staging`（Sign in with Apple の鍵 .p8。Apple Developer の Keys で作った。もう一度はダウンロードできない） |
+| 秘密ではない環境変数 | `APPLE_BUNDLE_ID`（`com.omomimoti.hitokaralog`）、`APPLE_TEAM_ID`（Apple Developer の Membership details）、`APPLE_KEY_ID`（Apple Developer の Keys） |
 | お金の守り | 予算のアラート（月 500 円）と、Cloud Run の支出の上限（月 300 円）。GCP の画面の「お支払い → 予算とアラート」 |
 
 ### 初めての Mac で 1 回だけ
@@ -169,8 +169,8 @@ gcloud auth configure-docker asia-northeast1-docker.pkg.dev
      --image asia-northeast1-docker.pkg.dev/karaoke-staging-513712/karaoke/api:$TAG \
      --region asia-northeast1 \
      --service-account karaoke-api-staging@karaoke-staging-513712.iam.gserviceaccount.com \
-     --set-secrets DATABASE_URL=database-url-staging:latest \
-     --set-env-vars APPLE_BUNDLE_ID=com.omomimoti.hitokaralog \
+     --set-secrets DATABASE_URL=database-url-staging:latest,APPLE_SIGNIN_KEY=apple-signin-key-staging:latest \
+     --set-env-vars APPLE_BUNDLE_ID=com.omomimoti.hitokaralog,APPLE_TEAM_ID=チームのID,APPLE_KEY_ID=鍵のID \
      --max-instances 1 \
      --allow-unauthenticated
    ```
