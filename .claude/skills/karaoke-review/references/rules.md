@@ -530,9 +530,10 @@ grep -rn -E 'math/rand|crypto/rand|Bearer|expires_at|no-store|token' server/inte
 ### 不変条件
 
 `POST /v1/auth/apple` は、Apple が今このアプリのために出したトークンだけを受け付ける（ADR 0054）。
+根拠は Apple の「Verifying a user」の手順と、OpenID Connect Core 1.0 の 3.1.3.7（ID Token Validation）。
 
 - 署名は `RS256` だけを受け付ける（`jwt.WithValidMethods`）
-- 発行者が `https://appleid.apple.com`、宛先が設定のバンドル ID、期限があって切れていない、発行時刻が 10 分以内。時計のずれの許容は 1 分まで
+- 発行者が `https://appleid.apple.com`、宛先が設定のバンドル ID の 1 つだけ（ほかの宛先が混ざっていたら拒否。golang-jwt の `WithAudience` はどれか 1 つが合えば通すので、それだけでは足りない）、期限があって切れていない、発行時刻が 10 分以内。時計のずれの許容は 1 分まで
 - 受け取った nonce の SHA-256 が、Apple のトークンの `nonce` と一致する
 - 公開鍵は Apple の JWKS から keyfunc で取り、通信にタイムアウトがあり、知らない鍵の ID での取り直しに回数の制限がある
 - 検証から先に渡すのは `sub` だけ

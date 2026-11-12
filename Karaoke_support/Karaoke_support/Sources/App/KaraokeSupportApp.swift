@@ -49,6 +49,9 @@ struct KaraokeSupportApp: App {
 					.environment(\.trackRepository, dependencies.trackRepository)
 					.environment(\.insightRepository, dependencies.insightRepository)
 					.environment(\.trackStatsRepository, dependencies.trackStatsRepository)
+					#if DEBUG || BETA
+					.environment(\.accountRepository, dependencies.accountRepository)
+					#endif
 					.modelContainer(dependencies.modelContainer)
 			case .failure:
 				DataLoadErrorView()

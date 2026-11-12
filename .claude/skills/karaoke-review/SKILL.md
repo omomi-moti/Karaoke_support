@@ -32,7 +32,7 @@ export TEST_DATABASE_URL='postgres://karaoke:karaoke@localhost:5432/karaoke?sslm
 goose -dir migrations postgres "$TEST_DATABASE_URL" up
 gofmt -l .
 go vet ./...
-go test -v ./... 2>&1 | grep -E -A1 -e '--- (FAIL|SKIP)' -e '^(ok|FAIL)'
+go test -count=1 -v ./... 2>&1 | grep -E -B1 -e '--- (FAIL|SKIP)' -e '^(ok|FAIL)'
 go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
 ```
 

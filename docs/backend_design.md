@@ -37,7 +37,7 @@
 | NFR-1 | オフラインファースト | サーバーが止まっていても、記録・履歴・選曲はすべて動く。正は端末の SwiftData で、サーバーは本人がオンにしたときだけ使う控え |
 | NFR-2 | プライバシー | サーバーに置くのは Apple のユーザー ID（`sub`）と、メモを除いた記録だけ。メールアドレスも名前も受け取らない。Cloud Run のリクエストのログには IP アドレスと User-Agent が残るので、保存の期間を確かめてプライバシーポリシーに書く |
 | NFR-3 | プライバシー | サーバーのログとエラーの返事に、記録の中身（曲名・点数・気分）も、Apple のトークン・サーバーのトークン・`Authorization` ヘッダーも出さない |
-| NFR-4 | セキュリティ | Apple のトークンは、署名（`RS256` だけを受け付ける）・発行者・宛先（バンドル ID）・期限・発行時刻と、iOS が作った nonce が一致するかを、golang-jwt と keyfunc で検証する。サーバーが出すトークンは `crypto/rand` で作ってハッシュにして DB に保存し、iOS は Keychain に `AfterFirstUnlockThisDeviceOnly` で置く（[ADR 0054](adr/0054-sign-in-and-server-tokens.md)）。通信は HTTPS だけで、DB とも TLS（`sslmode=require` 以上）でつなぐ |
+| NFR-4 | セキュリティ | Apple のトークンは、署名（`RS256` だけを受け付ける）・発行者・宛先（バンドル ID だけ。ほかの宛先が混ざっていたら拒否）・期限・発行時刻と、iOS が作った nonce が一致するかを、golang-jwt と keyfunc で検証する。確かめる項目は、Apple の「Verifying a user」の手順と、OpenID Connect Core 1.0 の 3.1.3.7（ID Token Validation）に沿う。サーバーが出すトークンは `crypto/rand` で作ってハッシュにして DB に保存し、iOS は Keychain に `AfterFirstUnlockThisDeviceOnly` で置く（[ADR 0054](adr/0054-sign-in-and-server-tokens.md)）。通信は HTTPS だけで、DB とも TLS（`sslmode=require` 以上）でつなぐ |
 | NFR-5 | セキュリティ | 1 回のリクエストの大きさに上限を設ける（5MB） |
 | NFR-6 | 費用 | 月 0 円を目指す。Cloud Run のインスタンスの数の上限を 1 にし、予算のアラート（月 500 円）と Cloud Run の支出の上限（月 300 円）を入れる（[ADR 0051](adr/0051-public-cloud-run-with-caps.md)） |
 | NFR-7 | 互換性 | API のパスに `/v1/` を付ける。バックアップに `schemaVersion` を持たせ、アプリのモデルが変わっても古いバックアップを読めるようにする |
@@ -106,7 +106,7 @@ Go は標準の `net/http`（1.22 以降のルーティング）と `pgx` を使
 | staging | Cloud Run `karaoke-api-staging`（東京 `asia-northeast1`） | Neon の `staging` ブランチ（シンガポール。Neon に東京はない、ADR 0050） | Xcode から入れた実機と、TestFlight の Beta のビルド | 自分とテスターの試し用。消すときはテスターに先に伝える |
 | production | MVP では作らない | — | — | — |
 
-- iOS は xcconfig の `API_BASE_URL` を Info.plist から読む。Debug と Beta のビルドは staging につなぎ、Release にはつなぎ先を入れない。スキームの環境変数 `KARAOKE_API_BASE_URL` で local に上書きできる（`KARAOKE_SIMULATE_DATA_LOAD_FAILURE` と同じやり方）
+- iOS は xcconfig の `API_BASE_URL` を Info.plist から読む。Debug と Beta のビルドは staging につなぎ、Release にはつなぎ先を入れない。staging の URL はコミットしない `Karaoke_support/Config/Local.xcconfig` に書き、ないときはアカウントの機能を出さない（書き方は `Local.xcconfig.example`、ADR 0055）。スキームの環境変数 `KARAOKE_API_BASE_URL` で local に上書きできる（`KARAOKE_SIMULATE_DATA_LOAD_FAILURE` と同じやり方）
 - MVP の間は手でデプロイし、デプロイの前にマイグレーションを手で流す。イメージは手元で作って Artifact Registry に送る。手順は [server/README.md](../server/README.md)。GitHub Actions は MVP の後
 - DB の URL などの秘密の値はリポジトリに入れず、Secret Manager に置いて Cloud Run の環境変数として渡す
 - Cloud Run は誰でも呼べるようにし、専用のサービスアカウントで動かす。このアカウントは DB の URL を読む権限だけを持つ（[ADR 0051](adr/0051-public-cloud-run-with-caps.md)）
@@ -127,13 +127,15 @@ Go は標準の `net/http`（1.22 以降のルーティング）と `pgx` を使
 | GET | `/health` | 生きているかの確認 | なし |
 | POST | `/v1/auth/apple` | Apple のトークンを受け取り、サーバーのトークン（期限 90 日）を返す。ユーザーがいなければ作る | なし |
 | DELETE | `/v1/auth/session` | ログアウト（今のトークンを消す） | 要る |
-| GET | `/v1/me` | 自分の情報 | 要る |
+| GET | `/v1/me` | 自分の情報（サーバーのユーザー ID と作った日時だけ。Apple のユーザー ID は返さない） | 要る |
 | DELETE | `/v1/me` | Apple の認可コードを受け取り、Apple のトークンを取り消してから、アカウントとデータを全部消す | 要る |
 | GET | `/v1/backup/summary` | バックアップの件数と日時。なければ 404 | 要る |
 | PUT | `/v1/backup` | バックアップを丸ごと置き換える | 要る |
 | GET | `/v1/backup` | バックアップを読む | 要る |
 
 失敗したときは、トークンが偽物・期限切れなど利用者の側の失敗は 401、Apple や DB に届かないなどサーバーの側の失敗は 5xx を返す。返事の本文は `{"error": "..."}` の形にし、詳しい理由はログにだけ出す（ADR 0054）。
+
+ただし今は、サインインのときに Apple の公開鍵を取りにいけなくても 401 になる。keyfunc（jwkset）が、鍵の取り直しの失敗を「鍵が見つからない」と同じエラーで返し、偽物のトークンと見分けられないため。5xx に直すか、401 のままにして ADR を足すかは #153 で決める。
 
 ### バックアップの中身（`BackupSnapshot`）
 
@@ -158,14 +160,17 @@ sequenceDiagram
     participant R as AccountRepository（Data）
     participant S as サーバー
     participant A as Apple
-    V->>VM: Sign in with Apple の結果（identityToken）
-    VM->>R: signIn(identityToken:)
+    V->>VM: Sign in with Apple の結果（identityToken。Apple にはハッシュにした nonce を渡しておく）
+    VM->>R: signInWithApple(identityToken:rawNonce:)
     R->>S: POST /v1/auth/apple
     S->>A: 公開鍵を取る（キャッシュ。知らない鍵の ID のときだけ取り直す）
     S->>S: 署名・発行者・宛先・期限・発行時刻・nonce を検証し、sub でユーザーを探す（なければ作る）
     S-->>R: サーバーのトークン
     R->>R: Keychain に保存
     R-->>VM: ログイン済み
+    VM->>R: fetchMe()
+    R->>S: GET /v1/me（Bearer）
+    S-->>R: ユーザー ID と作った日時
 ```
 
 ### バックアップ
@@ -212,7 +217,7 @@ sequenceDiagram
 | 0 | サーバーと MusicKit の設計を決め、文書にする（#144） | — | 済み |
 | 1 | サーバーの土台を作り、staging にデプロイする（#146） | NFR-6・NFR-9・NFR-10 | 済み |
 | 2-1 | サインインとサーバーのトークンの設計を決める（#151） | NFR-4 | 済み |
-| 2-2 | Sign in with Apple でサインインできるようにする（#152） | FR-1・NFR-2〜4 | 未着手 |
+| 2-2 | Sign in with Apple でサインインできるようにする（#152） | FR-1・NFR-2〜4 | 済み |
 | 2-3 | ログアウトと、失敗したときの備えを作る（#153） | FR-1・NFR-2〜4 | 未着手 |
 | 2-4 | アカウントを消せるようにする（Apple のトークンも取り消す） | FR-2 | 未着手 |
 | 3 | 記録をサーバーにバックアップする（オンにした後は自動で） | FR-3・FR-4・NFR-5・NFR-7・NFR-8 | 未着手 |

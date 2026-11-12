@@ -68,3 +68,6 @@ fastlane/test_output
 # Claude Code（スキルは共有する。個人の設定と作業用の worktree は入れない）
 .claude/settings.local.json
 .claude/worktrees/
+
+# 手元だけの Xcode の設定（staging のつなぎ先など）
+Karaoke_support/Config/Local.xcconfig

@@ -79,7 +79,7 @@ Sources/
 環境に置く値の書き方は、初期値に同一性があるかで分ける（ADR 0031）。
 
 - **値とクロージャ**（`historyReloadTick`、`navigateTo…`）：`@Entry`
-- **状態を持つ参照型**（Repository）：`EnvironmentKey` + `static let defaultValue`。Repository のプロトコルは `@MainActor` かつ `Sendable`。プレビュー用の Repository は `nonisolated init()` を持つ（ADR 0027）
+- **状態を持つ参照型**（Repository）：`EnvironmentKey` + `static let defaultValue`。Repository のプロトコルは `@MainActor` かつ `Sendable`。プレビュー用の Repository は `nonisolated init()` を持つ（ADR 0027）。例外は `accountRepository` で、つなぎ先がないときは nil にするため、初期値 nil の `@Entry` で書く（ADR 0055）
 - **アプリに 1 つの `@Observable` のオブジェクト**（`NetworkMonitor`）：`.environment(networkMonitor)` / `@Environment(NetworkMonitor.self)`。初期値はない
 
 ### 主なモデル
