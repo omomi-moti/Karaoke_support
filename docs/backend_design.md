@@ -160,14 +160,17 @@ sequenceDiagram
     participant R as AccountRepository（Data）
     participant S as サーバー
     participant A as Apple
-    V->>VM: Sign in with Apple の結果（identityToken）
-    VM->>R: signIn(identityToken:)
+    V->>VM: Sign in with Apple の結果（identityToken。Apple にはハッシュにした nonce を渡しておく）
+    VM->>R: signInWithApple(identityToken:rawNonce:)
     R->>S: POST /v1/auth/apple
     S->>A: 公開鍵を取る（キャッシュ。知らない鍵の ID のときだけ取り直す）
     S->>S: 署名・発行者・宛先・期限・発行時刻・nonce を検証し、sub でユーザーを探す（なければ作る）
     S-->>R: サーバーのトークン
     R->>R: Keychain に保存
     R-->>VM: ログイン済み
+    VM->>R: fetchMe()
+    R->>S: GET /v1/me（Bearer）
+    S-->>R: ユーザー ID と作った日時
 ```
 
 ### バックアップ
@@ -214,7 +217,7 @@ sequenceDiagram
 | 0 | サーバーと MusicKit の設計を決め、文書にする（#144） | — | 済み |
 | 1 | サーバーの土台を作り、staging にデプロイする（#146） | NFR-6・NFR-9・NFR-10 | 済み |
 | 2-1 | サインインとサーバーのトークンの設計を決める（#151） | NFR-4 | 済み |
-| 2-2 | Sign in with Apple でサインインできるようにする（#152） | FR-1・NFR-2〜4 | 未着手 |
+| 2-2 | Sign in with Apple でサインインできるようにする（#152） | FR-1・NFR-2〜4 | 済み |
 | 2-3 | ログアウトと、失敗したときの備えを作る（#153） | FR-1・NFR-2〜4 | 未着手 |
 | 2-4 | アカウントを消せるようにする（Apple のトークンも取り消す） | FR-2 | 未着手 |
 | 3 | 記録をサーバーにバックアップする（オンにした後は自動で） | FR-3・FR-4・NFR-5・NFR-7・NFR-8 | 未着手 |
