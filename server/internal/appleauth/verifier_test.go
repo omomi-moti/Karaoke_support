@@ -23,15 +23,21 @@ var testNow = time.Date(2026, 11, 10, 12, 0, 0, 0, time.UTC)
 
 type fakeKeys struct {
 	key *rsa.PublicKey
+	// empty にすると、起動のときに Apple に届かず、鍵を 1 つも持っていない状態にする。
+	empty bool
 }
 
 func (f fakeKeys) KeyfuncCtx(ctx context.Context) jwt.Keyfunc {
 	return func(t *jwt.Token) (any, error) {
-		if t.Header["kid"] != testKID {
-			return nil, errors.New("unknown kid")
+		if f.empty || t.Header["kid"] != testKID {
+			return nil, errors.New("key not found")
 		}
 		return f.key, nil
 	}
+}
+
+func (f fakeKeys) HasKeys(context.Context) bool {
+	return !f.empty
 }
 
 func newKey(t *testing.T) *rsa.PrivateKey {
@@ -133,6 +139,47 @@ func TestVerify(t *testing.T) {
 			}
 			if sub != "" {
 				t.Fatalf("sub = %q, want empty", sub)
+			}
+		})
+	}
+}
+
+func TestVerifyWithoutKeys(t *testing.T) {
+	appleKey := newKey(t)
+	rs256 := func(c jwt.MapClaims) string {
+		return sign(t, jwt.SigningMethodRS256, appleKey, testKID, c)
+	}
+	expired := validClaims()
+	expired["exp"] = testNow.Add(-2 * time.Minute).Unix()
+
+	tests := []struct {
+		name    string
+		keys    fakeKeys
+		token   string
+		wantErr error
+	}{
+		{"鍵が 1 つもなければ、確かめようがない", fakeKeys{empty: true}, rs256(validClaims()), ErrKeysUnavailable},
+		{"鍵があって知らない鍵の ID なら、偽物として断る", fakeKeys{key: &appleKey.PublicKey}, sign(t, jwt.SigningMethodRS256, appleKey, "other-kid", validClaims()), ErrInvalidToken},
+		{"鍵がなくても、トークンの形でなければ偽物として断る", fakeKeys{empty: true}, "not-a-jwt", ErrInvalidToken},
+		{"鍵がなくても、RS256 以外は偽物として断る", fakeKeys{empty: true}, sign(t, jwt.SigningMethodHS256, []byte("secret"), testKID, validClaims()), ErrInvalidToken},
+		{"手元の鍵で確かめて期限切れなら、偽物として断る", fakeKeys{key: &appleKey.PublicKey}, rs256(expired), ErrInvalidToken},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v := NewVerifier(tt.keys, testAudience)
+			v.now = func() time.Time { return testNow }
+
+			_, err := v.Verify(context.Background(), tt.token, testNonce)
+
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("err = %v, want %v", err, tt.wantErr)
+			}
+			other := ErrInvalidToken
+			if tt.wantErr == ErrInvalidToken {
+				other = ErrKeysUnavailable
+			}
+			if errors.Is(err, other) {
+				t.Fatalf("err = %v は %v でもある。どちらか一方だけにする", err, other)
 			}
 		})
 	}

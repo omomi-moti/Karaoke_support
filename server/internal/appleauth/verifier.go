@@ -23,9 +23,15 @@ const (
 // 理由は包んだエラーの中にだけ入れ、利用者への返事には出さない。
 var ErrInvalidToken = errors.New("invalid apple identity token")
 
+// ErrKeysUnavailable は、Apple の公開鍵を 1 つも持っておらず、トークンを確かめようがないことを表す。
+// 起動のときに Apple に届かなかったときに起きる。利用者の側の失敗ではないので、5xx にする（ADR 0056）。
+var ErrKeysUnavailable = errors.New("apple public keys unavailable")
+
 // KeySource は、トークンの署名を確かめる鍵を返すもの。
 type KeySource interface {
 	KeyfuncCtx(ctx context.Context) jwt.Keyfunc
+	// HasKeys は、手元に鍵が 1 つでもあるかを返す。
+	HasKeys(ctx context.Context) bool
 }
 
 // Verifier は、Apple のトークンが、このアプリのために今出されたものかを確かめる。
@@ -48,6 +54,7 @@ type claims struct {
 // Verify は idToken を確かめ、Apple のユーザー ID（sub）を返す。
 // rawNonce は iOS が作った元の nonce で、Apple には SHA-256 を 16 進数にしたものが渡っている。
 // 受け付けられないときは ErrInvalidToken を包んだエラーを返す。
+// 鍵を探せず、しかも手元に鍵が 1 つもないときは、ErrKeysUnavailable を包んだエラーを返す。
 func (v *Verifier) Verify(ctx context.Context, idToken, rawNonce string) (string, error) {
 	parser := jwt.NewParser(
 		jwt.WithValidMethods([]string{jwt.SigningMethodRS256.Alg()}),
@@ -61,6 +68,9 @@ func (v *Verifier) Verify(ctx context.Context, idToken, rawNonce string) (string
 
 	var c claims
 	if _, err := parser.ParseWithClaims(idToken, &c, v.keys.KeyfuncCtx(ctx)); err != nil {
+		if errors.Is(err, jwt.ErrTokenUnverifiable) && !v.keys.HasKeys(ctx) {
+			return "", fmt.Errorf("%w: %w", ErrKeysUnavailable, err)
+		}
 		return "", fmt.Errorf("%w: %w", ErrInvalidToken, err)
 	}
 	if len(c.Audience) != 1 || c.Audience[0] != v.audience {

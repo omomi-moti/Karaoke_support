@@ -61,6 +61,7 @@
 | [0053](0053-beta-testers-and-auto-backup.md) | 外部テスターには Beta のビルドで配り、バックアップは自動で取る | 承認 |
 | [0054](0054-sign-in-and-server-tokens.md) | サインインは Apple だけにし、サーバーのトークンはハッシュにして持つ | 承認 |
 | [0055](0055-local-api-base-url-and-optional-account.md) | staging のつなぎ先は手元の xcconfig に置き、ないときはアカウントの機能を出さない | 承認 |
+| [0056](0056-apple-keys-unavailable-returns-5xx.md) | Apple の公開鍵を 1 つも持っていないときだけ、サインインを 5xx にする | 承認 |
 
 ## 書き方
 

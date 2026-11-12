@@ -200,6 +200,7 @@ func TestSignInWithAppleFailures(t *testing.T) {
 	}{
 		{"Apple のトークンを受け付けない", fakeApple{err: invalid}, nil, true},
 		{"Apple の検証がほかの理由で失敗", fakeApple{err: errors.New("unexpected")}, nil, false},
+		{"Apple の公開鍵が 1 つもない", fakeApple{err: fmt.Errorf("%w: key not found", appleauth.ErrKeysUnavailable)}, nil, false},
 		{"DB が失敗", fakeApple{sub: "apple-1"}, errDBDown, false},
 	}
 	for _, tt := range tests {
