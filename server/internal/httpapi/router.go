@@ -7,6 +7,7 @@ import (
 // Handlers は、機能ごとのパッケージが作る API のハンドラー。
 type Handlers struct {
 	SignInWithApple http.Handler
+	SignOut         http.Handler
 	Me              http.Handler
 }
 
@@ -16,6 +17,7 @@ func NewRouter(db Pinger, auth Authenticator, h Handlers) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("GET /health", handleHealth(db))
 	mux.Handle("POST /v1/auth/apple", h.SignInWithApple)
+	mux.Handle("DELETE /v1/auth/session", RequireAuth(auth, h.SignOut))
 	mux.Handle("GET /v1/me", RequireAuth(auth, h.Me))
 	return mux
 }

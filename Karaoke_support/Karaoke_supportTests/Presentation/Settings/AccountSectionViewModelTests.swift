@@ -51,6 +51,15 @@ private final class StubAccountRepository: AccountRepositoryProtocol {
 		heldContinuation?.resume()
 		heldContinuation = nil
 	}
+
+	var signOutError: Error?
+	private(set) var signOutCount = 0
+
+	func signOut() async throws {
+		signOutCount += 1
+		if let signOutError { throw signOutError }
+		isSignedIn = false
+	}
 }
 
 @Suite("AccountSectionViewModel")
@@ -205,6 +214,30 @@ struct AccountSectionViewModelTests {
 		await signIn.value
 
 		#expect(vm.status == .signedIn(repository.account))
+	}
+
+	@Test("ログアウトすると、サインインしていないに戻す")
+	func signOutReturnsToSignedOut() async {
+		repository.isSignedIn = true
+		let vm = makeViewModel()
+		await vm.load()
+
+		await vm.signOut()
+
+		#expect(repository.signOutCount == 1)
+		#expect(vm.status == .signedOut)
+	}
+
+	@Test("端末からトークンを消せなければ、失敗を出す")
+	func signOutFailure() async {
+		repository.isSignedIn = true
+		repository.signOutError = AccountRepositoryError.tokenStorage
+		let vm = makeViewModel()
+		await vm.load()
+
+		await vm.signOut()
+
+		#expect(isFailed(vm.status))
 	}
 
 	@Test("画面を離れて読み込みが取り消されたときは、失敗を出さない")

@@ -15,11 +15,17 @@ import (
 )
 
 type fakeService struct {
-	err         error
-	gotIDToken  string
-	gotNonce    string
-	gotUserID   string
-	signInCalls int
+	err             error
+	gotIDToken      string
+	gotNonce        string
+	gotUserID       string
+	gotSignOutToken string
+	signInCalls     int
+}
+
+func (f *fakeService) SignOut(_ context.Context, rawToken string) error {
+	f.gotSignOutToken = rawToken
+	return f.err
 }
 
 func (f *fakeService) SignInWithApple(_ context.Context, idToken, rawNonce string) (string, time.Time, error) {
@@ -150,6 +156,54 @@ func TestMeHandler(t *testing.T) {
 		h.Me(rec, httptest.NewRequest(http.MethodGet, "/v1/me", nil))
 		if rec.Code != http.StatusInternalServerError {
 			t.Fatalf("status = %d, want 500", rec.Code)
+		}
+	})
+}
+
+func TestSignOutHandler(t *testing.T) {
+	tests := []struct {
+		name       string
+		svcErr     error
+		wantStatus int
+	}{
+		{"通る", nil, http.StatusNoContent},
+		{"DB が失敗", errors.New("db down"), http.StatusInternalServerError},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := &fakeService{err: tt.svcErr}
+			h := &Handler{svc: svc}
+			req := httptest.NewRequest(http.MethodDelete, "/v1/auth/session", nil)
+			req.Header.Set("Authorization", "Bearer klog_abc")
+			rec := httptest.NewRecorder()
+			httpapi.RequireAuth(fakeAuthenticator{}, http.HandlerFunc(h.SignOut)).ServeHTTP(rec, req)
+
+			if rec.Code != tt.wantStatus {
+				t.Fatalf("status = %d, want %d", rec.Code, tt.wantStatus)
+			}
+			if svc.gotSignOutToken != "klog_abc" {
+				t.Fatalf("service に渡したトークン = %q, want klog_abc", svc.gotSignOutToken)
+			}
+			if tt.wantStatus == http.StatusNoContent {
+				if rec.Body.Len() != 0 {
+					t.Fatalf("204 なのに本文がある: %s", rec.Body)
+				}
+				return
+			}
+			assertError(t, rec, "internal")
+		})
+	}
+
+	t.Run("RequireAuth を通っていない", func(t *testing.T) {
+		svc := &fakeService{}
+		h := &Handler{svc: svc}
+		rec := httptest.NewRecorder()
+		h.SignOut(rec, httptest.NewRequest(http.MethodDelete, "/v1/auth/session", nil))
+		if rec.Code != http.StatusInternalServerError {
+			t.Fatalf("status = %d, want 500", rec.Code)
+		}
+		if svc.gotSignOutToken != "" {
+			t.Fatal("トークンがないのに service を呼んだ")
 		}
 	})
 }

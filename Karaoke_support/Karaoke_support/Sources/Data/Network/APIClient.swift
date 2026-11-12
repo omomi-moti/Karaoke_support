@@ -39,6 +39,11 @@ struct APIClient: Sendable {
 		return try await send(request)
 	}
 
+	/// `path` に本文なしで送り、成功のステータスかだけを確かめる。返事の本文は読まない（204 など）。
+	func sendExpectingNoContent(_ method: String, _ path: String, bearer: String? = nil) async throws {
+		_ = try await data(for: makeRequest(method, path, bearer: bearer))
+	}
+
 	private func makeRequest(_ method: String, _ path: String, bearer: String?) -> URLRequest {
 		var request = URLRequest(url: baseURL.appending(path: path))
 		request.httpMethod = method
@@ -50,6 +55,17 @@ struct APIClient: Sendable {
 	}
 
 	private func send<Response: Decodable>(_ request: URLRequest) async throws -> Response {
+		let data = try await data(for: request)
+		let decoder = JSONDecoder()
+		decoder.dateDecodingStrategy = .iso8601
+		do {
+			return try decoder.decode(Response.self, from: data)
+		} catch {
+			throw APIError.invalidResponse
+		}
+	}
+
+	private func data(for request: URLRequest) async throws -> Data {
 		let data: Data
 		let response: URLResponse
 		do {
@@ -68,14 +84,7 @@ struct APIClient: Sendable {
 		default:
 			throw APIError.status(http.statusCode)
 		}
-
-		let decoder = JSONDecoder()
-		decoder.dateDecodingStrategy = .iso8601
-		do {
-			return try decoder.decode(Response.self, from: data)
-		} catch {
-			throw APIError.invalidResponse
-		}
+		return data
 	}
 }
 #endif

@@ -72,6 +72,17 @@ final class AccountSectionViewModel {
 		status = .failed(message: Self.signInFailedMessage)
 	}
 
+	/// ログアウトする。サーバーに届かなくても端末のトークンは消えるので、失敗を出すのは端末から消せなかったときだけ。
+	func signOut() async {
+		status = .loading
+		do {
+			try await accountRepository.signOut()
+			status = .signedOut
+		} catch {
+			status = .failed(message: "この iPhone からサインインの情報を消せませんでした")
+		}
+	}
+
 	private static let signInFailedMessage = "サインインできませんでした。もう一度お試しください"
 
 	private func fetchAccount() async {

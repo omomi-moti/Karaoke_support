@@ -31,10 +31,27 @@ final class RemoteAccountRepository: AccountRepositoryProtocol {
 		guard let token = try? tokenStore.read() else {
 			throw AccountRepositoryError.unauthorized
 		}
-		let response: MeResponse = try await call {
-			try await client.send("GET", "v1/me", bearer: token)
+		let response: MeResponse
+		do {
+			response = try await call {
+				try await client.send("GET", "v1/me", bearer: token)
+			}
+		} catch AccountRepositoryError.unauthorized {
+			try? tokenStore.delete()
+			throw AccountRepositoryError.unauthorized
 		}
 		return Account(id: response.id, createdAt: response.createdAt)
+	}
+
+	func signOut() async throws {
+		if let token = try? tokenStore.read() {
+			try? await client.sendExpectingNoContent("DELETE", "v1/auth/session", bearer: token)
+		}
+		do {
+			try tokenStore.delete()
+		} catch {
+			throw AccountRepositoryError.tokenStorage
+		}
 	}
 
 	private func call<Response>(_ body: () async throws -> Response) async throws -> Response {

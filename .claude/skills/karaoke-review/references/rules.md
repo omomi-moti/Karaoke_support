@@ -558,3 +558,4 @@ grep -rn -E 'jwt\.(Parse|NewParser)|WithValidMethods|WithIssuer|WithAudience|Wit
 
 - テストの中で、`RS256` 以外や違う発行者のトークンを作るのは正しい（失敗するのを確かめるため）
 - テストで、自分で作った鍵を keyfunc の代わりに渡すのはよい
+- 鍵を探せず、しかも手元に鍵が 1 つもないときに `ErrKeysUnavailable` で 5xx を返すのは正しい（ADR 0056）。偽物のトークンを通すわけではない。鍵があるときの失敗と、壊れた・`RS256` 以外のトークンは 401 のまま

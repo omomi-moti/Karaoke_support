@@ -18,5 +18,9 @@ final class PreviewAccountRepository: AccountRepositoryProtocol {
 		guard isSignedIn else { throw AccountRepositoryError.unauthorized }
 		return Account(id: "7d9f0c4e-1111-2222-3333-444455556666", createdAt: Date())
 	}
+
+	func signOut() async throws {
+		isSignedIn = false
+	}
 }
 #endif

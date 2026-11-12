@@ -52,6 +52,25 @@ func (s *Store) CreateToken(ctx context.Context, hash []byte, userID string, exp
 	return nil
 }
 
+// DeleteToken は、トークンのハッシュの行だけを消す。ほかの端末のトークンは残す。
+// 行がなくてもエラーにしない（ログアウトを何度呼んでも同じ結果にする）。
+func (s *Store) DeleteToken(ctx context.Context, hash []byte) error {
+	const q = `DELETE FROM auth_tokens WHERE token_hash = $1`
+	if _, err := s.db.Exec(ctx, q, hash); err != nil {
+		return fmt.Errorf("delete token: %w", err)
+	}
+	return nil
+}
+
+// DeleteExpiredTokens は、userID の期限の切れたトークンの行を消す。
+func (s *Store) DeleteExpiredTokens(ctx context.Context, userID string) error {
+	const q = `DELETE FROM auth_tokens WHERE user_id = $1 AND expires_at <= now()`
+	if _, err := s.db.Exec(ctx, q, userID); err != nil {
+		return fmt.Errorf("delete expired tokens: %w", err)
+	}
+	return nil
+}
+
 // FindUserIDByTokenHash は、期限の切れていないトークンのハッシュから、ユーザー ID を返す。
 // 見つからないときは ErrNotFound を返す。
 func (s *Store) FindUserIDByTokenHash(ctx context.Context, hash []byte) (string, error) {

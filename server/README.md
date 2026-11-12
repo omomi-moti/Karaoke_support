@@ -78,7 +78,7 @@ go test ./...
 
 DB を使わないテスト（ハンドラー・service・Apple のトークンの検証）は、偽物に差し替えて確かめる。
 
-store の SQL のテストは、手元の Postgres の URL を `TEST_DATABASE_URL` で渡したときだけ流れる。ないとき・localhost 以外を指すとき・つながらないときは、理由を出して飛ばす。`DATABASE_URL` は使わない（staging の値がシェルに残っていても、テストが staging を書き換えないようにするため）
+store の SQL のテストと、サインインからログアウトまでを本物の DB で通すテストは、手元の Postgres の URL を `TEST_DATABASE_URL` で渡したときだけ流れる。ないとき・localhost 以外を指すとき・つながらないときは、理由を出して飛ばす。`DATABASE_URL` は使わない（staging の値がシェルに残っていても、テストが staging を書き換えないようにするため）
 
 ```bash
 docker compose up -d
