@@ -12,8 +12,6 @@ final class AccountSectionViewModel {
 		case loading
 		case signedOut
 		case signedIn(Account)
-		/// アカウントを消す確認を受け、もう一度 Apple でサインインしてもらうのを待っている（ADR 0057）。
-		case confirmingDeletion(Account)
 		case failed(message: String)
 	}
 
@@ -23,6 +21,8 @@ final class AccountSectionViewModel {
 	@ObservationIgnored private var pendingNonce: SignInNonce?
 
 	private(set) var status: Status = .loading
+	/// アカウントを消し終えたら `true`。サインインし直すまで、消し終えたことを出す。
+	private(set) var hasDeletedAccount = false
 
 	init(accountRepository: any AccountRepositoryProtocol) {
 		self.accountRepository = accountRepository
@@ -52,6 +52,7 @@ final class AccountSectionViewModel {
 			status = .failed(message: Self.signInFailedMessage)
 			return
 		}
+		hasDeletedAccount = false
 		status = .loading
 		do {
 			try await accountRepository.signInWithApple(identityToken: token, rawNonce: nonce.raw)
@@ -85,19 +86,6 @@ final class AccountSectionViewModel {
 		}
 	}
 
-	/// 削除の確認を受けたら、もう一度 Apple でサインインしてもらう状態にする。
-	func beginDeletion() {
-		guard case .signedIn(let account) = status else { return }
-		status = .confirmingDeletion(account)
-	}
-
-	/// 削除をやめ、サインイン中に戻す。
-	func cancelDeletion() {
-		pendingNonce = nil
-		guard case .confirmingDeletion(let account) = status else { return }
-		status = .signedIn(account)
-	}
-
 	/// もう一度 Apple でサインインして受け取った値で、アカウントを消す（ADR 0057）。
 	/// 届かない・サーバーの失敗のときは、アカウントは消えていないと伝える。
 	func deleteAccount(identityToken: Data?, authorizationCode: Data?) async {
@@ -113,12 +101,22 @@ final class AccountSectionViewModel {
 		status = .loading
 		do {
 			try await accountRepository.deleteAccount(identityToken: token, authorizationCode: code, rawNonce: nonce.raw)
+			hasDeletedAccount = true
 			status = .signedOut
 		} catch AccountRepositoryError.unreachable, AccountRepositoryError.server {
 			status = .failed(message: "アカウントは消えていません。時間をおいてもう一度お試しください")
 		} catch {
 			show(error)
 		}
+	}
+
+	/// 削除の前の Apple の確認が失敗で閉じたとき。利用者がキャンセルしたときは、サインイン中のままにする。
+	func deletionAuthorizationFailed(_ error: Error) {
+		pendingNonce = nil
+		if let authorizationError = error as? ASAuthorizationError, authorizationError.code == .canceled {
+			return
+		}
+		status = .failed(message: Self.appleCredentialRejectedMessage)
 	}
 
 	private static let signInFailedMessage = "サインインできませんでした。もう一度お試しください"

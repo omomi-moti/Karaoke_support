@@ -274,31 +274,9 @@ struct AccountSectionViewModelTests {
 		return vm
 	}
 
-	@Test("削除を始めると確認の状態になり、やめるとサインイン中に戻る")
-	func beginAndCancelDeletion() async {
-		let vm = await makeSignedInViewModel()
-
-		vm.beginDeletion()
-		#expect(vm.status == .confirmingDeletion(repository.account))
-
-		vm.cancelDeletion()
-		#expect(vm.status == .signedIn(repository.account))
-	}
-
-	@Test("サインインしていないときは、削除を始めない")
-	func beginDeletionWhenSignedOut() async {
-		let vm = makeViewModel()
-		await vm.load()
-
-		vm.beginDeletion()
-
-		#expect(vm.status == .signedOut)
-	}
-
 	@Test("削除では、Apple に渡したハッシュの元の nonce と token と認可コードを送り、サインインしていないに戻す")
 	func deleteAccountSendsRawNonce() async throws {
 		let vm = await makeSignedInViewModel()
-		vm.beginDeletion()
 
 		let hashed = vm.makeHashedNonce()
 		await vm.deleteAccount(identityToken: Data("apple.identity.token".utf8), authorizationCode: Data("apple.code".utf8))
@@ -308,12 +286,12 @@ struct AccountSectionViewModelTests {
 		#expect(call.authorizationCode == "apple.code")
 		#expect(SignInNonce(raw: call.rawNonce).hashed == hashed)
 		#expect(vm.status == .signedOut)
+		#expect(vm.hasDeletedAccount)
 	}
 
 	@Test("nonce を作っていない・token や認可コードがないときは、サーバーに送らずに失敗を出す")
 	func deleteAccountWithoutNonceOrValues() async {
 		let vm = await makeSignedInViewModel()
-		vm.beginDeletion()
 		let token = Data("apple.identity.token".utf8)
 		let code = Data("apple.code".utf8)
 
@@ -337,20 +315,19 @@ struct AccountSectionViewModelTests {
 	func deleteAccountFailure(error: AccountRepositoryError) async {
 		repository.deleteError = error
 		let vm = await makeSignedInViewModel()
-		vm.beginDeletion()
 
 		_ = vm.makeHashedNonce()
 		await vm.deleteAccount(identityToken: Data("apple.identity.token".utf8), authorizationCode: Data("apple.code".utf8))
 
 		#expect(isFailed(vm.status))
 		#expect(repository.isSignedIn)
+		#expect(!vm.hasDeletedAccount)
 	}
 
 	@Test("届かない・サーバーの失敗では、アカウントは消えていないと伝える", arguments: [AccountRepositoryError.unreachable, .server])
 	func deleteAccountFailureSaysNotDeleted(error: AccountRepositoryError) async {
 		repository.deleteError = error
 		let vm = await makeSignedInViewModel()
-		vm.beginDeletion()
 
 		_ = vm.makeHashedNonce()
 		await vm.deleteAccount(identityToken: Data("apple.identity.token".utf8), authorizationCode: Data("apple.code".utf8))
@@ -366,23 +343,48 @@ struct AccountSectionViewModelTests {
 	func deleteAccountUnauthorized() async {
 		repository.deleteError = AccountRepositoryError.unauthorized
 		let vm = await makeSignedInViewModel()
-		vm.beginDeletion()
 
 		_ = vm.makeHashedNonce()
 		await vm.deleteAccount(identityToken: Data("apple.identity.token".utf8), authorizationCode: Data("apple.code".utf8))
 
 		#expect(vm.status == .signedOut)
+		#expect(!vm.hasDeletedAccount)
 	}
 
-	@Test("削除の確認で Apple の画面をキャンセルしたら、確認の状態のままにする")
-	func deleteAccountAppleCanceled() async {
+	@Test("削除の前の Apple の確認でキャンセルしたら、サインイン中のままにする")
+	func deletionAuthorizationCanceled() async {
 		let vm = await makeSignedInViewModel()
-		vm.beginDeletion()
 
 		_ = vm.makeHashedNonce()
-		vm.signInFailed(ASAuthorizationError(.canceled))
+		vm.deletionAuthorizationFailed(ASAuthorizationError(.canceled))
 
-		#expect(vm.status == .confirmingDeletion(repository.account))
+		#expect(vm.status == .signedIn(repository.account))
+		#expect(repository.deleteCalls.isEmpty)
+	}
+
+	@Test("削除の前の Apple の確認がキャンセル以外で失敗したら、失敗を出す")
+	func deletionAuthorizationFailedOtherwise() async {
+		let vm = await makeSignedInViewModel()
+
+		_ = vm.makeHashedNonce()
+		vm.deletionAuthorizationFailed(ASAuthorizationError(.failed))
+
+		#expect(isFailed(vm.status))
+		#expect(repository.deleteCalls.isEmpty)
+	}
+
+	@Test("削除のあとにサインインし直したら、削除しましたの知らせを消す")
+	func signInAfterDeletionClearsNotice() async {
+		let vm = await makeSignedInViewModel()
+		_ = vm.makeHashedNonce()
+		await vm.deleteAccount(identityToken: Data("apple.identity.token".utf8), authorizationCode: Data("apple.code".utf8))
+		#expect(vm.hasDeletedAccount)
+
+		_ = vm.makeHashedNonce()
+		await vm.signIn(identityToken: Data("apple.identity.token".utf8))
+
+		#expect(!vm.hasDeletedAccount)
+		#expect(vm.status == .signedIn(repository.account))
 	}
 }
 #endif
