@@ -201,6 +201,7 @@ erDiagram
 | 履歴 | 日時の新しい順に 20 件ずつ読み、最大 500 件まで出す |
 | 気分での絞り込み | `#Predicate` で enum を使わず、直近 200 件を読んでからメモリで絞る（[ADR 0007](adr/0007-filter-intent-in-memory.md)） |
 | 集計（ランキング・曲ごとの集計・入口の数） | 集計した値は保存せず、読むたびに記録から計算する（[ADR 0029](adr/0029-recompute-track-stats-without-cache.md)） |
+| バックアップ（Debug のビルドだけ） | 全部の曲と記録を読み、メモを除いて `BackupSnapshot` に写す。同じ記録なら同じ中身になるように id の順に並べる（[ADR 0058](adr/0058-backup-consent-and-auto-upload.md)） |
 
 ### 項目を足すとき
 

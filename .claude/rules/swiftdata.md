@@ -28,7 +28,8 @@ paths:
 
 - `#Predicate` の中で enum を使わない。直近の分を読んでからメモリで絞る（ADR 0007、`SwiftDataSessionRepository.fetchByIntent`）。
 - 集計（ランキング、曲ごとの集計、入口の数）は読むたびに計算し、保存しない（ADR 0029）。
-- `UserDefaults` は UI の目印だけに使う。記録や外部の曲のメタデータは入れない（今は使っていない）。
+- バックアップの中身（`BackupSnapshot`）にはメモを入れない。型にもメモの項目を持たせない（憲法 II、ADR 0049）。全部の記録を読むのは `SwiftDataBackupSnapshotReader` だけ。
+- `UserDefaults` に置くのは、バックアップの状態の 5 つ（オン・オフ、同意の版、最後に送った版、最後に成功した日時、最後の失敗の理由）だけ（ADR 0058、`UserDefaultsBackupStateStore`）。記録や外部の曲のメタデータは入れない。
 
 ## このフォルダを変えたら見直す文書
 

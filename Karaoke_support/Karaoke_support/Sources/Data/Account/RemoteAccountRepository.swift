@@ -2,14 +2,17 @@
 import Foundation
 
 /// 自前のサーバーと Keychain で、アカウントを扱う。
+/// 端末のトークンを消すとき（サインアウト・アカウントの削除・401）は、バックアップの状態も一緒に消す（ADR 0058）。
 @MainActor
 final class RemoteAccountRepository: AccountRepositoryProtocol {
 	private let client: APIClient
 	private let tokenStore: any ServerTokenStoring
+	private let backupState: any BackupStateStoring
 
-	init(client: APIClient, tokenStore: any ServerTokenStoring) {
+	init(client: APIClient, tokenStore: any ServerTokenStoring, backupState: any BackupStateStoring) {
 		self.client = client
 		self.tokenStore = tokenStore
+		self.backupState = backupState
 	}
 
 	var isSignedIn: Bool {
@@ -38,6 +41,7 @@ final class RemoteAccountRepository: AccountRepositoryProtocol {
 			}
 		} catch AccountRepositoryError.unauthorized {
 			try? tokenStore.delete()
+			backupState.clear()
 			throw AccountRepositoryError.unauthorized
 		}
 		return Account(id: response.id, createdAt: response.createdAt)
@@ -47,6 +51,7 @@ final class RemoteAccountRepository: AccountRepositoryProtocol {
 		if let token = try? tokenStore.read() {
 			try? await client.sendExpectingNoContent("DELETE", "v1/auth/session", bearer: token)
 		}
+		backupState.clear()
 		do {
 			try tokenStore.delete()
 		} catch {
@@ -71,9 +76,11 @@ final class RemoteAccountRepository: AccountRepositoryProtocol {
 			}
 		} catch AccountRepositoryError.unauthorized {
 			try? tokenStore.delete()
+			backupState.clear()
 			throw AccountRepositoryError.unauthorized
 		}
 		try? tokenStore.delete()
+		backupState.clear()
 	}
 
 	private func call<Response>(_ body: () async throws -> Response) async throws -> Response {
