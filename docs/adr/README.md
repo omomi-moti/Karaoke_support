@@ -63,7 +63,7 @@
 | [0055](0055-local-api-base-url-and-optional-account.md) | staging のつなぎ先は手元の xcconfig に置き、ないときはアカウントの機能を出さない | 承認 |
 | [0056](0056-apple-keys-unavailable-returns-5xx.md) | Apple の公開鍵を 1 つも持っていないときだけ、サインインを 5xx にする | 承認 |
 | [0057](0057-delete-account-and-revoke-apple-token.md) | アカウントの削除は、本人の Apple ID を確かめ、Apple のトークンを取り消せたときだけ行う | 承認 |
-| [0058](0058-backup-consent-and-auto-upload.md) | バックアップは本人がオンにしたときだけ、裏に回ったときに版の番号つきで送り、オフにしたら消す | 提案 |
+| [0058](0058-backup-consent-and-auto-upload.md) | バックアップは本人がオンにしたときだけ、裏に回ったときに版の番号つきで送り、オフにしたら消す | 承認 |
 
 ## 書き方
 
