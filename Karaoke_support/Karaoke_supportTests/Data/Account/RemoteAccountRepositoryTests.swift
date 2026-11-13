@@ -159,6 +159,18 @@ struct RemoteAccountRepositoryTests {
 		#expect(sent == ["identityToken": "apple-id-token", "nonce": "raw-nonce"])
 	}
 
+	@Test("サインインしたら、前に残っていたバックアップの状態を消し、オフから始める")
+	func signInClearsBackupState() async throws {
+		let backupState = InMemoryBackupState()
+		let repository = makeRepository(backupState: backupState) { _ in
+			(200, #"{"token":"klog_issued","expiresAt":"2027-02-08T11:18:18Z"}"#)
+		}
+
+		try await repository.signInWithApple(identityToken: "apple-id-token", rawNonce: "raw-nonce")
+
+		#expect(backupState.isCleared)
+	}
+
 	@Test("サインインに失敗したら、種類ごとのエラーになり、トークンを保存しない", arguments: [
 		(401, AccountRepositoryError.unauthorized),
 		(500, AccountRepositoryError.server),

@@ -9,6 +9,7 @@ protocol AccountRepositoryProtocol: Sendable {
 	var isSignedIn: Bool { get }
 
 	/// Apple のトークンと nonce の元の値をサーバーに渡し、受け取ったサーバーのトークンを端末に保存する。
+	/// 保存できたら、前に残っていたバックアップの状態を消し、バックアップはオフから始める（ADR 0058 の 1-B）。
 	/// 失敗したときは ``AccountRepositoryError`` を投げる。
 	func signInWithApple(identityToken: String, rawNonce: String) async throws
 

@@ -2,7 +2,7 @@
 import Foundation
 
 /// 自前のサーバーと Keychain で、アカウントを扱う。
-/// 端末のトークンを消すとき（サインアウト・アカウントの削除・401）は、バックアップの状態も一緒に消す（ADR 0058）。
+/// 端末のトークンを消すとき（サインアウト・アカウントの削除・401）とサインインしたときは、バックアップの状態も一緒に消す（ADR 0058）。
 @MainActor
 final class RemoteAccountRepository: AccountRepositoryProtocol {
 	private let client: APIClient
@@ -28,6 +28,7 @@ final class RemoteAccountRepository: AccountRepositoryProtocol {
 		} catch {
 			throw AccountRepositoryError.tokenStorage
 		}
+		backupState.clear()
 	}
 
 	func fetchMe() async throws -> Account {

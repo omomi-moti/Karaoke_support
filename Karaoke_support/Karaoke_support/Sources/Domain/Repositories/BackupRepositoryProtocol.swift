@@ -17,6 +17,7 @@ protocol BackupRepositoryProtocol: Sendable {
 	/// 送っている途中に呼ばれたら後ろに 1 つだけ予約し（何回呼ばれても 1 つにまとめ、きっかけは強いほうにそろえる）、
 	/// 番が来たら記録を読み直す。途中で記録が変わっても、最後には最新の記録が届くようにするため。
 	/// オフ・記録が 0 件・前回と同じ中身・412 の後の自動のときは送らない。
+	/// 前回と同じ中身で送らないときは、サーバーに届いているので、「確認が要る」以外の最後の失敗を消す。
 	/// 412 のときは状態を「確認が要る」にして ``BackupFailure/needsConfirmation`` を投げる。
 	/// 401 のときは端末のトークンとバックアップの状態を消して ``BackupFailure/signInRequired`` を投げる。
 	func backUp(trigger: BackupTrigger) async throws -> BackupOutcome

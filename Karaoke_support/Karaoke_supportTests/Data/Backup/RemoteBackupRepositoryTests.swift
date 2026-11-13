@@ -152,6 +152,65 @@ private func summaryOK(revision: Int, sessionCount: Int) -> (Int, String) {
 	(200, #"{"revision":\#(revision),"schemaVersion":1,"trackCount":1,"sessionCount":\#(sessionCount),"updatedAt":"2026-11-13T01:02:03Z"}"#)
 }
 
+/// テストが開けるまで、スタブの返事を止めておく。送っている途中に起きることを、待つ時間に頼らずに作るため。
+private final class ResponseGate: @unchecked Sendable {
+	private let condition = NSCondition()
+	private var isOpen = false
+
+	func wait() {
+		condition.lock()
+		defer { condition.unlock() }
+		let deadline = Date().addingTimeInterval(5)
+		while !isOpen, condition.wait(until: deadline) {}
+	}
+
+	func open() {
+		condition.lock()
+		isOpen = true
+		condition.broadcast()
+		condition.unlock()
+	}
+}
+
+/// スタブが返すステータスを、テストの途中で切り替える。
+private final class StatusSwitch: @unchecked Sendable {
+	private let lock = NSLock()
+	private var _status = 200
+
+	var status: Int {
+		get { lock.withLock { _status } }
+		set { lock.withLock { _status = newValue } }
+	}
+}
+
+@MainActor
+private final class StartFlag {
+	var isStarted = false
+}
+
+/// `condition` が満たされるまで待つ。5 秒で満たされなければ失敗にする。
+@MainActor
+private func waitUntil(_ condition: () -> Bool) async throws {
+	let deadline = ContinuousClock.now + .seconds(5)
+	while !condition() {
+		try #require(ContinuousClock.now < deadline, "5 秒待っても満たされなかった")
+		try await Task.sleep(for: .milliseconds(5))
+	}
+}
+
+/// `operation` を別のタスクで始め、最初に待つところまで進んでから返す。
+/// 呼び出しを受け付けた（予約した・オフにした）後で、次の操作をするため。
+@MainActor
+private func start<T: Sendable>(_ operation: @escaping @MainActor @Sendable () async throws -> T) async throws -> Task<T, any Error> {
+	let flag = StartFlag()
+	let task = Task { @MainActor in
+		flag.isStarted = true
+		return try await operation()
+	}
+	try await waitUntil { flag.isStarted }
+	return task
+}
+
 @Suite("RemoteBackupRepository")
 @MainActor
 struct RemoteBackupRepositoryTests {
@@ -300,18 +359,20 @@ struct RemoteBackupRepositoryTests {
 	func uploadsChangesMadeWhileUploading() async throws {
 		let reader = FakeSnapshotReader()
 		let log = RequestLog()
+		let gate = ResponseGate()
 		let repository = makeRepository(reader: reader, log: log) { _ in
-			Thread.sleep(forTimeInterval: 0.3)
+			gate.wait()
 			return putOK(revision: log.count)
 		}
 
-		async let first = repository.backUp(trigger: .background)
-		try await Task.sleep(for: .milliseconds(50))
+		let first = try await start { try await repository.backUp(trigger: .background) }
+		try await waitUntil { log.puts.count == 1 }
 		reader.snapshot = FakeSnapshotReader.snapshot(sessionCount: 3)
-		let second = try await repository.backUp(trigger: .background)
-		_ = try await first
+		let second = try await start { try await repository.backUp(trigger: .background) }
+		gate.open()
+		_ = try await first.value
 
-		#expect(second == .uploaded)
+		#expect(try await second.value == .uploaded)
 		#expect(log.puts.count == 2)
 		let body = try #require(log.puts.last?.1)
 		let sent = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
@@ -320,19 +381,25 @@ struct RemoteBackupRepositoryTests {
 
 	@Test("送っている途中に何回呼ばれても、予約は 1 つにまとめる")
 	func coalescesQueuedBackUps() async throws {
-		let reader = FakeSnapshotReader()
 		let log = RequestLog()
-		let repository = makeRepository(reader: reader, log: log) { _ in
-			Thread.sleep(forTimeInterval: 0.3)
+		let gate = ResponseGate()
+		let repository = makeRepository(log: log) { _ in
+			gate.wait()
 			throw URLError(.notConnectedToInternet)
 		}
 
-		async let first: BackupOutcome? = try? repository.backUp(trigger: .background)
-		try await Task.sleep(for: .milliseconds(50))
-		async let second: BackupOutcome? = try? repository.backUp(trigger: .background)
-		async let third: BackupOutcome? = try? repository.backUp(trigger: .foreground)
-		async let fourth: BackupOutcome? = try? repository.backUp(trigger: .background)
-		_ = await (first, second, third, fourth)
+		let first = try await start { try? await repository.backUp(trigger: .background) }
+		try await waitUntil { log.puts.count == 1 }
+		let queued = [
+			try await start { try? await repository.backUp(trigger: .background) },
+			try await start { try? await repository.backUp(trigger: .foreground) },
+			try await start { try? await repository.backUp(trigger: .background) },
+		]
+		gate.open()
+		_ = try await first.value
+		for task in queued {
+			_ = try await task.value
+		}
 
 		#expect(log.puts.count == 2)
 	}
@@ -341,18 +408,19 @@ struct RemoteBackupRepositoryTests {
 	func queuedBackUpUsesStrongestTrigger() async throws {
 		let state = InMemoryBackupState.active(lastRevision: 3)
 		let log = RequestLog()
+		let gate = ResponseGate()
 		let repository = makeRepository(state: state, log: log) { _ in
-			Thread.sleep(forTimeInterval: 0.3)
+			gate.wait()
 			return (412, #"{"error":"precondition_failed"}"#)
 		}
 
-		async let first: BackupOutcome? = try? repository.backUp(trigger: .manual)
-		try await Task.sleep(for: .milliseconds(50))
-		async let automatic: BackupOutcome? = try? repository.backUp(trigger: .background)
-		async let manual: BackupOutcome? = try? repository.backUp(trigger: .manual)
-		_ = await (first, automatic, manual)
+		let first = try await start { try? await repository.backUp(trigger: .manual) }
+		try await waitUntil { log.puts.count == 1 }
+		let automatic = try await start { try? await repository.backUp(trigger: .background) }
+		let manual = try await start { try? await repository.backUp(trigger: .manual) }
+		gate.open()
+		_ = try await (first.value, automatic.value, manual.value)
 
-		// 1 回目の 412 の後、裏に回ったきっかけだけなら送らないが、ボタンにそろえるのでもう一度送る
 		#expect(log.puts.count == 2)
 		#expect(state.lastFailure == .needsConfirmation)
 	}
@@ -392,15 +460,18 @@ struct RemoteBackupRepositoryTests {
 	@Test("送っている途中に状態が消されたら（サインアウト）、返事の版と日時を書かない")
 	func clearedWhileUploadingKeepsStateCleared() async throws {
 		let state = InMemoryBackupState.active(lastRevision: 3)
-		let repository = makeRepository(state: state) { _ in
-			Thread.sleep(forTimeInterval: 0.3)
+		let log = RequestLog()
+		let gate = ResponseGate()
+		let repository = makeRepository(state: state, log: log) { _ in
+			gate.wait()
 			return putOK(revision: 4)
 		}
 
-		async let upload = repository.backUp(trigger: .manual)
-		try await Task.sleep(for: .milliseconds(100))
+		let upload = try await start { try await repository.backUp(trigger: .manual) }
+		try await waitUntil { log.puts.count == 1 }
 		state.clear()
-		_ = try await upload
+		gate.open()
+		_ = try await upload.value
 
 		#expect(state.isCleared)
 	}
@@ -409,19 +480,22 @@ struct RemoteBackupRepositoryTests {
 	func clearedAndEnabledWhileUploadingStartsFresh() async throws {
 		let state = InMemoryBackupState.active(lastRevision: 3)
 		let log = RequestLog()
+		let gate = ResponseGate()
 		let repository = makeRepository(state: state, log: log) { request in
 			if request.value(forHTTPHeaderField: "If-None-Match") == "*" {
 				return putOK(revision: 1)
 			}
-			Thread.sleep(forTimeInterval: 0.3)
+			gate.wait()
 			return putOK(revision: 4)
 		}
 
-		async let upload = repository.backUp(trigger: .manual)
-		try await Task.sleep(for: .milliseconds(100))
+		let upload = try await start { try await repository.backUp(trigger: .manual) }
+		try await waitUntil { log.puts.count == 1 }
 		state.clear()
-		#expect(try await repository.enable() == .uploaded)
-		_ = try await upload
+		let enabled = try await start { try await repository.enable() }
+		gate.open()
+		#expect(try await enabled.value == .uploaded)
+		_ = try await upload.value
 
 		#expect(log.puts.count == 2)
 		#expect(log.last?.0.value(forHTTPHeaderField: "If-None-Match") == "*")
@@ -432,23 +506,49 @@ struct RemoteBackupRepositoryTests {
 	func unauthorizedAfterClearKeepsNewSignIn() async throws {
 		let tokenStore = InMemoryTokenStore()
 		let state = InMemoryBackupState.active(lastRevision: 3)
-		let repository = makeRepository(tokenStore: tokenStore, state: state) { _ in
-			Thread.sleep(forTimeInterval: 0.3)
+		let log = RequestLog()
+		let gate = ResponseGate()
+		let repository = makeRepository(tokenStore: tokenStore, state: state, log: log) { _ in
+			gate.wait()
 			return (401, #"{"error":"unauthorized"}"#)
 		}
 
-		let upload = Task { try await repository.backUp(trigger: .manual) }
-		try await Task.sleep(for: .milliseconds(100))
+		let upload = try await start { try await repository.backUp(trigger: .manual) }
+		try await waitUntil { log.puts.count == 1 }
 		state.clear()
 		try tokenStore.save("klog_new")
 		state.isEnabled = true
 		state.consentVersion = BackupStatus.currentConsentVersion
+		gate.open()
 
 		await #expect(throws: BackupFailure.signInRequired) {
 			_ = try await upload.value
 		}
 		#expect(try tokenStore.read() == "klog_new")
 		#expect(state.isEnabled)
+	}
+
+	@Test("前回届いた中身と同じに戻ったら、送らずに最後の失敗を消す。確認が要るときは残す", arguments: [
+		(500, BackupFailure.server, BackupFailure?.none),
+		(412, BackupFailure.needsConfirmation, BackupFailure?.some(.needsConfirmation)),
+	])
+	func unchangedClearsStaleFailure(status: Int, failure: BackupFailure, expected: BackupFailure?) async throws {
+		let state = InMemoryBackupState.active()
+		let reader = FakeSnapshotReader(sessionCount: 2)
+		let statusSwitch = StatusSwitch()
+		let repository = makeRepository(state: state, reader: reader) { _ in
+			statusSwitch.status == 200 ? putOK(revision: 1) : (statusSwitch.status, #"{"error":"x"}"#)
+		}
+		#expect(try await repository.backUp(trigger: .manual) == .uploaded)
+
+		reader.snapshot = FakeSnapshotReader.snapshot(sessionCount: 3)
+		statusSwitch.status = status
+		_ = try? await repository.backUp(trigger: .manual)
+		#expect(state.lastFailure == failure)
+
+		reader.snapshot = FakeSnapshotReader.snapshot(sessionCount: 2)
+		#expect(try await repository.backUp(trigger: .manual) == .unchanged)
+		#expect(state.lastFailure == expected)
 	}
 
 	@Test("トークンがなければ、通信せずに signInRequired")
@@ -609,21 +709,23 @@ struct RemoteBackupRepositoryTests {
 	func enableBeforeQueuedDeletion() async throws {
 		let state = InMemoryBackupState.active(lastRevision: 3)
 		let log = RequestLog()
+		let gate = ResponseGate()
 		let repository = makeRepository(state: state, log: log) { request in
 			if request.httpMethod == "PUT" {
-				Thread.sleep(forTimeInterval: 0.3)
+				gate.wait()
 				return putOK(revision: 4)
 			}
 			return (204, "")
 		}
 
-		async let upload = repository.backUp(trigger: .manual)
-		try await Task.sleep(for: .milliseconds(50))
-		async let off: Void = repository.disable()
-		try await Task.sleep(for: .milliseconds(50))
-		_ = try await repository.enable()
-		_ = try await upload
-		try await off
+		let upload = try await start { try await repository.backUp(trigger: .manual) }
+		try await waitUntil { log.puts.count == 1 }
+		let off = try await start { try await repository.disable() }
+		let on = try await start { try await repository.enable() }
+		gate.open()
+		_ = try await upload.value
+		try await off.value
+		_ = try await on.value
 
 		#expect(state.isEnabled)
 		#expect(state.consentVersion == BackupStatus.currentConsentVersion)
@@ -635,18 +737,21 @@ struct RemoteBackupRepositoryTests {
 	func enableWhileDeleting() async throws {
 		let state = InMemoryBackupState.active(lastRevision: 3)
 		let log = RequestLog()
+		let gate = ResponseGate()
 		let repository = makeRepository(state: state, log: log) { request in
 			if request.httpMethod == "DELETE" {
-				Thread.sleep(forTimeInterval: 0.3)
+				gate.wait()
 				return (204, "")
 			}
 			return putOK(revision: 1)
 		}
 
-		async let off: Void = repository.disable()
-		try await Task.sleep(for: .milliseconds(100))
-		#expect(try await repository.enable() == .uploaded)
-		try await off
+		let off = try await start { try await repository.disable() }
+		try await waitUntil { log.count == 1 }
+		let on = try await start { try await repository.enable() }
+		gate.open()
+		#expect(try await on.value == .uploaded)
+		try await off.value
 
 		#expect(log.methods == ["DELETE", "PUT"])
 		#expect(log.last?.0.value(forHTTPHeaderField: "If-None-Match") == "*")

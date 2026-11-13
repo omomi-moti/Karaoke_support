@@ -150,6 +150,9 @@ final class RemoteBackupRepository: BackupRepositoryProtocol {
 		}
 		let hash = SHA256.hash(data: body)
 		if skipsUnchanged, hash == lastUploadedHash {
+			if state.lastFailure != .needsConfirmation {
+				state.lastFailure = nil
+			}
 			return .unchanged
 		}
 
