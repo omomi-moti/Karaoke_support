@@ -29,6 +29,10 @@ func newFlow(t *testing.T, db *pgxpool.Pool, appleUserID string, revoker AppleRe
 		SignOut:         http.HandlerFunc(h.SignOut),
 		Me:              http.HandlerFunc(h.Me),
 		DeleteMe:        http.HandlerFunc(h.DeleteMe),
+		BackupSummary:   http.NotFoundHandler(),
+		GetBackup:       http.NotFoundHandler(),
+		PutBackup:       http.NotFoundHandler(),
+		DeleteBackup:    http.NotFoundHandler(),
 	})
 	call = func(method, path, token, body string) *httptest.ResponseRecorder {
 		req := httptest.NewRequest(method, path, strings.NewReader(body))

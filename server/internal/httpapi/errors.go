@@ -10,7 +10,10 @@ var errorCodes = map[int]string{
 	http.StatusBadRequest:            "invalid_request",
 	http.StatusUnauthorized:          "unauthorized",
 	http.StatusForbidden:             "forbidden",
+	http.StatusNotFound:              "not_found",
+	http.StatusPreconditionFailed:    "precondition_failed",
 	http.StatusRequestEntityTooLarge: "request_too_large",
+	http.StatusPreconditionRequired:  "precondition_required",
 	http.StatusInternalServerError:   "internal",
 }
 

@@ -76,7 +76,7 @@ func TestRequireAuth(t *testing.T) {
 
 func TestRouterAuth(t *testing.T) {
 	ok := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
-	router := NewRouter(fakePinger{}, &fakeAuth{err: ErrUnauthorized}, Handlers{SignInWithApple: ok, SignOut: ok, Me: ok, DeleteMe: ok})
+	router := NewRouter(fakePinger{}, &fakeAuth{err: ErrUnauthorized}, Handlers{SignInWithApple: ok, SignOut: ok, Me: ok, DeleteMe: ok, BackupSummary: ok, GetBackup: ok, PutBackup: ok, DeleteBackup: ok})
 
 	tests := []struct {
 		method, path string

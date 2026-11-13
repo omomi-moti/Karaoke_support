@@ -134,6 +134,8 @@ Go は標準の `net/http`（1.22 以降のルーティング）と `pgx` を使
 | GET | `/v1/backup` | バックアップを読む（版の番号も返す） | 要る |
 | DELETE | `/v1/backup` | バックアップを消す（オフにしたとき）。なくても 204 | 要る |
 
+`PUT /v1/backup` の本文は `{"schemaVersion": 1, "trackCount": 曲の数, "sessionCount": 記録の数, "payload": {"tracks": […], "sessions": […]}}`。知らない項目があれば 400 で、サーバーは `payload` が JSON のオブジェクトかだけを見て、中身は読まずに保存する。成功・`GET` の返事には、版の番号を `ETag: "<版>"` でも付ける。版が合わない・条件の形が違うときの返事は、それぞれ `{"error": "precondition_failed"}`（412）・`{"error": "precondition_required"}`（428）・`{"error": "invalid_request"}`（400）。
+
 失敗したときは、トークンが偽物・期限切れなど利用者の側の失敗は 401、Apple や DB に届かないなどサーバーの側の失敗は 5xx を返す。返事の本文は `{"error": "..."}` の形にし、詳しい理由はログにだけ出す（ADR 0054）。
 
 Apple の公開鍵は keyfunc がキャッシュし、Apple に届かなくても手元の鍵で確かめられるトークンは確かめる。鍵を探せず、しかも手元に鍵が 1 つもない（起動のときに Apple に届かなかった）ときだけ 5xx にする。手元に鍵はあるが、Apple が鍵を替えた直後に Apple に届かないときは 401 のまま残る（[ADR 0056](adr/0056-apple-keys-unavailable-returns-5xx.md)）。

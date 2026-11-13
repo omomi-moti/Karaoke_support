@@ -34,7 +34,7 @@ func TestHealth(t *testing.T) {
 			rec := httptest.NewRecorder()
 
 			ok := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-			NewRouter(fakePinger{err: tt.pingErr}, &fakeAuth{}, Handlers{SignInWithApple: ok, SignOut: ok, Me: ok, DeleteMe: ok}).ServeHTTP(rec, req)
+			NewRouter(fakePinger{err: tt.pingErr}, &fakeAuth{}, Handlers{SignInWithApple: ok, SignOut: ok, Me: ok, DeleteMe: ok, BackupSummary: ok, GetBackup: ok, PutBackup: ok, DeleteBackup: ok}).ServeHTTP(rec, req)
 
 			if rec.Code != tt.want {
 				t.Fatalf("status = %d, want %d", rec.Code, tt.want)
