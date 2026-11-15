@@ -7,6 +7,11 @@ struct KaraokeSupportApp: App {
 	/// 保存先の DB を開けなかったときは失敗のまま持ち、メモリ上の DB では起動しない（ADR 0033）。
 	private let dependencies: Result<AppDependencies, any Error>
 	@State private var networkMonitor = NetworkMonitor()
+	#if DEBUG || BETA
+	/// バックアップのつなぎ先がないときは nil で、きっかけを渡さない。
+	@State private var backupTrigger: BackgroundBackupTrigger?
+	@Environment(\.scenePhase) private var scenePhase
+	#endif
 
 	private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Karaoke_support", category: "DataStore")
 
@@ -31,7 +36,11 @@ struct KaraokeSupportApp: App {
 		#endif
 
 		do {
-			self.dependencies = .success(try AppDependencies.make(configuration: ModelConfiguration(isStoredInMemoryOnly: false)))
+			let dependencies = try AppDependencies.make(configuration: ModelConfiguration(isStoredInMemoryOnly: false))
+			self.dependencies = .success(dependencies)
+			#if DEBUG || BETA
+			_backupTrigger = State(initialValue: dependencies.backupRepository.map { BackgroundBackupTrigger(backupRepository: $0) })
+			#endif
 		} catch {
 			// 元のデータには手を付けず、原因を追えるようにログだけ残す
 			Self.logger.error("Failed to open the persistent store: \(String(describing: error), privacy: .public)")
@@ -52,6 +61,10 @@ struct KaraokeSupportApp: App {
 					#if DEBUG || BETA
 					.environment(\.accountRepository, dependencies.accountRepository)
 					.environment(\.backupRepository, dependencies.backupRepository)
+					.environment(\.backupStatusTick, backupTrigger?.completedCount ?? 0)
+					.onChange(of: scenePhase, initial: true) { _, phase in
+						backupTrigger?.handle(phase)
+					}
 					#endif
 					.modelContainer(dependencies.modelContainer)
 			case .failure:

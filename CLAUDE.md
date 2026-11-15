@@ -74,6 +74,8 @@ Sources/
 
 `ModelContainer` と Repository は `AppDependencies.make(configuration:)` の 1 か所で作る。`KaraokeSupportApp` がその結果を持ち、`Sources/App/Environment/` の `EnvironmentKey` で Repository を注入する。Container の View は `@Environment(\.sessionRepository)` などで読み、ViewModel の `init` に渡す。プレビュー用のモックは `Sources/App/PreviewSupport/`。
 
+Debug と Beta のビルドでは、`KaraokeSupportApp` がバックアップのきっかけ（`BackgroundBackupTrigger`）も持ち、`scenePhase` の変化を渡す。送り終えるたびに `backupStatusTick` を環境に配る。
+
 保存先の DB を開けなかったときは `DataLoadErrorView` を出し、メモリ上の DB には切り替えない（ADR 0033）。デバッグのビルドでは `KARAOKE_SIMULATE_DATA_LOAD_FAILURE=1` でこの画面を出せる。
 
 環境に置く値の書き方は、初期値に同一性があるかで分ける（ADR 0031）。

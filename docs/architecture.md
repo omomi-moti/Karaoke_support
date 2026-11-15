@@ -7,7 +7,7 @@
 | **Presentation** | View（描画専用）+ ViewModel（`@Observable`・`@MainActor`） | Yes |
 | **Domain** | Protocol 定義・Model 定義・ヘルパー。外部 FW 非依存が原則 | No（※ @Model のみ例外許容） |
 | **Data** | SwiftData / Network の具体実装 | No |
-| **App** | `@main` エントリ、DI 組み立て、EnvironmentKey 定義 | Yes |
+| **App** | `@main` エントリ、DI 組み立て、EnvironmentKey 定義、アプリが裏に回った・前に戻ったときのバックアップのきっかけ（`BackgroundBackupTrigger`） | Yes |
 
 ---
 
@@ -240,4 +240,4 @@ flowchart TD
     UP --> CLOSE2["シートを閉じ、履歴を読み直す<br>（保存直後のシートは出さない）"]
 ```
 
-設定のバックアップ（Debug と Beta のビルドだけ）は、サインインしているときだけ欄を出す。切り替えをオンにすると、設定の `NavigationStack` の中で同意の画面へ進み、「オンにする」で前に戻って 1 回送る。オフにするときは、サーバーの件数を見せて確認してから消す。どちらもシートを使わないので、`RootView` の 1 つのシートとはぶつからない（#161、ADR 0058）。
+設定のバックアップ（Debug と Beta のビルドだけ）は、サインインしているときだけ欄を出す。切り替えをオンにすると、設定の `NavigationStack` の中で同意の画面へ進み、「オンにする」で前に戻って 1 回送る。オフにするときは、サーバーの件数を見せて確認してから消す。どちらもシートを使わないので、`RootView` の 1 つのシートとはぶつからない（#161、ADR 0058）。アプリが裏に回ったとき・前に戻ったときは、`KaraokeSupportApp` が `scenePhase` の変化を `BackgroundBackupTrigger` に渡して送る。送り終えるたびに `backupStatusTick` が増え、設定の欄はそれで状態を読み直す。

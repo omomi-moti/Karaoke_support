@@ -8,6 +8,7 @@ struct SettingsContainerView: View {
 	/// アカウントの欄がないときは nil。サインインしているときだけ欄を出す。
 	@State private var backupViewModel: BackupSectionViewModel?
 	@State private var isShowingBackupConsent = false
+	@Environment(\.backupStatusTick) private var backupStatusTick
 
 	init(
 		accountRepository: (any AccountRepositoryProtocol)? = nil,
@@ -62,6 +63,9 @@ struct SettingsContainerView: View {
 		}
 		.task { await accountViewModel?.load() }
 		.onChange(of: accountViewModel?.status) {
+			Task { await backupViewModel?.load() }
+		}
+		.onChange(of: backupStatusTick) {
 			Task { await backupViewModel?.load() }
 		}
 		#endif
