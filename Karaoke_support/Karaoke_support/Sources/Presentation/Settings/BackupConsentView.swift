@@ -5,6 +5,7 @@ import SwiftUI
 /// 載せる項目を変えたら、``BackupStatus/currentConsentVersion`` を上げる。
 struct BackupConsentView: View {
 	let onEnable: () -> Void
+	@Environment(\.dismiss) private var dismiss
 
 	private static let privacyPolicyURL = URL(string: "https://omomi-moti.github.io/Karaoke_support/privacy/")!
 
@@ -32,9 +33,12 @@ struct BackupConsentView: View {
 				Link("プライバシーポリシー", destination: Self.privacyPolicyURL)
 			}
 			Section {
-				Button("オンにする", action: onEnable)
-					.frame(maxWidth: .infinity)
-					.fontWeight(.semibold)
+				Button("オンにする") {
+					onEnable()
+					dismiss()
+				}
+				.frame(maxWidth: .infinity)
+				.fontWeight(.semibold)
 			}
 		}
 		.scrollContentBackground(.hidden)

@@ -7,7 +7,6 @@ struct SettingsContainerView: View {
 	@State private var accountViewModel: AccountSectionViewModel?
 	/// アカウントの欄がないときは nil。サインインしているときだけ欄を出す。
 	@State private var backupViewModel: BackupSectionViewModel?
-	@State private var isShowingBackupConsent = false
 	@Environment(\.backupStatusTick) private var backupStatusTick
 
 	init(
@@ -29,7 +28,7 @@ struct SettingsContainerView: View {
 				AccountSectionView(viewModel: accountViewModel)
 			}
 			if let backupViewModel, case .signedIn = accountViewModel?.status {
-				BackupSectionView(viewModel: backupViewModel, isShowingConsent: $isShowingBackupConsent)
+				BackupSectionView(viewModel: backupViewModel)
 			}
 			#endif
 			Section {
@@ -55,12 +54,6 @@ struct SettingsContainerView: View {
 		}
 		.scrollContentBackground(.hidden)
 		#if DEBUG || BETA
-		.navigationDestination(isPresented: $isShowingBackupConsent) {
-			BackupConsentView {
-				isShowingBackupConsent = false
-				Task { await backupViewModel?.enable() }
-			}
-		}
 		.task { await accountViewModel?.load() }
 		.onChange(of: accountViewModel?.status) {
 			Task { await backupViewModel?.load() }

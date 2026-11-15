@@ -33,7 +33,9 @@ final class AccountSectionViewModel {
 			status = .signedOut
 			return
 		}
-		status = .loading
+		if case .signedIn = status {} else {
+			status = .loading
+		}
 		await fetchAccount()
 	}
 

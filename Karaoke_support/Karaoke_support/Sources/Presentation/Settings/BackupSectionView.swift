@@ -2,24 +2,20 @@
 import SwiftUI
 
 /// 設定のバックアップの欄。サインインしているときだけ出す。
-/// オンにするときは同意の画面（``BackupConsentView``）へ進む。進む先は List に付けるので、出すかどうかは親から受け取る。
+/// オフのときは同意の画面（``BackupConsentView``）へ進む行を、オンのときはオフにするボタンを出す（ADR 0060）。
 struct BackupSectionView: View {
 	let viewModel: BackupSectionViewModel
-	@Binding var isShowingConsent: Bool
 
 	var body: some View {
 		Section {
-			Toggle("記録をバックアップする", isOn: Binding(
-				get: { viewModel.isOn },
-				set: { isOn in
-					if isOn {
-						isShowingConsent = true
-					} else {
-						Task { await viewModel.prepareDisable() }
+			if !viewModel.isOn {
+				NavigationLink("バックアップをオンにする") {
+					BackupConsentView {
+						Task { await viewModel.enable() }
 					}
 				}
-			))
-			.disabled(viewModel.isWorking)
+				.disabled(viewModel.isWorking)
+			}
 
 			if viewModel.isOn || viewModel.lastSucceededAt != nil {
 				LabeledContent("最後のバックアップ") {
@@ -48,6 +44,13 @@ struct BackupSectionView: View {
 			} else if viewModel.isOn {
 				Button("今すぐバックアップ") {
 					Task { await viewModel.backUpNow() }
+				}
+				.disabled(viewModel.isWorking)
+			}
+
+			if viewModel.isOn {
+				Button("バックアップをオフにする", role: .destructive) {
+					Task { await viewModel.prepareDisable() }
 				}
 				.disabled(viewModel.isWorking)
 			}
@@ -86,8 +89,10 @@ struct BackupSectionView: View {
 
 #Preview("オフ") {
 	@Previewable @State var viewModel = BackupSectionViewModel(backupRepository: PreviewBackupRepository())
-	List {
-		BackupSectionView(viewModel: viewModel, isShowingConsent: .constant(false))
+	NavigationStack {
+		List {
+			BackupSectionView(viewModel: viewModel)
+		}
 	}
 }
 
@@ -96,7 +101,7 @@ struct BackupSectionView: View {
 		status: BackupStatus(isEnabled: true, consentVersion: BackupStatus.currentConsentVersion, lastSucceededAt: Date(), lastFailure: .unreachable)
 	))
 	List {
-		BackupSectionView(viewModel: viewModel, isShowingConsent: .constant(false))
+		BackupSectionView(viewModel: viewModel)
 	}
 }
 
@@ -105,7 +110,7 @@ struct BackupSectionView: View {
 		status: BackupStatus(isEnabled: true, consentVersion: BackupStatus.currentConsentVersion, lastSucceededAt: Date(), lastFailure: .needsConfirmation)
 	))
 	List {
-		BackupSectionView(viewModel: viewModel, isShowingConsent: .constant(false))
+		BackupSectionView(viewModel: viewModel)
 	}
 	.task { await viewModel.load() }
 }
@@ -115,7 +120,7 @@ struct BackupSectionView: View {
 		status: BackupStatus(isEnabled: false, consentVersion: BackupStatus.currentConsentVersion, lastSucceededAt: nil, lastFailure: .remoteDeletionFailed)
 	))
 	List {
-		BackupSectionView(viewModel: viewModel, isShowingConsent: .constant(false))
+		BackupSectionView(viewModel: viewModel)
 	}
 }
 #endif

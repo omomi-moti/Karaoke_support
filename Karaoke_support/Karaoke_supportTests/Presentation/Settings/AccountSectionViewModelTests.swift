@@ -262,6 +262,22 @@ struct AccountSectionViewModelTests {
 		#expect(isFailed(vm.status))
 	}
 
+	@Test("サインイン中に読み直す間は、読み込み中に替えずに今の表示のままにする")
+	func reloadKeepsSignedInWhileFetching() async {
+		let vm = await makeSignedInViewModel()
+		repository.holdsNextFetch = true
+
+		let load = Task { await vm.load() }
+		while repository.heldContinuation == nil {
+			await Task.yield()
+		}
+		#expect(vm.status == .signedIn(repository.account))
+
+		repository.resumeHeldFetch()
+		await load.value
+		#expect(vm.status == .signedIn(repository.account))
+	}
+
 	@Test("画面を離れて読み込みが取り消されたときは、失敗を出さない")
 	func cancelledLoadShowsNoFailure() async {
 		repository.isSignedIn = true
