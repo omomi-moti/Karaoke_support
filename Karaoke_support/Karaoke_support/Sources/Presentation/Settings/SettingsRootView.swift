@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsRootView: View {
 	#if DEBUG || BETA
 	@Environment(\.accountRepository) private var accountRepository
+	@Environment(\.backupRepository) private var backupRepository
 	#endif
 
 	var body: some View {
@@ -15,7 +16,7 @@ struct SettingsRootView: View {
 
 	private var settingsContainer: SettingsContainerView {
 		#if DEBUG || BETA
-		SettingsContainerView(accountRepository: accountRepository)
+		SettingsContainerView(accountRepository: accountRepository, backupRepository: backupRepository)
 		#else
 		SettingsContainerView()
 		#endif
