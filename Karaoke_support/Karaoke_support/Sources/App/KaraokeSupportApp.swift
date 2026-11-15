@@ -51,6 +51,7 @@ struct KaraokeSupportApp: App {
 					.environment(\.trackStatsRepository, dependencies.trackStatsRepository)
 					#if DEBUG || BETA
 					.environment(\.accountRepository, dependencies.accountRepository)
+					.environment(\.backupRepository, dependencies.backupRepository)
 					#endif
 					.modelContainer(dependencies.modelContainer)
 			case .failure:
