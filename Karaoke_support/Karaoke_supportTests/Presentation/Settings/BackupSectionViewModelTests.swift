@@ -15,6 +15,7 @@ private final class StubBackupRepository: BackupRepositoryProtocol {
 	var conflictError: Error?
 	var remoteSessionCount: Int?
 	var remoteSessionCountError: Error?
+	var backUpOutcome: BackupOutcome = .uploaded
 	/// `true` にすると、次の ``fetchConflict()`` を ``resumeHeldConflict()`` まで止めておく。
 	var holdsNextConflict = false
 	private var heldConflict: CheckedContinuation<Void, Never>?
@@ -50,7 +51,7 @@ private final class StubBackupRepository: BackupRepositoryProtocol {
 
 	func backUp(trigger: BackupTrigger) async throws -> BackupOutcome {
 		try await finishCall("backUp(\(trigger))")
-		return .uploaded
+		return backUpOutcome
 	}
 
 	func fetchConflict() async throws -> BackupConflict {
@@ -191,6 +192,51 @@ struct BackupSectionViewModelTests {
 		repository.error = nil
 		await viewModel.backUpNow()
 		#expect(viewModel.failureMessage == nil)
+	}
+
+	@Test("今すぐバックアップで送ったときも、前回と同じで送らなかったときも、最新の状態と出す", arguments: [BackupOutcome.uploaded, .unchanged])
+	func backUpNowShowsUpToDate(outcome: BackupOutcome) async {
+		repository.status = on()
+		repository.backUpOutcome = outcome
+		let viewModel = BackupSectionViewModel(backupRepository: repository)
+
+		await viewModel.backUpNow()
+
+		#expect(viewModel.isUpToDate)
+	}
+
+	@Test("失敗したときと、記録がなくて送らなかったときは、最新の状態と出さない")
+	func backUpNowDoesNotShowUpToDateWithoutBackup() async {
+		repository.status = on()
+		repository.backUpOutcome = .noRecords
+		let viewModel = BackupSectionViewModel(backupRepository: repository)
+
+		await viewModel.backUpNow()
+		#expect(!viewModel.isUpToDate)
+
+		repository.backUpOutcome = .uploaded
+		repository.error = BackupFailure.unreachable
+		await viewModel.backUpNow()
+		#expect(!viewModel.isUpToDate)
+	}
+
+	@Test("最新の状態は、次の操作を始めたときと読み直したときに消す")
+	func upToDateIsClearedByNextActionOrReload() async throws {
+		repository.status = on()
+		let viewModel = BackupSectionViewModel(backupRepository: repository)
+		await viewModel.backUpNow()
+		#expect(viewModel.isUpToDate)
+
+		repository.holdsNextCall = true
+		let next = Task { await viewModel.backUpNow() }
+		try await waitUntil { repository.isHoldingCall }
+		#expect(!viewModel.isUpToDate)
+		repository.resumeHeldCall()
+		await next.value
+		#expect(viewModel.isUpToDate)
+
+		await viewModel.load()
+		#expect(!viewModel.isUpToDate)
 	}
 
 	@Test("やり直している間は前の失敗を消さず、終わったときに入れ替える")

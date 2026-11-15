@@ -37,6 +37,9 @@ final class BackupSectionViewModel {
 	private(set) var isEnabling = false
 	/// 端末の状態に置かれない失敗（件数を読めなかった、など）。
 	private(set) var errorMessage: String?
+	/// 「今すぐバックアップ」で送り終えたか、前回と同じ中身で送らずに済んだときに `true`。
+	/// 押した反応を見せるため、次の操作か読み直しまで「最新の状態です」を出す。
+	private(set) var isUpToDate = false
 
 	init(backupRepository: any BackupRepositoryProtocol, onSignInRequired: @escaping () -> Void = {}) {
 		self.backupRepository = backupRepository
@@ -83,6 +86,7 @@ final class BackupSectionViewModel {
 	}
 
 	func load() async {
+		isUpToDate = false
 		if let message = await refresh() {
 			errorMessage = message
 		}
@@ -94,7 +98,9 @@ final class BackupSectionViewModel {
 	}
 
 	func backUpNow() async {
-		await perform(.backingUp) { _ = try await $0.backUp(trigger: .manual) }
+		var outcome: BackupOutcome?
+		await perform(.backingUp) { outcome = try await $0.backUp(trigger: .manual) }
+		isUpToDate = outcome == .uploaded || outcome == .unchanged
 	}
 
 	func confirmReplace() async {
@@ -105,6 +111,7 @@ final class BackupSectionViewModel {
 	func prepareDisable() async {
 		guard !isWorking else { return }
 		activity = .disabling
+		isUpToDate = false
 		errorMessage = nil
 		defer { activity = nil }
 		do {
@@ -138,6 +145,7 @@ final class BackupSectionViewModel {
 		guard !isWorking else { return }
 		self.activity = activity
 		self.isEnabling = isEnabling
+		isUpToDate = false
 		defer {
 			self.activity = nil
 			self.isEnabling = false

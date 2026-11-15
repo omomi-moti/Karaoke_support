@@ -27,6 +27,11 @@ struct BackupSectionView: View {
 				}
 			}
 
+			if viewModel.isUpToDate {
+				Label("バックアップは最新の状態です", systemImage: "checkmark.circle")
+					.foregroundStyle(.secondary)
+			}
+
 			if let failureMessage = viewModel.failureMessage {
 				Label(failureMessage, systemImage: "exclamationmark.triangle")
 					.foregroundStyle(.secondary)
