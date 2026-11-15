@@ -35,36 +35,42 @@ struct BackupSectionView: View {
 			if let conflictMessage = viewModel.conflictMessage {
 				VStack(alignment: .leading, spacing: 8) {
 					Text(conflictMessage)
-					Button("置き換える", role: .destructive) {
+					Button(role: .destructive) {
 						Task { await viewModel.confirmReplace() }
+					} label: {
+						progressLabel("置き換える", while: .replacing)
 					}
 					.buttonStyle(.borderless)
 					.disabled(viewModel.isWorking)
 				}
 			} else if viewModel.isOn {
-				Button("今すぐバックアップ") {
+				Button {
 					Task { await viewModel.backUpNow() }
+				} label: {
+					progressLabel(
+						viewModel.activity == .backingUp ? "バックアップしています…" : "今すぐバックアップ",
+						while: .backingUp
+					)
 				}
 				.disabled(viewModel.isWorking)
 			}
 
 			if viewModel.isOn {
-				Button("バックアップをオフにする", role: .destructive) {
+				Button(role: .destructive) {
 					Task { await viewModel.prepareDisable() }
+				} label: {
+					progressLabel("バックアップをオフにする", while: .disabling)
 				}
 				.disabled(viewModel.isWorking)
 			}
 
 			if viewModel.canRetryRemoteDeletion {
-				Button("もう一度消す") {
+				Button {
 					Task { await viewModel.retryRemoteDeletion() }
+				} label: {
+					progressLabel("もう一度消す", while: .deletingRemote)
 				}
 				.disabled(viewModel.isWorking)
-			}
-
-			if viewModel.isWorking {
-				ProgressView()
-					.frame(maxWidth: .infinity)
 			}
 		} header: {
 			Text("バックアップ（開発中）")
@@ -83,6 +89,16 @@ struct BackupSectionView: View {
 			}
 		} message: {
 			Text(viewModel.disableConfirmationMessage ?? "")
+		}
+	}
+
+	private func progressLabel(_ title: String, while activity: BackupSectionViewModel.Activity) -> some View {
+		HStack {
+			Text(title)
+			Spacer()
+			if viewModel.activity == activity {
+				ProgressView()
+			}
 		}
 	}
 }

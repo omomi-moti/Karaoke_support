@@ -22,19 +22,34 @@ private final class StubBackupRepository: BackupRepositoryProtocol {
 	private(set) var calls: [String] = []
 	private(set) var replacedConflicts: [BackupConflict] = []
 
-	private func finishCall(_ name: String) throws {
+	/// `true` にすると、次の enable・backUp・replaceRemote・disable・retryRemoteDeletion を ``resumeHeldCall()`` まで止めておく。
+	var holdsNextCall = false
+	private var heldCall: CheckedContinuation<Void, Never>?
+
+	var isHoldingCall: Bool { heldCall != nil }
+
+	func resumeHeldCall() {
+		heldCall?.resume()
+		heldCall = nil
+	}
+
+	private func finishCall(_ name: String) async throws {
 		calls.append(name)
+		if holdsNextCall {
+			holdsNextCall = false
+			await withCheckedContinuation { heldCall = $0 }
+		}
 		if let statusAfterCall { status = statusAfterCall }
 		if let error { throw error }
 	}
 
 	func enable() async throws -> BackupOutcome {
-		try finishCall("enable")
+		try await finishCall("enable")
 		return .uploaded
 	}
 
 	func backUp(trigger: BackupTrigger) async throws -> BackupOutcome {
-		try finishCall("backUp(\(trigger))")
+		try await finishCall("backUp(\(trigger))")
 		return .uploaded
 	}
 
@@ -58,7 +73,7 @@ private final class StubBackupRepository: BackupRepositoryProtocol {
 
 	func replaceRemote(confirmed conflict: BackupConflict) async throws -> BackupOutcome {
 		replacedConflicts.append(conflict)
-		try finishCall("replaceRemote")
+		try await finishCall("replaceRemote")
 		return .uploaded
 	}
 
@@ -69,11 +84,11 @@ private final class StubBackupRepository: BackupRepositoryProtocol {
 	}
 
 	func disable() async throws {
-		try finishCall("disable")
+		try await finishCall("disable")
 	}
 
 	func retryRemoteDeletion() async throws {
-		try finishCall("retryRemoteDeletion")
+		try await finishCall("retryRemoteDeletion")
 	}
 }
 
@@ -175,6 +190,27 @@ struct BackupSectionViewModelTests {
 
 		repository.error = nil
 		await viewModel.backUpNow()
+		#expect(viewModel.failureMessage == nil)
+	}
+
+	@Test("やり直している間は前の失敗を消さず、終わったときに入れ替える")
+	func failureStaysUntilRetryFinishes() async throws {
+		repository.status = on()
+		repository.error = BackupFailure.server
+		let viewModel = BackupSectionViewModel(backupRepository: repository)
+		await viewModel.backUpNow()
+		let previousMessage = try #require(viewModel.failureMessage)
+
+		repository.error = nil
+		repository.holdsNextCall = true
+		let retry = Task { await viewModel.backUpNow() }
+		try await waitUntil { repository.isHoldingCall }
+		#expect(viewModel.activity == .backingUp)
+		#expect(viewModel.failureMessage == previousMessage)
+
+		repository.resumeHeldCall()
+		await retry.value
+		#expect(!viewModel.isWorking)
 		#expect(viewModel.failureMessage == nil)
 	}
 

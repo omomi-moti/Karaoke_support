@@ -15,6 +15,14 @@ final class BackupSectionViewModel {
 		case unknown
 	}
 
+	/// 動いている処理。押したボタンの行に進み具合を出すため。
+	enum Activity: Equatable {
+		case backingUp
+		case replacing
+		case disabling
+		case deletingRemote
+	}
+
 	private let backupRepository: any BackupRepositoryProtocol
 	/// 401 で端末のトークンとバックアップの状態が消えたときに呼ぶ。アカウントの欄を読み直すため。
 	@ObservationIgnored private let onSignInRequired: () -> Void
@@ -24,7 +32,7 @@ final class BackupSectionViewModel {
 	/// 「確認が要る」のときに読んだ件数。置き換えるときは、この版を条件にする。
 	private(set) var conflict: BackupConflict?
 	private(set) var disableConfirmation: DisableConfirmation?
-	private(set) var isWorking = false
+	private(set) var activity: Activity?
 	/// 同意してから最初の送信が終わるまで `true`。その間も切り替えをオンに見せる。
 	private(set) var isEnabling = false
 	/// 端末の状態に置かれない失敗（件数を読めなかった、など）。
@@ -34,6 +42,10 @@ final class BackupSectionViewModel {
 		self.backupRepository = backupRepository
 		self.onSignInRequired = onSignInRequired
 		status = backupRepository.status
+	}
+
+	var isWorking: Bool {
+		activity != nil
 	}
 
 	var isOn: Bool {
@@ -71,28 +83,30 @@ final class BackupSectionViewModel {
 	}
 
 	func load() async {
-		await refresh()
+		if let message = await refresh() {
+			errorMessage = message
+		}
 	}
 
 	/// 同意の画面の「オンにする」。送るのに失敗してもオンのままになるので、結果はこの欄に出す。
 	func enable() async {
-		await perform(isEnabling: true) { _ = try await $0.enable() }
+		await perform(.backingUp, isEnabling: true) { _ = try await $0.enable() }
 	}
 
 	func backUpNow() async {
-		await perform { _ = try await $0.backUp(trigger: .manual) }
+		await perform(.backingUp) { _ = try await $0.backUp(trigger: .manual) }
 	}
 
 	func confirmReplace() async {
 		guard let conflict else { return }
-		await perform { _ = try await $0.replaceRemote(confirmed: conflict) }
+		await perform(.replacing) { _ = try await $0.replaceRemote(confirmed: conflict) }
 	}
 
 	func prepareDisable() async {
 		guard !isWorking else { return }
-		isWorking = true
+		activity = .disabling
 		errorMessage = nil
-		defer { isWorking = false }
+		defer { activity = nil }
 		do {
 			disableConfirmation = if let count = try await backupRepository.fetchRemoteSessionCount() {
 				.remote(sessionCount: count)
@@ -101,7 +115,7 @@ final class BackupSectionViewModel {
 			}
 		} catch BackupFailure.signInRequired {
 			onSignInRequired()
-			await refresh()
+			errorMessage = await refresh()
 		} catch {
 			disableConfirmation = .unknown
 		}
@@ -113,20 +127,19 @@ final class BackupSectionViewModel {
 
 	func disable() async {
 		disableConfirmation = nil
-		await perform { try await $0.disable() }
+		await perform(.disabling) { try await $0.disable() }
 	}
 
 	func retryRemoteDeletion() async {
-		await perform { try await $0.retryRemoteDeletion() }
+		await perform(.deletingRemote) { try await $0.retryRemoteDeletion() }
 	}
 
-	private func perform(isEnabling: Bool = false, _ operation: (any BackupRepositoryProtocol) async throws -> Void) async {
+	private func perform(_ activity: Activity, isEnabling: Bool = false, _ operation: (any BackupRepositoryProtocol) async throws -> Void) async {
 		guard !isWorking else { return }
-		isWorking = true
+		self.activity = activity
 		self.isEnabling = isEnabling
-		errorMessage = nil
 		defer {
-			isWorking = false
+			self.activity = nil
 			self.isEnabling = false
 		}
 		var thrown: BackupFailure?
@@ -138,34 +151,38 @@ final class BackupSectionViewModel {
 		if thrown == .signInRequired {
 			onSignInRequired()
 		}
-		await refresh()
+		let refreshMessage = await refresh()
 		if let thrown, thrown != .signInRequired, thrown != status.lastFailure {
 			errorMessage = Self.message(for: thrown)
+		} else {
+			errorMessage = refreshMessage
 		}
 	}
 
 	/// 端末の状態を写し、「確認が要る」なら件数を読む。読み終えたときに新しい読み込みが始まっていたら、件数は書かない。
-	private func refresh() async {
+	/// 件数を読めなかったときは、出す文を返す（出すかどうかは呼ぶ側が決める）。
+	private func refresh() async -> String? {
 		loadGeneration += 1
 		let generation = loadGeneration
 		status = backupRepository.status
 		guard status.lastFailure == .needsConfirmation else {
 			conflict = nil
-			return
+			return nil
 		}
 		do {
 			let conflict = try await backupRepository.fetchConflict()
-			guard generation == loadGeneration else { return }
+			guard generation == loadGeneration else { return nil }
 			self.conflict = conflict
+			return nil
 		} catch {
-			guard generation == loadGeneration else { return }
+			guard generation == loadGeneration else { return nil }
 			conflict = nil
 			if error as? BackupFailure == .signInRequired {
 				onSignInRequired()
 				status = backupRepository.status
-			} else {
-				errorMessage = "サーバーのバックアップの件数を読めませんでした。時間をおいてもう一度お試しください"
+				return nil
 			}
+			return "サーバーのバックアップの件数を読めませんでした。時間をおいてもう一度お試しください"
 		}
 	}
 
