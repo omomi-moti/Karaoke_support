@@ -760,6 +760,32 @@ struct RemoteBackupRepositoryTests {
 		#expect(state.lastFailure == nil)
 	}
 
+	@Test("オフにして消す順番を待つ間に、サインアウトして別のアカウントに入っても、そのアカウントの控えは消さない")
+	func clearedBeforeQueuedDeletionKeepsOtherAccountBackup() async throws {
+		let tokenStore = InMemoryTokenStore()
+		let state = InMemoryBackupState.active(lastRevision: 3)
+		let log = RequestLog()
+		let gate = ResponseGate()
+		let repository = makeRepository(tokenStore: tokenStore, state: state, log: log) { request in
+			if request.httpMethod == "PUT" {
+				gate.wait()
+				return putOK(revision: 4)
+			}
+			return (204, "")
+		}
+
+		let upload = try await start { try await repository.backUp(trigger: .manual) }
+		try await waitUntil { log.puts.count == 1 }
+		let off = try await start { try await repository.disable() }
+		state.clear()
+		try tokenStore.save("klog_other")
+		gate.open()
+		_ = try await upload.value
+		try await off.value
+
+		#expect(!log.methods.contains("DELETE"))
+	}
+
 	@Test("オンにすると、同意の版を置いてすぐ送る")
 	func enableUploadsImmediately() async throws {
 		let state = InMemoryBackupState()

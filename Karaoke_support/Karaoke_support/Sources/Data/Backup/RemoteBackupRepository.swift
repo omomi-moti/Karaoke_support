@@ -97,15 +97,19 @@ final class RemoteBackupRepository: BackupRepositoryProtocol {
 	func disable() async throws {
 		state.isEnabled = false
 		lastUploadedHash = nil
-		try await runAfterLatest {
-			guard !self.state.isEnabled else { return }
-			try await self.deleteRemote()
-		}.value
+		try await deleteRemoteAfterLatest()
 	}
 
 	func retryRemoteDeletion() async throws {
+		try await deleteRemoteAfterLatest()
+	}
+
+	/// 前の処理が終わってから、サーバーの控えを消す。順番を待つ間にオンに戻されたら消さない。
+	/// 順番を待つ間に状態が消されたら（サインアウトなど）も消さない。別のアカウントでサインインし直していると、そのアカウントの控えを消してしまうため。
+	private func deleteRemoteAfterLatest() async throws {
+		let clearCountAtStart = state.clearCount
 		try await runAfterLatest {
-			guard !self.state.isEnabled else { return }
+			guard !self.state.isEnabled, self.state.clearCount == clearCountAtStart else { return }
 			try await self.deleteRemote()
 		}.value
 	}
@@ -135,13 +139,13 @@ final class RemoteBackupRepository: BackupRepositoryProtocol {
 
 		let snapshot = try readSnapshot()
 		guard !snapshot.sessions.isEmpty else { return .noRecords }
-		return try await upload(snapshot, ifMatch: state.lastRevision, skipsUnchanged: true)
+		return try await upload(snapshot, ifMatch: state.lastRevision, isSkippingUnchanged: true)
 	}
 
 	/// `ifMatch` の版を条件に送る。版がなければ、控えがないときだけ作る（`If-None-Match: *`）。
 	/// 送っている途中に状態が消されたら（サインアウトなど）、返事を状態に書かない。前のアカウントの版や失敗を残さないため。
-	private func upload(_ snapshot: BackupSnapshot, ifMatch revision: Int?, skipsUnchanged: Bool = false) async throws -> BackupOutcome {
-		let clearCount = state.clearCount
+	private func upload(_ snapshot: BackupSnapshot, ifMatch revision: Int?, isSkippingUnchanged: Bool = false) async throws -> BackupOutcome {
+		let clearCountAtStart = state.clearCount
 		let body: Data
 		do {
 			body = try Self.encoder.encode(PutBackupRequest(snapshot: snapshot))
@@ -149,7 +153,7 @@ final class RemoteBackupRepository: BackupRepositoryProtocol {
 			throw record(.localReadFailed)
 		}
 		let hash = SHA256.hash(data: body)
-		if skipsUnchanged, hash == lastUploadedHash {
+		if isSkippingUnchanged, hash == lastUploadedHash {
 			if state.lastFailure != .needsConfirmation {
 				state.lastFailure = nil
 			}
@@ -163,11 +167,11 @@ final class RemoteBackupRepository: BackupRepositoryProtocol {
 			response = try await client.send("PUT", "v1/backup", jsonBody: body, headers: condition, bearer: token)
 		} catch {
 			let failure = failure(for: error)
-			guard state.clearCount == clearCount else { throw failure }
+			guard state.clearCount == clearCountAtStart else { throw failure }
 			throw record(failure)
 		}
 
-		if state.clearCount == clearCount {
+		if state.clearCount == clearCountAtStart {
 			state.lastRevision = response.revision
 			state.lastSucceededAt = response.updatedAt
 			state.lastFailure = nil
@@ -179,13 +183,13 @@ final class RemoteBackupRepository: BackupRepositoryProtocol {
 	/// サーバーの控えを消す。消している間にオンに戻されたときは、オンの状態を消さない。
 	/// 消している間に状態が消されたら、返事を状態に書かない。
 	private func deleteRemote() async throws {
-		let clearCount = state.clearCount
+		let clearCountAtStart = state.clearCount
 		let token = try currentToken()
 		do {
 			try await client.sendExpectingNoContent("DELETE", "v1/backup", bearer: token)
 		} catch {
 			let failure = failure(for: error)
-			guard state.clearCount == clearCount else {
+			guard state.clearCount == clearCountAtStart else {
 				throw failure == .signInRequired ? failure : .remoteDeletionFailed
 			}
 			if failure == .signInRequired {
@@ -196,7 +200,7 @@ final class RemoteBackupRepository: BackupRepositoryProtocol {
 			}
 			throw BackupFailure.remoteDeletionFailed
 		}
-		guard state.clearCount == clearCount else { return }
+		guard state.clearCount == clearCountAtStart else { return }
 		if state.isEnabled {
 			state.lastRevision = nil
 		} else {
@@ -205,7 +209,7 @@ final class RemoteBackupRepository: BackupRepositoryProtocol {
 	}
 
 	private func fetchSummary() async throws -> BackupSummaryResponse? {
-		let clearCount = state.clearCount
+		let clearCountAtStart = state.clearCount
 		let token = try currentToken()
 		do {
 			return try await client.send("GET", "v1/backup/summary", bearer: token)
@@ -213,7 +217,7 @@ final class RemoteBackupRepository: BackupRepositoryProtocol {
 			return nil
 		} catch {
 			let failure = failure(for: error)
-			if failure == .signInRequired, state.clearCount == clearCount {
+			if failure == .signInRequired, state.clearCount == clearCountAtStart {
 				signOutLocally()
 			}
 			throw failure
