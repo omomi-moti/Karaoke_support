@@ -117,6 +117,19 @@ struct AccountSectionViewModelTests {
 		#expect(vm.status == .signedOut)
 	}
 
+	@Test("サインイン中の表示で、トークンが消えていれば問い合わせずに戻し、残っていればそのまま", arguments: [false, true])
+	func refreshSignInState(isTokenLeft: Bool) async {
+		repository.isSignedIn = true
+		let vm = makeViewModel()
+		await vm.load()
+
+		repository.isSignedIn = isTokenLeft
+		vm.refreshSignInState()
+
+		#expect(vm.status == (isTokenLeft ? .signedIn(repository.account) : .signedOut))
+		#expect(repository.fetchCount == 1)
+	}
+
 	@Test("届かなければ失敗を出し、読み直すとアカウントを出す", arguments: [AccountRepositoryError.unreachable, .server])
 	func loadFailureCanRetry(error: AccountRepositoryError) async {
 		repository.isSignedIn = true

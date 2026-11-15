@@ -66,6 +66,7 @@ struct SettingsContainerView: View {
 			Task { await backupViewModel?.load() }
 		}
 		.onChange(of: backupStatusTick) {
+			accountViewModel?.refreshSignInState()
 			Task { await backupViewModel?.load() }
 		}
 		#endif
