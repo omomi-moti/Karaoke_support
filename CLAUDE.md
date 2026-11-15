@@ -19,7 +19,7 @@
 - **コミットは本人がする。** 手順ごとに、ファイルの分け方（`git add …`）とコミットメッセージを出す。「コミットして」と頼まれたときだけ Claude がコミットする。`Karaoke_support.xcodeproj/project.pbxproj` のビルド番号は、頼まれない限り入れない。
 - PR は、タイトルと「背景」「変更内容」だけの本文にし、最後に `Closes #N` を書く。
 - **ADR**：背景・比べた案・トレードオフは Claude が書く。「選んだ理由」は本人が自分の言葉で書くので、`<!-- 本人が書く -->` を置いて空けておく。
-- PR の前に `karaoke-review` のスキルでレビューする。確かめていない推測を不具合として出さない。確かめるか、確かめていないと書く。
+- PR の前に、`karaoke-spec-check` のスキルで決まり（Issue の受け入れ条件・ADR・憲法など）を満たしているかを確かめ、その後に `karaoke-review` のスキルでレビューする。確かめていない推測を不具合として出さない。確かめるか、確かめていないと書く。
 
 ---
 
@@ -128,3 +128,4 @@ Sources/
 - docs/README.md — docs の目次と、どれが正か
 - .claude/rules/ — フォルダごとの決まり（SwiftData・Presentation・テスト・サーバー）
 - .claude/skills/karaoke-review/ — このプロジェクト用のコードレビュー
+- .claude/skills/karaoke-spec-check/ — 決まりを満たしているかを、層ごとの表で確かめる
