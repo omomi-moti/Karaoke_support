@@ -57,7 +57,7 @@ echo 'export PATH="$HOME/go/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
    go run ./cmd/api
    ```
 
-5. 別のタブで確かめる。DB につながれば `200`、つながらなければ `503`。トークンなしで `/v1/me` を呼ぶと `401`
+5. 別のタブで確かめる。`/health` は DB に触らないので、動いていれば `200`。トークンなしで `/v1/me` を呼ぶと `401`
 
    ```bash
    curl -i localhost:8080/health
@@ -176,7 +176,7 @@ gcloud auth configure-docker asia-northeast1-docker.pkg.dev
      --allow-unauthenticated
    ```
 
-4. 確かめる。`200` と `{"status":"ok"}` が返ればよい。止まっていた後の最初の 1 回は、Cloud Run と Neon が起きるので数秒かかる
+4. 確かめる。`200` と `{"status":"ok"}` が返ればよい。止まっていた後の最初の 1 回は、Cloud Run が起きるので数秒かかる。`/health` は DB に触らないので、DB まで届くかはアプリでサインインして確かめる（ADR 0063）。同じ IP から続けて 30 回より多く呼ぶと `429` が返る
 
    ```bash
    curl -i "$(gcloud run services describe karaoke-api-staging --region asia-northeast1 --format='value(status.url)')/health"

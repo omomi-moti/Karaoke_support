@@ -10,7 +10,7 @@ paths:
 ## 分け方
 
 - `internal/` の下は機能ごとのパッケージにし、中を handler・service・store の 3 段に分ける。handler は入出力・認証・大きさの上限、service はルール、store は SQL だけを持つ（`docs/backend_design.md` の「責任の分け方」）。
-- インターフェースは使う側のパッケージに置き、使うメソッドだけを書く（例：`httpapi.Pinger`）。テストでは偽物に差し替える。
+- インターフェースは使う側のパッケージに置き、使うメソッドだけを書く（例：`httpapi.Authenticator`）。テストでは偽物に差し替える。
 - `cmd/api/main.go` は設定を読み、依存を組み立てるだけにする。
 - 標準の `net/http` と `pgx` を使い、フレームワークや ORM は入れない（ADR 0048）。依存を足すときは、先に理由を書いて相談する。
 

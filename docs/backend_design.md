@@ -2,7 +2,7 @@
 
 端末を超えて記録を残すためのサーバー（Go）と、曲名の入力を助ける MusicKit の設計。要件・構成・API・データの流れ・責任の分け方をまとめる。
 
-この文書は全体の地図。正はタスク・仕様が GitHub Issues、判断が ADR（[0048](adr/0048-introduce-go-server.md)・[0049](adr/0049-account-and-full-backup.md)・[0050](adr/0050-postgres-on-neon.md)・[0051](adr/0051-public-cloud-run-with-caps.md)・[0053](adr/0053-beta-testers-and-auto-backup.md)・[0054](adr/0054-sign-in-and-server-tokens.md)・[0058](adr/0058-backup-consent-and-auto-upload.md)・[0061](adr/0061-restore-into-empty-device-and-accept-same-backup.md)・[0062](adr/0062-show-backup-state-row-and-restore-alert.md)）で、最上位は[憲法](constitution.md)。Issue を 1 つ終えるたびに、作ったものに合わせてこの文書を直す。
+この文書は全体の地図。正はタスク・仕様が GitHub Issues、判断が ADR（[0048](adr/0048-introduce-go-server.md)・[0049](adr/0049-account-and-full-backup.md)・[0050](adr/0050-postgres-on-neon.md)・[0051](adr/0051-public-cloud-run-with-caps.md)・[0053](adr/0053-beta-testers-and-auto-backup.md)・[0054](adr/0054-sign-in-and-server-tokens.md)・[0058](adr/0058-backup-consent-and-auto-upload.md)・[0061](adr/0061-restore-into-empty-device-and-accept-same-backup.md)・[0062](adr/0062-show-backup-state-row-and-restore-alert.md)・[0063](adr/0063-rate-limit-by-client-ip-and-health-without-db.md)）で、最上位は[憲法](constitution.md)。Issue を 1 つ終えるたびに、作ったものに合わせてこの文書を直す。
 
 ---
 
@@ -39,7 +39,7 @@
 | NFR-3 | プライバシー | サーバーのログとエラーの返事に、記録の中身（曲名・点数・気分）も、Apple のトークン・サーバーのトークン・`Authorization` ヘッダーも出さない |
 | NFR-4 | セキュリティ | Apple のトークンは、署名（`RS256` だけを受け付ける）・発行者・宛先（バンドル ID だけ。ほかの宛先が混ざっていたら拒否）・期限・発行時刻と、iOS が作った nonce が一致するかを、golang-jwt と keyfunc で検証する。確かめる項目は、Apple の「Verifying a user」の手順と、OpenID Connect Core 1.0 の 3.1.3.7（ID Token Validation）に沿う。サーバーが出すトークンは `crypto/rand` で作ってハッシュにして DB に保存し、iOS は Keychain に `AfterFirstUnlockThisDeviceOnly` で置く（[ADR 0054](adr/0054-sign-in-and-server-tokens.md)）。通信は HTTPS だけで、DB とも TLS（`sslmode=require` 以上）でつなぐ |
 | NFR-5 | セキュリティ | 1 回のリクエストの大きさに上限を設ける（5MB） |
-| NFR-6 | 費用 | 月 0 円を目指す。Cloud Run のインスタンスの数の上限を 1 にし、予算のアラート（月 500 円）と Cloud Run の支出の上限（月 300 円）を入れる（[ADR 0051](adr/0051-public-cloud-run-with-caps.md)） |
+| NFR-6 | 費用 | 月 0 円を目指す。Cloud Run のインスタンスの数の上限を 1 にし、予算のアラート（月 500 円）と Cloud Run の支出の上限（月 300 円）を入れる（[ADR 0051](adr/0051-public-cloud-run-with-caps.md)）。相手の IP ごとに回数を制限し、`/health` は DB に触らない（[ADR 0063](adr/0063-rate-limit-by-client-ip-and-health-without-db.md)） |
 | NFR-7 | 互換性 | API のパスに `/v1/` を付ける。バックアップに `schemaVersion` を持たせ、アプリのモデルが変わっても古いバックアップを読めるようにする |
 | NFR-8 | 性能 | 記録 1000 件のバックアップと取り込みが数秒で終わる。インスタンスが止まっていた後の 1〜2 秒の遅れは許す |
 | NFR-9 | 保守性 | Go は標準ライブラリを中心にし、handler・service をテストで確かめられるようにする。iOS 側は今と同じく、プロトコルでモックに差し替えられる |
@@ -78,7 +78,7 @@ flowchart LR
 server/
 ├── cmd/api/main.go     # 起動と依存の組み立て（iOS の AppDependencies と同じ役）
 ├── internal/
-│   ├── httpapi/        # ルーティングとミドルウェア（認証・大きさの上限）
+│   ├── httpapi/        # ルーティングとミドルウェア（認証・大きさの上限・回数の制限）
 │   ├── account/        # アカウント：handler / service / store
 │   ├── backup/         # バックアップ：handler / service / store
 │   └── appleauth/      # Apple のトークンの検証（公開鍵をキャッシュする）と取り消し
@@ -110,7 +110,8 @@ Go は標準の `net/http`（1.22 以降のルーティング）と `pgx` を使
 - MVP の間は手でデプロイし、デプロイの前にマイグレーションを手で流す。イメージは手元で作って Artifact Registry に送る。手順は [server/README.md](../server/README.md)。GitHub Actions は MVP の後
 - DB の URL などの秘密の値はリポジトリに入れず、Secret Manager に置いて Cloud Run の環境変数として渡す
 - Cloud Run は誰でも呼べるようにし、専用のサービスアカウントで動かす。このアカウントは DB の URL を読む権限だけを持つ（[ADR 0051](adr/0051-public-cloud-run-with-caps.md)）
-- `/health` は毎回 DB につなぐので、叩かれ続けると Neon の無料枠を使い切って月末まで止まる。外部テスターに配る前に、DB を見ない確認と分け、IP ごとのレート制限を入れる（ADR 0051・0053）
+- URL はアプリから取り出せば誰でも呼べるので、すべての API に相手の IP ごとの回数の制限を付ける。毎秒 1 回分たまり、続けては 30 回まで。超えたら DB に触らずに `429` と `Retry-After` を返す。相手の IP は `X-Forwarded-For` のいちばん右（Cloud Run が足したもの）で数える（ADR 0063）
+- `/health` は DB に触らない。叩かれ続けても Neon の無料枠を使わないため。DB まで届くかは、デプロイの後にアプリでサインインして確かめる（ADR 0063）
 
 ## DB
 
@@ -124,7 +125,7 @@ Go は標準の `net/http`（1.22 以降のルーティング）と `pgx` を使
 
 | メソッド | パス | 中身 | 認証 |
 |---|---|---|---|
-| GET | `/health` | 生きているかの確認 | なし |
+| GET | `/health` | プロセスが動いているかの確認。DB には触らない（ADR 0063） | なし |
 | POST | `/v1/auth/apple` | Apple のトークンを受け取り、サーバーのトークン（期限 90 日）を返す。ユーザーがいなければ作る。その人の期限切れのトークンの行を消す | なし |
 | DELETE | `/v1/auth/session` | ログアウト（今のトークンの行だけを消し、204 を返す。ほかの端末のトークンは残す） | 要る |
 | GET | `/v1/me` | 自分の情報（サーバーのユーザー ID と作った日時だけ。Apple のユーザー ID は返さない） | 要る |
@@ -248,7 +249,7 @@ sequenceDiagram
 | ViewModel | 画面の状態・いつ確認を出すか・検索を待つ時間と取り消し | HTTP や SwiftData の型を知ること |
 | Domain | プロトコル・`BackupSnapshot`・エラーの型 | 外部の仕組みを読み込むこと（`@Model` を除く） |
 | Data | SwiftData と `BackupSnapshot` の変換・HTTP・Keychain・MusicKit。「空の端末にだけ取り込む」と「ほかの端末のバックアップを自動で上書きしない」はここで守る（どこから呼ばれても記録を消さないため） | 画面の都合を持つこと |
-| サーバーの handler | 入出力・認証・大きさの上限 | ルールを決めること |
+| サーバーの handler | 入出力・認証・大きさの上限・回数の制限 | ルールを決めること |
 | サーバーの service | アカウントを作る・消す、バックアップを置き換えるルール | SQL を書くこと |
 | サーバーの store | SQL | ルールを持つこと |
 | サーバー全体 | 保存と認証 | 記録の中身を読むこと・集計すること・Apple Music の曲データを持つこと |
@@ -267,7 +268,7 @@ sequenceDiagram
 | 2-4 | アカウントを消せるようにする（Apple のトークンも取り消す）（#157） | FR-2 | 済み |
 | 3 | 記録をサーバーにバックアップする（オンにした後は自動で）（#161）。設計は ADR 0058・0059・0060 | FR-3・FR-4・NFR-5・NFR-7・NFR-8 | 済み |
 | 4 | 別の端末で記録を取り込む（#165）。返事が届かなかったときの 412 も直す。設計は ADR 0061・0062 | FR-5・NFR-7・NFR-8 | 済み |
-| 5 | Beta のビルドを作り、外部テスターに配る（レート制限・`/health` の分割・プライバシーポリシー・Privacy Manifest の差し替え） | NFR-2・NFR-6 | 未着手 |
+| 5 | Beta のビルドを作り、外部テスターに配る（#167）。レート制限と `/health`（#168、ADR 0063）・Beta のビルドの設定（#169）・プライバシーポリシー（#170）・TestFlight（#171） | NFR-2・NFR-6 | 進行中 |
 | 6 | MusicKit が使えるか確かめ、扱い方を決める | FR-6 の前提 | 未着手 |
 | 7 | 曲名を打つと「もしかして？」で Apple Music の曲を出す | FR-6 | 未着手 |
 | 8 | 曲の ID で同じ曲を判定し、カタログの曲名で表示する（M2） | — | 未着手 |
