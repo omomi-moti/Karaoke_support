@@ -59,7 +59,7 @@ func (fakeAuth) Authenticate(ctx context.Context, rawToken string) (string, erro
 func serve(svc *fakeService, method, path string, header http.Header, body string) *httptest.ResponseRecorder {
 	h := &Handler{svc: svc}
 	ok := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-	router := httpapi.NewRouter(nil, fakeAuth{}, httpapi.Handlers{
+	router := httpapi.NewRouter(fakeAuth{}, httpapi.Handlers{
 		SignInWithApple: ok, SignOut: ok, Me: ok, DeleteMe: ok,
 		BackupSummary: http.HandlerFunc(h.Summary),
 		GetBackup:     http.HandlerFunc(h.Get),

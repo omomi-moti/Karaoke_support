@@ -24,7 +24,7 @@ func newFlow(t *testing.T, db *pgxpool.Pool, appleUserID string, revoker AppleRe
 	t.Helper()
 	svc := &Service{apple: fakeApple{sub: appleUserID}, revoker: revoker, store: NewStore(db), now: time.Now}
 	h := NewHandler(svc)
-	router := httpapi.NewRouter(db, svc, httpapi.Handlers{
+	router := httpapi.NewRouter(svc, httpapi.Handlers{
 		SignInWithApple: http.HandlerFunc(h.SignInWithApple),
 		SignOut:         http.HandlerFunc(h.SignOut),
 		Me:              http.HandlerFunc(h.Me),

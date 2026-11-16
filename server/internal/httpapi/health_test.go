@@ -1,31 +1,20 @@
 package httpapi
 
 import (
-	"context"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
-type fakePinger struct {
-	err error
-}
-
-func (f fakePinger) Ping(ctx context.Context) error {
-	return f.err
-}
-
+// TestHealth は、/health が DB に触らずに返すことを確かめる。ルーターは DB を受け取らない（ADR 0063）。
 func TestHealth(t *testing.T) {
 	tests := []struct {
-		name    string
-		method  string
-		pingErr error
-		want    int
+		name   string
+		method string
+		want   int
 	}{
-		{"DB につながれば 200", http.MethodGet, nil, http.StatusOK},
-		{"DB につながらなければ 503", http.MethodGet, errors.New("db is down"), http.StatusServiceUnavailable},
-		{"POST は 405", http.MethodPost, nil, http.StatusMethodNotAllowed},
+		{"GET は 200", http.MethodGet, http.StatusOK},
+		{"POST は 405", http.MethodPost, http.StatusMethodNotAllowed},
 	}
 
 	for _, tt := range tests {
@@ -34,10 +23,13 @@ func TestHealth(t *testing.T) {
 			rec := httptest.NewRecorder()
 
 			ok := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-			NewRouter(fakePinger{err: tt.pingErr}, &fakeAuth{}, Handlers{SignInWithApple: ok, SignOut: ok, Me: ok, DeleteMe: ok, BackupSummary: ok, GetBackup: ok, PutBackup: ok, DeleteBackup: ok}).ServeHTTP(rec, req)
+			NewRouter(&fakeAuth{}, Handlers{SignInWithApple: ok, SignOut: ok, Me: ok, DeleteMe: ok, BackupSummary: ok, GetBackup: ok, PutBackup: ok, DeleteBackup: ok}).ServeHTTP(rec, req)
 
 			if rec.Code != tt.want {
 				t.Fatalf("status = %d, want %d", rec.Code, tt.want)
+			}
+			if tt.want == http.StatusOK && rec.Body.String() != `{"status":"ok"}` {
+				t.Fatalf("body = %q", rec.Body.String())
 			}
 		})
 	}

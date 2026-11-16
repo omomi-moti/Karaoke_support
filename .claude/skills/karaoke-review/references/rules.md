@@ -367,7 +367,6 @@ handler で `r.PathValue`・`r.URL.Query()`・本文の JSON から `user_id` �
 - ミドルウェアとログアウトで `auth_tokens` をトークンのハッシュで引く・消すのは正しい（送られたトークンそのものが本人の証明になる）
 - アカウントの削除で `users` を `id` で引く・消すのは正しい（`users` の `id` がその人の `user_id`）。その値がミドルウェアから来ているかは、ほかと同じく確かめる
 - `migrations/` の SQL は対象外
-- `/health` の Ping は利用者の行に触らない
 
 ---
 
@@ -484,8 +483,6 @@ grep -rn -E 'slog\.|log\.Print|http\.Error|err\.Error\(\)|r\.Header|json\.Marsha
 
 ### 誤検知しやすいケース
 
-- `health.go` で Ping のエラーをログに出すのは許している。
-  pgx の接続のエラーにはユーザー名・DB 名・ホストが入るが、パスワードは入らない
 - 件数・処理時間・ステータスコードのような、中身でない値のログ
 
 ---
