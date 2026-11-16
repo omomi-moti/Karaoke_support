@@ -65,8 +65,9 @@
 | [0057](0057-delete-account-and-revoke-apple-token.md) | アカウントの削除は、本人の Apple ID を確かめ、Apple のトークンを取り消せたときだけ行う | 承認 |
 | [0058](0058-backup-consent-and-auto-upload.md) | バックアップは本人がオンにしたときだけ、裏に回ったときに版の番号つきで送り、オフにしたら消す | 承認（前に戻ったときに送り直す失敗と 401 の扱いは置き換え済み → 0059） |
 | [0059](0059-foreground-retry-and-unauthorized-backup.md) | 前に戻ったときは、やり直して結果が変わりうる失敗だけを送り直し、401 では失敗の理由を置かずに状態を全部消す | 承認 |
-| [0060](0060-backup-on-off-without-toggle.md) | バックアップのオン・オフはスイッチにせず、オンにする行とオフにするボタンで行う | 承認 |
+| [0060](0060-backup-on-off-without-toggle.md) | バックアップのオン・オフはスイッチにせず、オンにする行とオフにするボタンで行う | 承認（オフのときの行は置き換え済み → 0062） |
 | [0061](0061-restore-into-empty-device-and-accept-same-backup.md) | 取り込みは空の端末でサインインの直後に聞き、同じ中身の送り直しは成功として扱う | 承認 |
+| [0062](0062-show-backup-state-row-and-restore-alert.md) | バックアップの欄に「バックアップ　オン／オフ」の行を置き、サインイン直後の取り込みの確認は alert にする | 承認 |
 
 ## 書き方
 

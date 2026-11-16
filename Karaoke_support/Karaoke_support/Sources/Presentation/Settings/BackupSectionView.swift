@@ -2,8 +2,8 @@
 import SwiftUI
 
 /// 設定のバックアップの欄。サインインしているときだけ出す。
-/// オフのときは同意の画面（``BackupConsentView``）へ進む行を、オンのときはオフにするボタンを出す（ADR 0060）。
-/// 端末が空でサーバーに控えがあるときは、取り込みの行を出し、サインインの直後にはアクションシートで聞く（ADR 0061）。
+/// 「バックアップ」の行にオンかオフかを出し、オフのときは押すと同意の画面（``BackupConsentView``）へ進む。オンのときはオフにするボタンを出す（ADR 0060・0062）。
+/// 端末が空でサーバーに控えがあるときは、取り込みの行を出し、サインインの直後には alert で聞く（ADR 0061・0062）。
 struct BackupSectionView: View {
 	let viewModel: BackupSectionViewModel
 	@Environment(\.notifyRecordsChanged) private var notifyRecordsChanged
@@ -20,11 +20,15 @@ struct BackupSectionView: View {
 					.foregroundStyle(.secondary)
 			}
 
-			if !viewModel.isOn {
-				NavigationLink("バックアップをオンにする") {
+			if viewModel.isOn {
+				LabeledContent("バックアップ", value: "オン")
+			} else {
+				NavigationLink {
 					BackupConsentView {
 						Task { await viewModel.enable() }
 					}
+				} label: {
+					LabeledContent("バックアップ", value: "オフ")
 				}
 				.disabled(viewModel.isWorking)
 			}
@@ -133,13 +137,12 @@ struct BackupSectionView: View {
 		} message: {
 			Text("サーバーの\(summary(of: restorable))を、この iPhone に取り込みます。")
 		}
-		.confirmationDialog(
+		.alert(
 			"バックアップがあります",
 			isPresented: Binding(
 				get: { viewModel.restorePrompt != nil },
 				set: { if !$0 { viewModel.cancelRestorePrompt() } }
 			),
-			titleVisibility: .visible,
 			presenting: viewModel.restorePrompt
 		) { _ in
 			Button("取り込む", action: restore)
@@ -211,6 +214,16 @@ struct BackupSectionView: View {
 		BackupSectionView(viewModel: viewModel)
 	}
 	.task { await viewModel.load() }
+}
+
+#Preview("サインインの直後") {
+	@Previewable @State var viewModel = BackupSectionViewModel(backupRepository: PreviewBackupRepository(
+		restorable: BackupRestorableSummary(sessionCount: 42, updatedAt: Date())
+	))
+	List {
+		BackupSectionView(viewModel: viewModel)
+	}
+	.task { await viewModel.offerRestoreAfterSignIn() }
 }
 
 #Preview("消せなかった") {
