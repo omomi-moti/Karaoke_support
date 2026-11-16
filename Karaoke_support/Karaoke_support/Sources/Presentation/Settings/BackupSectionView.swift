@@ -2,17 +2,33 @@
 import SwiftUI
 
 /// 設定のバックアップの欄。サインインしているときだけ出す。
-/// オフのときは同意の画面（``BackupConsentView``）へ進む行を、オンのときはオフにするボタンを出す（ADR 0060）。
+/// 「バックアップ」の行にオンかオフかを出し、オフのときは押すと同意の画面（``BackupConsentView``）へ進む。オンのときはオフにするボタンを出す（ADR 0060・0062）。
+/// 端末が空でサーバーに控えがあるときは、取り込みの行を出し、サインインの直後には alert で聞く（ADR 0061・0062）。
 struct BackupSectionView: View {
 	let viewModel: BackupSectionViewModel
+	@Environment(\.notifyRecordsChanged) private var notifyRecordsChanged
+	@State private var isConfirmingRestore = false
 
 	var body: some View {
 		Section {
-			if !viewModel.isOn {
-				NavigationLink("バックアップをオンにする") {
+			if let restorable = viewModel.restorable {
+				restoreRow(restorable)
+			}
+
+			if let restoredSessionCount = viewModel.restoredSessionCount {
+				Label("\(restoredSessionCount) 件の記録を取り込みました", systemImage: "checkmark.circle")
+					.foregroundStyle(.secondary)
+			}
+
+			if viewModel.isOn {
+				LabeledContent("バックアップ", value: "オン")
+			} else {
+				NavigationLink {
 					BackupConsentView {
 						Task { await viewModel.enable() }
 					}
+				} label: {
+					LabeledContent("バックアップ", value: "オフ")
 				}
 				.disabled(viewModel.isWorking)
 			}
@@ -97,6 +113,60 @@ struct BackupSectionView: View {
 		}
 	}
 
+	private func restoreRow(_ restorable: BackupRestorableSummary) -> some View {
+		Button {
+			isConfirmingRestore = true
+		} label: {
+			HStack {
+				VStack(alignment: .leading, spacing: 2) {
+					Text(viewModel.activity == .restoring ? "取り込んでいます…" : "バックアップから取り込む")
+					Text("サーバーに \(summary(of: restorable))")
+						.font(.footnote)
+						.foregroundStyle(.secondary)
+				}
+				Spacer()
+				if viewModel.activity == .restoring {
+					ProgressView()
+				}
+			}
+		}
+		.disabled(viewModel.isWorking)
+		.alert("バックアップから取り込みますか？", isPresented: $isConfirmingRestore) {
+			Button("取り込む", action: restore)
+			Button("キャンセル", role: .cancel) {}
+		} message: {
+			Text("サーバーの\(summary(of: restorable))を、この iPhone に取り込みます。")
+		}
+		.alert(
+			"バックアップがあります",
+			isPresented: Binding(
+				get: { viewModel.restorePrompt != nil },
+				set: { if !$0 { viewModel.cancelRestorePrompt() } }
+			),
+			presenting: viewModel.restorePrompt
+		) { _ in
+			Button("取り込む", action: restore)
+			Button("キャンセル", role: .cancel) {
+				viewModel.cancelRestorePrompt()
+			}
+		} message: { prompt in
+			Text("\(summary(of: prompt))。取り込まない場合も、記録がない間は設定から取り込めます。")
+		}
+	}
+
+	private func summary(of restorable: BackupRestorableSummary) -> String {
+		"記録 \(restorable.sessionCount) 件（\(restorable.updatedAt.formatted(date: .abbreviated, time: .shortened))）"
+	}
+
+	private func restore() {
+		Task {
+			await viewModel.restore()
+			if viewModel.restoredSessionCount != nil {
+				notifyRecordsChanged()
+			}
+		}
+	}
+
 	private func progressLabel(_ title: String, while activity: BackupSectionViewModel.Activity) -> some View {
 		HStack {
 			Text(title)
@@ -134,6 +204,26 @@ struct BackupSectionView: View {
 		BackupSectionView(viewModel: viewModel)
 	}
 	.task { await viewModel.load() }
+}
+
+#Preview("取り込める") {
+	@Previewable @State var viewModel = BackupSectionViewModel(backupRepository: PreviewBackupRepository(
+		restorable: BackupRestorableSummary(sessionCount: 42, updatedAt: Date())
+	))
+	List {
+		BackupSectionView(viewModel: viewModel)
+	}
+	.task { await viewModel.load() }
+}
+
+#Preview("サインインの直後") {
+	@Previewable @State var viewModel = BackupSectionViewModel(backupRepository: PreviewBackupRepository(
+		restorable: BackupRestorableSummary(sessionCount: 42, updatedAt: Date())
+	))
+	List {
+		BackupSectionView(viewModel: viewModel)
+	}
+	.task { await viewModel.offerRestoreAfterSignIn() }
 }
 
 #Preview("消せなかった") {

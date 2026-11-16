@@ -1,6 +1,7 @@
 package backup
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"errors"
@@ -95,6 +96,55 @@ func TestStoreCreateAndReplace(t *testing.T) {
 	}
 	if got.Revision != 2 || got.SessionCount != 2 || got.SchemaVersion != 1 || got.TrackCount != 1 {
 		t.Fatalf("412 の後のバックアップ = %+v（置き換わってはいけない）", got.Summary)
+	}
+}
+
+// TestStoreFindSameContents は、自分の行で、ハッシュが同じときだけ版を返すことを確かめる（ADR 0061）。
+func TestStoreFindSameContents(t *testing.T) {
+	db := testDB(t)
+	s := NewStore(db)
+	ctx := context.Background()
+	alice := newTestUser(t, db)
+	bob := newTestUser(t, db)
+	hashA := bytes.Repeat([]byte{0xA}, 32)
+	hashB := bytes.Repeat([]byte{0xB}, 32)
+	withHash := func(sessions int, hash []byte) Contents {
+		c := contents(sessions)
+		c.PayloadSHA256 = hash
+		return c
+	}
+
+	if _, _, err := s.FindSameContents(ctx, alice, hashA); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("ないとき: err = %v, want ErrNotFound", err)
+	}
+	if _, _, err := s.Create(ctx, alice, withHash(1, hashA)); err != nil {
+		t.Fatal(err)
+	}
+	if rev, _, err := s.FindSameContents(ctx, alice, hashA); err != nil || rev != 1 {
+		t.Fatalf("同じハッシュ: rev = %d, err = %v", rev, err)
+	}
+	if _, _, err := s.FindSameContents(ctx, alice, hashB); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("違うハッシュ: err = %v, want ErrNotFound", err)
+	}
+	if _, _, err := s.FindSameContents(ctx, bob, hashA); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("ほかの人の行: err = %v, want ErrNotFound", err)
+	}
+
+	if _, _, err := s.Replace(ctx, alice, 1, withHash(2, hashB)); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := s.FindSameContents(ctx, alice, hashA); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("置き換えた前のハッシュ: err = %v, want ErrNotFound", err)
+	}
+	if rev, _, err := s.FindSameContents(ctx, alice, hashB); err != nil || rev != 2 {
+		t.Fatalf("置き換えた後のハッシュ: rev = %d, err = %v", rev, err)
+	}
+
+	if _, _, err := s.Create(ctx, bob, contents(1)); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := s.FindSameContents(ctx, bob, nil); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("ハッシュが空の行: err = %v, want ErrNotFound", err)
 	}
 }
 

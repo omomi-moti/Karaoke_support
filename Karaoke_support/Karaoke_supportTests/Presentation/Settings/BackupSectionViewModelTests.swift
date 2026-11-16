@@ -91,6 +91,41 @@ private final class StubBackupRepository: BackupRepositoryProtocol {
 	func retryRemoteDeletion() async throws {
 		try await finishCall("retryRemoteDeletion")
 	}
+
+	var restorable: BackupRestorableSummary?
+	var restorableError: Error?
+	private(set) var restorableCallCount = 0
+	/// `true` にすると、次の ``fetchRestorableBackup()`` を ``resumeHeldRestorable()`` まで止めておく。
+	var holdsNextRestorable = false
+	private var heldRestorable: CheckedContinuation<Void, Never>?
+	var isHoldingRestorable: Bool { heldRestorable != nil }
+	var restoreError: Error?
+	private(set) var restoreCallCount = 0
+
+	func fetchRestorableBackup() async throws -> BackupRestorableSummary? {
+		restorableCallCount += 1
+		let restorable = restorable
+		if holdsNextRestorable {
+			holdsNextRestorable = false
+			await withCheckedContinuation { heldRestorable = $0 }
+		}
+		if let restorableError { throw restorableError }
+		return restorable
+	}
+
+	func resumeHeldRestorable() {
+		heldRestorable?.resume()
+		heldRestorable = nil
+	}
+
+	/// 取り込めたら、端末が空でなくなったのをまねて ``restorable`` を消す。
+	func restoreAll() async throws -> Int {
+		restoreCallCount += 1
+		if let restoreError { throw restoreError }
+		let count = restorable?.sessionCount ?? 0
+		restorable = nil
+		return count
+	}
 }
 
 @Suite("BackupSectionViewModel")
@@ -251,7 +286,7 @@ struct BackupSectionViewModelTests {
 		await viewModel.load()
 
 		#expect(viewModel.conflict != nil)
-		#expect(viewModel.failureMessage == "ほかの端末から送ったバックアップと食い違っています")
+		#expect(viewModel.failureMessage == "サーバーのバックアップが、この iPhone が最後に送ったものと違います")
 	}
 
 	@Test("古い読み込みが、新しい読み込みの失敗の文を消さない")
@@ -435,6 +470,165 @@ struct BackupSectionViewModelTests {
 
 		#expect(signInRequiredCount == 1)
 		#expect(viewModel.disableConfirmation == nil)
+	}
+
+	// MARK: - 取り込み（ADR 0061）
+
+	private let summary = BackupRestorableSummary(sessionCount: 42, updatedAt: Date(timeIntervalSince1970: 2_000))
+
+	@Test("端末が空でサーバーに控えがあれば、取り込みの行を出す。サインインの直後でなければ聞かない")
+	func showsRestorableWithoutPrompt() async {
+		repository.restorable = summary
+		let viewModel = BackupSectionViewModel(backupRepository: repository)
+
+		await viewModel.load()
+
+		#expect(viewModel.restorable == summary)
+		#expect(viewModel.restorePrompt == nil)
+	}
+
+	@Test("トークンがなければ、取り込める控えを問い合わせない")
+	func doesNotQueryRestorableWhenSignedOut() async {
+		repository.restorable = summary
+		let viewModel = BackupSectionViewModel(backupRepository: repository, isSignedIn: { false })
+
+		await viewModel.load()
+
+		#expect(repository.restorableCallCount == 0)
+		#expect(viewModel.restorable == nil)
+	}
+
+	@Test("サインインの直後は、取り込める控えがあるときだけ聞く", arguments: [true, false])
+	func offersRestoreOnlyWithBackup(hasBackup: Bool) async {
+		repository.restorable = hasBackup ? summary : nil
+		let viewModel = BackupSectionViewModel(backupRepository: repository)
+
+		await viewModel.offerRestoreAfterSignIn()
+
+		#expect(viewModel.restorePrompt == (hasBackup ? summary : nil))
+	}
+
+	@Test("聞くのは 1 回だけで、キャンセルしたら次の読み直しでは聞かない")
+	func promptIsOnlyOnce() async {
+		repository.restorable = summary
+		let viewModel = BackupSectionViewModel(backupRepository: repository)
+		await viewModel.offerRestoreAfterSignIn()
+
+		viewModel.cancelRestorePrompt()
+		await viewModel.load()
+
+		#expect(viewModel.restorePrompt == nil)
+		#expect(viewModel.restorable == summary)
+	}
+
+	@Test("サインインの直後に読み込みが重なっても、最後に読み終えた結果で聞く")
+	func offerSurvivesOverlappingLoad() async throws {
+		repository.restorable = summary
+		repository.holdsNextRestorable = true
+		let viewModel = BackupSectionViewModel(backupRepository: repository)
+
+		let offer = Task { await viewModel.offerRestoreAfterSignIn() }
+		try await waitUntil { repository.isHoldingRestorable }
+		await viewModel.load()
+		repository.resumeHeldRestorable()
+		await offer.value
+
+		#expect(viewModel.restorePrompt == summary)
+	}
+
+	@Test("取り込めたら件数を出し、取り込みの行を消す")
+	func restoreShowsCount() async {
+		repository.restorable = summary
+		let viewModel = BackupSectionViewModel(backupRepository: repository)
+		await viewModel.offerRestoreAfterSignIn()
+
+		await viewModel.restore()
+
+		#expect(repository.restoreCallCount == 1)
+		#expect(viewModel.restoredSessionCount == 42)
+		#expect(viewModel.restorable == nil)
+		#expect(viewModel.restorePrompt == nil)
+		#expect(!viewModel.isWorking)
+		#expect(viewModel.failureMessage == nil)
+	}
+
+	@Test("取り込めた件数は、次の読み直しで消す")
+	func restoredCountIsClearedByReload() async {
+		repository.restorable = summary
+		let viewModel = BackupSectionViewModel(backupRepository: repository)
+		await viewModel.restore()
+
+		await viewModel.load()
+
+		#expect(viewModel.restoredSessionCount == nil)
+	}
+
+	@Test("取り込めなかったら理由を出し、行は残してもう一度押せるようにする", arguments: [
+		(BackupRestoreFailure.unreachable, "サーバーに届きませんでした。時間をおいてもう一度お試しください"),
+		(.server, "サーバーで問題が起きました。時間をおいてもう一度お試しください"),
+		(.notFound, "サーバーにバックアップがありませんでした"),
+		(.unsupportedVersion, "新しいバージョンのアプリで作ったバックアップです。アプリを更新してください"),
+		(.invalidContents, "バックアップの中身を読めなかったため、取り込みませんでした"),
+		(.localNotEmpty, "この iPhone にはもう記録があるため、取り込めません"),
+		(.localStoreFailed, "この iPhone に保存できませんでした。何も取り込んでいません"),
+	])
+	func restoreFailureMessage(failure: BackupRestoreFailure, message: String) async {
+		repository.restorable = summary
+		repository.restoreError = failure
+		let viewModel = BackupSectionViewModel(backupRepository: repository)
+		await viewModel.load()
+
+		await viewModel.restore()
+
+		#expect(viewModel.failureMessage == message)
+		#expect(viewModel.restoredSessionCount == nil)
+		#expect(viewModel.restorable == summary)
+	}
+
+	@Test("取り込みの 401 では、アカウントの欄に読み直してもらい、失敗は出さない")
+	func restoreSignInRequired() async {
+		var signInRequiredCount = 0
+		repository.restorable = summary
+		repository.restoreError = BackupRestoreFailure.signInRequired
+		var isSignedIn = true
+		let viewModel = BackupSectionViewModel(backupRepository: repository, isSignedIn: { isSignedIn }) {
+			signInRequiredCount += 1
+			isSignedIn = false
+		}
+
+		await viewModel.restore()
+
+		#expect(signInRequiredCount == 1)
+		#expect(viewModel.failureMessage == nil)
+		#expect(viewModel.restorable == nil)
+	}
+
+	@Test("控えがあるかを読めなかったら文を出し、前に読めた行は残す")
+	func restorableCheckFailureKeepsRow() async {
+		repository.restorable = summary
+		let viewModel = BackupSectionViewModel(backupRepository: repository)
+		await viewModel.load()
+
+		repository.restorableError = BackupRestoreFailure.unreachable
+		await viewModel.load()
+
+		#expect(viewModel.failureMessage == "サーバーのバックアップがあるかを確かめられませんでした。時間をおいてもう一度お試しください")
+		#expect(viewModel.restorable == summary)
+	}
+
+	@Test("控えがあるかを読むときの 401 では、アカウントの欄に読み直してもらい、聞かない")
+	func restorableCheckSignInRequired() async {
+		var signInRequiredCount = 0
+		repository.restorable = summary
+		repository.restorableError = BackupRestoreFailure.signInRequired
+		let viewModel = BackupSectionViewModel(backupRepository: repository) { signInRequiredCount += 1 }
+
+		await viewModel.offerRestoreAfterSignIn()
+
+		#expect(signInRequiredCount == 1)
+		#expect(viewModel.restorable == nil)
+		#expect(viewModel.restorePrompt == nil)
+		#expect(viewModel.failureMessage == nil)
 	}
 }
 #endif

@@ -23,6 +23,8 @@ final class AccountSectionViewModel {
 	private(set) var status: Status = .loading
 	/// アカウントを消し終えたら `true`。サインインし直すまで、消し終えたことを出す。
 	private(set) var hasDeletedAccount = false
+	/// 本人がサインインし終えるたびに 1 増える。起動時の読み込みでは増えない。サインインの直後に取り込みを聞くため（ADR 0061）。
+	private(set) var completedSignInCount = 0
 
 	init(accountRepository: any AccountRepositoryProtocol) {
 		self.accountRepository = accountRepository
@@ -73,6 +75,9 @@ final class AccountSectionViewModel {
 			return
 		}
 		await fetchAccount()
+		if case .signedIn = status {
+			completedSignInCount += 1
+		}
 	}
 
 	/// Apple のサインインの画面が失敗で閉じたとき。利用者がキャンセルしたときは何も出さない。

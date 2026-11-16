@@ -158,6 +158,26 @@ struct AccountSectionViewModelTests {
 		#expect(vm.status == .signedIn(repository.account))
 	}
 
+	@Test("サインインし終えたときだけ、サインインの回数を増やす")
+	func completedSignInCountOnlyOnSuccess() async {
+		let vm = makeViewModel()
+		await vm.load()
+		#expect(vm.completedSignInCount == 0)
+
+		_ = vm.makeHashedNonce()
+		repository.signInError = AccountRepositoryError.unreachable
+		await vm.signIn(identityToken: Data("apple.identity.token".utf8))
+		#expect(vm.completedSignInCount == 0)
+
+		_ = vm.makeHashedNonce()
+		repository.signInError = nil
+		await vm.signIn(identityToken: Data("apple.identity.token".utf8))
+		#expect(vm.completedSignInCount == 1)
+
+		await vm.load()
+		#expect(vm.completedSignInCount == 1)
+	}
+
 	@Test("nonce を作っていない・token がないときは、サーバーに送らずに失敗を出す")
 	func signInWithoutNonceOrToken() async {
 		let vm = makeViewModel()

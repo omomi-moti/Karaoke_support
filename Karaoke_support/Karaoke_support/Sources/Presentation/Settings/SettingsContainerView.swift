@@ -16,7 +16,13 @@ struct SettingsContainerView: View {
 		let accountViewModel = accountRepository.map { AccountSectionViewModel(accountRepository: $0) }
 		_accountViewModel = State(initialValue: accountViewModel)
 		_backupViewModel = State(initialValue: accountViewModel.flatMap { accountViewModel in
-			backupRepository.map { BackupSectionViewModel(backupRepository: $0) { Task { await accountViewModel.load() } } }
+			backupRepository.map { backupRepository in
+				BackupSectionViewModel(
+					backupRepository: backupRepository,
+					isSignedIn: { accountRepository?.isSignedIn ?? false },
+					onSignInRequired: { Task { await accountViewModel.load() } }
+				)
+			}
 		})
 	}
 	#endif
@@ -54,9 +60,15 @@ struct SettingsContainerView: View {
 		}
 		.scrollContentBackground(.hidden)
 		#if DEBUG || BETA
-		.task { await accountViewModel?.load() }
+		.task {
+			await accountViewModel?.load()
+			await backupViewModel?.load()
+		}
 		.onChange(of: accountViewModel?.status) {
 			Task { await backupViewModel?.load() }
+		}
+		.onChange(of: accountViewModel?.completedSignInCount) {
+			Task { await backupViewModel?.offerRestoreAfterSignIn() }
 		}
 		.onChange(of: backupStatusTick) {
 			accountViewModel?.refreshSignInState()

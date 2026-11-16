@@ -24,6 +24,9 @@ struct RootView: View {
 
     @Environment(\.trackRepository) private var trackRepository
     @Environment(\.trackStatsRepository) private var trackStatsRepository
+    #if DEBUG || BETA
+    @Environment(\.accountRepository) private var accountRepository
+    #endif
 
     @State private var selectedTab: RootTab = .songs
     @State private var sheet: RootSheet?
@@ -106,6 +109,16 @@ struct RootView: View {
         .environment(\.navigateToEditRecording, presentEditRecording)
         .environment(\.notifyRecordsChanged) { historyReloadTick += 1 }
         .environment(\.historyReloadTick, historyReloadTick)
+        .environment(\.navigateToSettings, settingsNavigation)
+    }
+
+    /// アカウントの欄があるときだけ、空の画面から設定タブへ移れるようにする（ADR 0061）。
+    private var settingsNavigation: (() -> Void)? {
+        #if DEBUG || BETA
+        accountRepository == nil ? nil : { move(to: .settings) }
+        #else
+        nil
+        #endif
     }
 
     /// ＋は選曲・履歴タブだけに出す（R2）。外さずに透明にして、同じボタンを居続けさせる（R5）。

@@ -48,6 +48,11 @@ struct APIClient: Sendable {
 		return try await send(request)
 	}
 
+	/// `path` に本文なしで送り、返事の本文を読まずにそのまま返す。返事の中身で読み方を変えたいとき（取り込み）に使う。
+	func sendReturningData(_ method: String, _ path: String, bearer: String? = nil) async throws -> Data {
+		try await data(for: makeRequest(method, path, bearer: bearer))
+	}
+
 	/// `path` に本文なしで送り、成功のステータスかだけを確かめる。返事の本文は読まない（204 など）。
 	func sendExpectingNoContent(_ method: String, _ path: String, bearer: String? = nil) async throws {
 		_ = try await data(for: makeRequest(method, path, bearer: bearer))

@@ -144,6 +144,28 @@ private final class FakeSnapshotReader: BackupSnapshotReading {
 	}
 }
 
+@MainActor
+private final class FakeSnapshotWriter: BackupSnapshotWriting {
+	var isEmptyValue = true
+	var error: BackupRestoreFailure?
+	private(set) var written: [BackupSnapshot] = []
+
+	func isEmpty() throws -> Bool { isEmptyValue }
+
+	func write(_ snapshot: BackupSnapshot) throws {
+		if let error { throw error }
+		written.append(snapshot)
+	}
+}
+
+/// `GET /v1/backup` の返事。中身は送るときと同じ書き方で JSON にする。
+@MainActor
+private func backupOK(revision: Int, schemaVersion: Int = 1, snapshot: BackupSnapshot) throws -> (Int, String) {
+	let payload = String(decoding: try BackupJSONCoding.encoder.encode(snapshot), as: UTF8.self)
+	let text = #"{"revision":\#(revision),"schemaVersion":\#(schemaVersion),"trackCount":\#(snapshot.tracks.count),"sessionCount":\#(snapshot.sessions.count),"updatedAt":"2026-11-13T01:02:03.123456Z","payload":\#(payload)}"#
+	return (200, text)
+}
+
 private func putOK(revision: Int) -> (Int, String) {
 	(200, #"{"revision":\#(revision),"updatedAt":"2026-11-13T01:02:03.123456Z"}"#)
 }
@@ -218,6 +240,7 @@ struct RemoteBackupRepositoryTests {
 		tokenStore: InMemoryTokenStore = InMemoryTokenStore(),
 		state: InMemoryBackupState? = nil,
 		reader: (any BackupSnapshotReading)? = nil,
+		writer: (any BackupSnapshotWriting)? = nil,
 		log: RequestLog = RequestLog(),
 		respond: @escaping @Sendable (URLRequest) throws -> (Int, String)
 	) -> RemoteBackupRepository {
@@ -227,7 +250,10 @@ struct RemoteBackupRepositoryTests {
 			return (status, Data(text.utf8))
 		}
 		let session = APIClient.makeSession(protocolClasses: [StubURLProtocol.self])
-		return RemoteBackupRepository(client: APIClient(baseURL: baseURL, session: session), tokenStore: tokenStore, state: state ?? .active(), reader: reader ?? FakeSnapshotReader())
+		return RemoteBackupRepository(
+			client: APIClient(baseURL: baseURL, session: session), tokenStore: tokenStore, state: state ?? .active(),
+			reader: reader ?? FakeSnapshotReader(), writer: writer ?? FakeSnapshotWriter()
+		)
 	}
 
 	// MARK: 送らないとき
@@ -796,6 +822,177 @@ struct RemoteBackupRepositoryTests {
 		#expect(state.isEnabled)
 		#expect(state.consentVersion == BackupStatus.currentConsentVersion)
 		#expect(log.last?.0.value(forHTTPHeaderField: "If-None-Match") == "*")
+	}
+
+	// MARK: 取り込む
+
+	@Test("端末が空でサーバーに控えがあれば、取り込める控えの件数と日時を返す")
+	func restorableBackup() async throws {
+		let repository = makeRepository(state: InMemoryBackupState()) { _ in summaryOK(revision: 4, sessionCount: 12) }
+
+		let summary = try #require(try await repository.fetchRestorableBackup())
+
+		#expect(summary.sessionCount == 12)
+		#expect(summary.updatedAt == Date(timeIntervalSince1970: 1_794_531_723))
+	}
+
+	@Test("サーバーに控えがなければ、取り込めるものはない")
+	func noRestorableBackupWithoutRemote() async throws {
+		let repository = makeRepository(state: InMemoryBackupState()) { _ in (404, #"{"error":"not_found"}"#) }
+
+		#expect(try await repository.fetchRestorableBackup() == nil)
+	}
+
+	@Test("端末に曲か記録があれば、サーバーに問い合わせずに、取り込めるものはないとする")
+	func noRestorableBackupWhenLocalHasRecords() async throws {
+		let writer = FakeSnapshotWriter()
+		writer.isEmptyValue = false
+		let log = RequestLog()
+		let repository = makeRepository(state: InMemoryBackupState(), writer: writer, log: log) { _ in summaryOK(revision: 4, sessionCount: 12) }
+
+		#expect(try await repository.fetchRestorableBackup() == nil)
+		#expect(log.count == 0)
+	}
+
+	@Test("取り込むと、控えの中身を秒より下の日時まで書き込み、版を覚える。オン・オフは変えない")
+	func restoreAll() async throws {
+		let snapshot = FakeSnapshotReader.snapshot(sessionCount: 3)
+		let response = try backupOK(revision: 5, snapshot: snapshot)
+		let state = InMemoryBackupState()
+		let writer = FakeSnapshotWriter()
+		let log = RequestLog()
+		let repository = makeRepository(state: state, writer: writer, log: log) { _ in response }
+
+		#expect(try await repository.restoreAll() == 3)
+
+		let (request, _) = try #require(log.last)
+		#expect(request.httpMethod == "GET")
+		#expect(request.url?.path == "/v1/backup")
+		#expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer klog_saved")
+		#expect(writer.written == [snapshot])
+		#expect(state.lastRevision == 5)
+		#expect(!state.isEnabled)
+	}
+
+	@Test("取り込んだ後にオンにすると、覚えた版を If-Match に付けて送る")
+	func uploadAfterRestoreUsesRestoredRevision() async throws {
+		let response = try backupOK(revision: 5, snapshot: FakeSnapshotReader.snapshot(sessionCount: 2))
+		let state = InMemoryBackupState()
+		let log = RequestLog()
+		let repository = makeRepository(state: state, log: log) { request in
+			request.httpMethod == "GET" ? response : putOK(revision: 6)
+		}
+
+		_ = try await repository.restoreAll()
+		#expect(try await repository.enable() == .uploaded)
+
+		#expect(log.puts.last?.0.value(forHTTPHeaderField: "If-Match") == "\"5\"")
+		#expect(state.lastRevision == 6)
+	}
+
+	@Test("端末に曲か記録があれば、問い合わせずに取り込まない")
+	func restoreRefusesNonEmptyDevice() async throws {
+		let writer = FakeSnapshotWriter()
+		writer.isEmptyValue = false
+		let log = RequestLog()
+		let repository = makeRepository(state: InMemoryBackupState(), writer: writer, log: log) { _ in (500, "{}") }
+
+		await #expect(throws: BackupRestoreFailure.localNotEmpty) { try await repository.restoreAll() }
+		#expect(log.count == 0)
+		#expect(writer.written.isEmpty)
+	}
+
+	@Test("失敗の返事は、取り込みの失敗の理由にし、何も書かない", arguments: [
+		(404, BackupRestoreFailure.notFound),
+		(500, .server),
+		(412, .server),
+	])
+	func restoreFailureStatus(status: Int, expected: BackupRestoreFailure) async throws {
+		let state = InMemoryBackupState()
+		let writer = FakeSnapshotWriter()
+		let repository = makeRepository(state: state, writer: writer) { _ in (status, #"{"error":"x"}"#) }
+
+		await #expect(throws: expected) { try await repository.restoreAll() }
+		#expect(writer.written.isEmpty)
+		#expect(state.lastRevision == nil)
+		#expect(state.lastFailure == nil)
+	}
+
+	@Test("届かなければ、届かないとする")
+	func restoreUnreachable() async throws {
+		let repository = makeRepository(state: InMemoryBackupState()) { _ in throw URLError(.notConnectedToInternet) }
+
+		await #expect(throws: BackupRestoreFailure.unreachable) { try await repository.restoreAll() }
+	}
+
+	@Test("401 なら、端末のトークンとバックアップの状態を消す")
+	func restoreUnauthorized() async throws {
+		let tokenStore = InMemoryTokenStore()
+		let state = InMemoryBackupState()
+		state.lastRevision = 3
+		let repository = makeRepository(tokenStore: tokenStore, state: state) { _ in (401, #"{"error":"unauthorized"}"#) }
+
+		await #expect(throws: BackupRestoreFailure.signInRequired) { try await repository.restoreAll() }
+		#expect(try tokenStore.read() == nil)
+		#expect(state.isCleared)
+	}
+
+	@Test("知らない schemaVersion なら、中身を読まずに断る")
+	func restoreUnsupportedVersion() async throws {
+		let writer = FakeSnapshotWriter()
+		let repository = makeRepository(state: InMemoryBackupState(), writer: writer) { _ in
+			(200, #"{"revision":5,"schemaVersion":2,"trackCount":0,"sessionCount":0,"updatedAt":"2026-11-13T01:02:03Z","payload":{"songs":[]}}"#)
+		}
+
+		await #expect(throws: BackupRestoreFailure.unsupportedVersion) { try await repository.restoreAll() }
+		#expect(writer.written.isEmpty)
+	}
+
+	@Test("中身を読めなければ（知らない気分など）、何も書かない")
+	func restoreInvalidPayload() async throws {
+		let snapshot = FakeSnapshotReader.snapshot(sessionCount: 1)
+		let (_, valid) = try backupOK(revision: 5, snapshot: snapshot)
+		let broken = valid.replacingOccurrences(of: #""intent":"shout""#, with: #""intent":"unknown""#)
+		#expect(broken != valid)
+		let writer = FakeSnapshotWriter()
+		let repository = makeRepository(state: InMemoryBackupState(), writer: writer) { _ in (200, broken) }
+
+		await #expect(throws: BackupRestoreFailure.invalidContents) { try await repository.restoreAll() }
+		#expect(writer.written.isEmpty)
+	}
+
+	@Test("書き込めなかったら、版を覚えない")
+	func restoreWriteFailure() async throws {
+		let response = try backupOK(revision: 5, snapshot: FakeSnapshotReader.snapshot(sessionCount: 1))
+		let state = InMemoryBackupState()
+		let writer = FakeSnapshotWriter()
+		writer.error = .invalidContents
+		let repository = makeRepository(state: state, writer: writer) { _ in response }
+
+		await #expect(throws: BackupRestoreFailure.invalidContents) { try await repository.restoreAll() }
+		#expect(state.lastRevision == nil)
+	}
+
+	@Test("読んでいる途中に状態が消されたら（サインアウト）、何も書かず、版も覚えない")
+	func clearedWhileRestoringWritesNothing() async throws {
+		let response = try backupOK(revision: 5, snapshot: FakeSnapshotReader.snapshot(sessionCount: 1))
+		let state = InMemoryBackupState()
+		let writer = FakeSnapshotWriter()
+		let log = RequestLog()
+		let gate = ResponseGate()
+		let repository = makeRepository(state: state, writer: writer, log: log) { _ in
+			gate.wait()
+			return response
+		}
+
+		let restore = try await start { try await repository.restoreAll() }
+		try await waitUntil { log.count == 1 }
+		state.clear()
+		gate.open()
+
+		await #expect(throws: BackupRestoreFailure.signInRequired) { try await restore.value }
+		#expect(writer.written.isEmpty)
+		#expect(state.lastRevision == nil)
 	}
 
 	// MARK: メモ

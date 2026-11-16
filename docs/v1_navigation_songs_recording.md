@@ -27,6 +27,8 @@
 
 `navigateToManualRecording` は以前は「選曲タブへ切替 + tick で `SongsRootView` にシートを開かせる」方式だったが、シートを `RootView` に集約したため **その場で開く**だけになった。
 
+空状態の「前の iPhone の記録を取り込む」は、シートを開かずに `EnvironmentValues.navigateToSettings` で設定タブへ切り替える（Debug と Beta のビルドで、アカウントの欄があるときだけ。ADR 0061）。
+
 ## 保存成功時
 
 1. `RecordingSheetContentView.attemptSave()` 成功時に、保存した記録の要約（`SavedRecording`）を付けて `onSaved(_:)` を呼ぶ。

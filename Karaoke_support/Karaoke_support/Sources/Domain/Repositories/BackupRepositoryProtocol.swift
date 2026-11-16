@@ -40,5 +40,17 @@ protocol BackupRepositoryProtocol: Sendable {
 
 	/// オフにしたときに消せなかったサーバーの控えを、もう一度消す。
 	func retryRemoteDeletion() async throws
+
+	/// 端末に曲も記録もなく、サーバーに控えがあるときだけ、取り込める控えの件数と日時を返す（FR-5、ADR 0061）。
+	/// 端末に曲か記録があれば、サーバーには問い合わせずに nil を返す。控えがなければ nil。
+	/// 失敗は ``BackupRestoreFailure`` を投げる。401 のときは端末のトークンとバックアップの状態を消す。
+	func fetchRestorableBackup() async throws -> BackupRestorableSummary?
+
+	/// サーバーの控えを、空の端末に全部取り込み、取り込んだ記録の件数を返す（ADR 0061）。
+	/// 値を全部確かめてから 1 回だけ保存する。1 件でもおかしい・途中で失敗したときは何も書かない。端末に曲か記録があれば書かない。
+	/// 取り込めたら控えの版を覚え、その後に送るときに 412 にならないようにする。バックアップのオン・オフは変えない。
+	/// 送信・削除と同じく前の処理が終わってから動き、途中でサインアウトされたら何も書かない。
+	/// 失敗は ``BackupRestoreFailure`` を投げる。
+	func restoreAll() async throws -> Int
 }
 #endif
