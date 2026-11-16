@@ -2,7 +2,7 @@
 import Foundation
 import Security
 
-/// サーバーのトークンを Keychain に置く  。
+/// サーバーのトークンを Keychain に置く。
 /// 端末のロックを最初に解いた後だけ読め、バックアップや別の端末には移らない（`AfterFirstUnlockThisDeviceOnly`、ADR 0054）。
 struct KeychainTokenStore: ServerTokenStoring {
 	private let service: String
