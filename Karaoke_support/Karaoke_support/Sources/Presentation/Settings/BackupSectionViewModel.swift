@@ -295,7 +295,7 @@ final class BackupSectionViewModel {
 		case .signInRequired:
 			"サインインし直してください"
 		case .needsConfirmation:
-			"ほかの端末から送ったバックアップと食い違っています"
+			"サーバーのバックアップが、この iPhone が最後に送ったものと違います"
 		case .tooLarge:
 			"記録が多すぎて送れませんでした"
 		case .localReadFailed:

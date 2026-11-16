@@ -286,7 +286,7 @@ struct BackupSectionViewModelTests {
 		await viewModel.load()
 
 		#expect(viewModel.conflict != nil)
-		#expect(viewModel.failureMessage == "ほかの端末から送ったバックアップと食い違っています")
+		#expect(viewModel.failureMessage == "サーバーのバックアップが、この iPhone が最後に送ったものと違います")
 	}
 
 	@Test("古い読み込みが、新しい読み込みの失敗の文を消さない")
