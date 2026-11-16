@@ -4,12 +4,15 @@ import Foundation
 @MainActor
 final class PreviewBackupRepository: BackupRepositoryProtocol {
 	private(set) var status: BackupStatus
+	private var restorable: BackupRestorableSummary?
 
 	/// ほかのプレビュー用の Repository とそろえる（ADR 0027）。環境の初期値は nil なので、これは使わない（ADR 0055）。
 	nonisolated init(
-		status: BackupStatus = BackupStatus(isEnabled: false, consentVersion: nil, lastSucceededAt: nil, lastFailure: nil)
+		status: BackupStatus = BackupStatus(isEnabled: false, consentVersion: nil, lastSucceededAt: nil, lastFailure: nil),
+		restorable: BackupRestorableSummary? = nil
 	) {
 		self.status = status
+		self.restorable = restorable
 	}
 
 	func enable() async throws -> BackupOutcome {
@@ -45,11 +48,13 @@ final class PreviewBackupRepository: BackupRepositoryProtocol {
 	}
 
 	func fetchRestorableBackup() async throws -> BackupRestorableSummary? {
-		nil
+		restorable
 	}
 
 	func restoreAll() async throws -> Int {
-		42
+		let count = restorable?.sessionCount ?? 0
+		restorable = nil
+		return count
 	}
 }
 #endif

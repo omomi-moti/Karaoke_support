@@ -1,8 +1,10 @@
 import SwiftUI
 
 /// 歌唱データ 0 件向け Empty State（I-016）。履歴と選曲のタブで使う。
+/// 設定へ移れるときは、前の iPhone の記録を取り込む案内も出す（ADR 0061）。
 struct SingingEmptyStateView: View {
 	let onManualEntryTap: () -> Void
+	@Environment(\.navigateToSettings) private var navigateToSettings
 
 	var body: some View {
 		VStack(spacing: 16) {
@@ -19,6 +21,10 @@ struct SingingEmptyStateView: View {
 			}
 			.buttonStyle(.borderedProminent)
 			.tint(.pink.opacity(0.85))
+			if let navigateToSettings {
+				Button(SingingEmptyStateCopy.restoreButtonTitle, action: navigateToSettings)
+					.font(.subheadline)
+			}
 		}
 		.padding(32)
 	}
@@ -26,4 +32,9 @@ struct SingingEmptyStateView: View {
 
 #Preview {
 	SingingEmptyStateView(onManualEntryTap: {})
+}
+
+#Preview("取り込みの案内あり") {
+	SingingEmptyStateView(onManualEntryTap: {})
+		.environment(\.navigateToSettings) {}
 }

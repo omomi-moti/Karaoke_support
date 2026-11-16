@@ -6,4 +6,6 @@ enum SingingEmptyStateCopy {
 	static let headline = "まず1曲歌ってみよう！"
 	/// `docs/v1_issues.md` [I-016] 導線ラベルどおり。
 	static let manualEntryButtonTitle = "手動で曲名を入力して歌う"
+	/// 設定から、前の iPhone の記録をバックアップから取り込む案内（ADR 0061）。
+	static let restoreButtonTitle = "前の iPhone の記録を取り込む"
 }
