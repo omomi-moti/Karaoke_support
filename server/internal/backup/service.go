@@ -2,7 +2,9 @@ package backup
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -29,6 +31,7 @@ type Condition struct {
 type storage interface {
 	Create(ctx context.Context, userID string, c Contents) (int64, time.Time, error)
 	Replace(ctx context.Context, userID string, expectedRevision int64, c Contents) (int64, time.Time, error)
+	FindSameContents(ctx context.Context, userID string, hash []byte) (int64, time.Time, error)
 	Summary(ctx context.Context, userID string) (Summary, error)
 	Get(ctx context.Context, userID string) (Backup, error)
 	Delete(ctx context.Context, userID string) error
@@ -45,18 +48,41 @@ func NewService(store *Store) *Service {
 }
 
 // Put は、cond が合うときだけ userID のバックアップを c で置き換え、新しい版と日時を返す。
-// 合わないときは何もせず ErrPreconditionFailed を返す。
+// 合わなくても、c が今のバックアップと同じ中身なら、置き換えずに今の版と日時を返す。送った端末が返事を受け取れずに、
+// 古い版のまま同じ中身を送り直したときに、412 にしないため（ADR 0061）。違う中身なら何もせず ErrPreconditionFailed を返す。
 func (s *Service) Put(ctx context.Context, userID string, cond Condition, c Contents) (int64, time.Time, error) {
 	if c.SchemaVersion != SupportedSchemaVersion || c.TrackCount < 0 || c.SessionCount < 0 {
 		return 0, time.Time{}, ErrInvalidBackup
 	}
-	if cond.IfNoneMatch {
-		return s.store.Create(ctx, userID, c)
-	}
-	if cond.IfMatch < 1 {
+	if !cond.IfNoneMatch && cond.IfMatch < 1 {
 		return 0, time.Time{}, ErrInvalidBackup
 	}
-	return s.store.Replace(ctx, userID, cond.IfMatch, c)
+	c.PayloadSHA256 = contentHash(c)
+	var revision int64
+	var updatedAt time.Time
+	var err error
+	if cond.IfNoneMatch {
+		revision, updatedAt, err = s.store.Create(ctx, userID, c)
+	} else {
+		revision, updatedAt, err = s.store.Replace(ctx, userID, cond.IfMatch, c)
+	}
+	if !errors.Is(err, ErrPreconditionFailed) {
+		return revision, updatedAt, err
+	}
+	revision, updatedAt, err = s.store.FindSameContents(ctx, userID, c.PayloadSHA256)
+	if errors.Is(err, ErrNotFound) {
+		return 0, time.Time{}, ErrPreconditionFailed
+	}
+	return revision, updatedAt, err
+}
+
+// contentHash は、schemaVersion・件数・受け取ったままの payload のバイト列の SHA-256（ADR 0061）。
+// jsonb に入れると書式が変わるので、入れる前のバイト列から作る。
+func contentHash(c Contents) []byte {
+	h := sha256.New()
+	fmt.Fprintf(h, "%d\n%d\n%d\n", c.SchemaVersion, c.TrackCount, c.SessionCount)
+	h.Write(c.Payload)
+	return h.Sum(nil)
 }
 
 // Summary は、userID のバックアップの版・件数・日時を返す。ないときは ErrNotFound を返す。

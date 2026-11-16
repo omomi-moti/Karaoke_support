@@ -16,6 +16,8 @@ type Contents struct {
 	TrackCount    int
 	SessionCount  int
 	Payload       []byte
+	// PayloadSHA256 は、Service が作る中身のハッシュ（ADR 0061）。空なら null で保存する。
+	PayloadSHA256 []byte
 }
 
 // Summary は、バックアップの版・件数・日時。中身は持たない。
@@ -47,11 +49,11 @@ func NewStore(db *pgxpool.Pool) *Store {
 // もうあるときは何もせず ErrPreconditionFailed を返す。1 つの SQL で行うので、同時に呼ばれても 1 つだけが作る。
 func (s *Store) Create(ctx context.Context, userID string, c Contents) (int64, time.Time, error) {
 	const q = `
-INSERT INTO backups (user_id, revision, schema_version, payload, track_count, session_count)
-VALUES ($1, 1, $2, $3, $4, $5)
+INSERT INTO backups (user_id, revision, schema_version, payload, track_count, session_count, payload_sha256)
+VALUES ($1, 1, $2, $3, $4, $5, $6)
 ON CONFLICT (user_id) DO NOTHING
 RETURNING revision, updated_at`
-	return s.write(ctx, "create backup", q, userID, c.SchemaVersion, c.Payload, c.TrackCount, c.SessionCount)
+	return s.write(ctx, "create backup", q, userID, c.SchemaVersion, c.Payload, c.TrackCount, c.SessionCount, c.PayloadSHA256)
 }
 
 // Replace は、userID のバックアップの版が expectedRevision のときだけ置き換え、版を 1 増やす。
@@ -60,10 +62,28 @@ RETURNING revision, updated_at`
 func (s *Store) Replace(ctx context.Context, userID string, expectedRevision int64, c Contents) (int64, time.Time, error) {
 	const q = `
 UPDATE backups
-SET revision = revision + 1, schema_version = $3, payload = $4, track_count = $5, session_count = $6, updated_at = now()
+SET revision = revision + 1, schema_version = $3, payload = $4, track_count = $5, session_count = $6, payload_sha256 = $7, updated_at = now()
 WHERE user_id = $1 AND revision = $2
 RETURNING revision, updated_at`
-	return s.write(ctx, "replace backup", q, userID, expectedRevision, c.SchemaVersion, c.Payload, c.TrackCount, c.SessionCount)
+	return s.write(ctx, "replace backup", q, userID, expectedRevision, c.SchemaVersion, c.Payload, c.TrackCount, c.SessionCount, c.PayloadSHA256)
+}
+
+// FindSameContents は、userID のバックアップの中身のハッシュが hash と同じなら、その版と日時を返す。
+// ない・違う・ハッシュが空の行のときは ErrNotFound を返す。
+func (s *Store) FindSameContents(ctx context.Context, userID string, hash []byte) (int64, time.Time, error) {
+	const q = `
+SELECT revision, updated_at
+FROM backups WHERE user_id = $1 AND payload_sha256 = $2`
+	var revision int64
+	var updatedAt time.Time
+	err := s.db.QueryRow(ctx, q, userID, hash).Scan(&revision, &updatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return 0, time.Time{}, ErrNotFound
+	}
+	if err != nil {
+		return 0, time.Time{}, fmt.Errorf("find same backup: %w", err)
+	}
+	return revision, updatedAt, nil
 }
 
 func (s *Store) write(ctx context.Context, op, q string, args ...any) (int64, time.Time, error) {

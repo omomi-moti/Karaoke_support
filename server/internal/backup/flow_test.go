@@ -84,6 +84,17 @@ func TestBackupFlow(t *testing.T) {
 		t.Fatalf("412 の後の summary: status = %d, %+v（置き換わってはいけない）", code, got)
 	}
 
+	// 版 2 にした端末が返事を受け取れず、古い版 1 のまま同じ中身を送り直しても、412 にせず今の版を返す（ADR 0061）
+	if rec := put(alice, map[string]string{"If-Match": `"1"`}, "2"); rec.Code != http.StatusOK || rec.Header().Get("ETag") != `"2"` {
+		t.Fatalf("返事が届かなかった後の送り直し: status = %d, ETag = %q", rec.Code, rec.Header().Get("ETag"))
+	}
+	if rec := put(alice, map[string]string{"If-None-Match": "*"}, "2"); rec.Code != http.StatusOK || rec.Header().Get("ETag") != `"2"` {
+		t.Fatalf("初めての送信の返事が届かなかった後の送り直し: status = %d, ETag = %q", rec.Code, rec.Header().Get("ETag"))
+	}
+	if code, got := summary(alice); code != http.StatusOK || got.Revision != 2 {
+		t.Fatalf("送り直しの後の summary: status = %d, %+v（版を増やしてはいけない）", code, got)
+	}
+
 	// ほかの人のトークンでは、alice の控えは見えず、変えられず、消せない
 	if code, _ := summary(bob); code != http.StatusNotFound {
 		t.Fatalf("bob の summary: status = %d, want 404", code)
