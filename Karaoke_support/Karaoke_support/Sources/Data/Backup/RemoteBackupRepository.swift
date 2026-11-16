@@ -10,6 +10,7 @@ final class RemoteBackupRepository: BackupRepositoryProtocol {
 	private let tokenStore: any ServerTokenStoring
 	private let state: any BackupStateStoring
 	private let reader: any BackupSnapshotReading
+	private let writer: any BackupSnapshotWriting
 
 	/// 最後に送れた中身のハッシュ。メモリにだけ持ち、同じなら送らない。
 	private var lastUploadedHash: SHA256.Digest?
@@ -20,11 +21,18 @@ final class RemoteBackupRepository: BackupRepositoryProtocol {
 	/// 予約が始まるときに使うきっかけ。まとめた中で、いちばん強いもの。
 	private var queuedTrigger: BackupTrigger = .foreground
 
-	init(client: APIClient, tokenStore: any ServerTokenStoring, state: any BackupStateStoring, reader: any BackupSnapshotReading) {
+	init(
+		client: APIClient,
+		tokenStore: any ServerTokenStoring,
+		state: any BackupStateStoring,
+		reader: any BackupSnapshotReading,
+		writer: any BackupSnapshotWriting
+	) {
 		self.client = client
 		self.tokenStore = tokenStore
 		self.state = state
 		self.reader = reader
+		self.writer = writer
 	}
 
 	var status: BackupStatus {
@@ -104,6 +112,76 @@ final class RemoteBackupRepository: BackupRepositoryProtocol {
 		try await deleteRemoteAfterLatest()
 	}
 
+	func fetchRestorableBackup() async throws -> BackupRestorableSummary? {
+		guard try writer.isEmpty() else { return nil }
+		do {
+			return try await fetchSummary().map { BackupRestorableSummary(sessionCount: $0.sessionCount, updatedAt: $0.updatedAt) }
+		} catch let failure as BackupFailure {
+			throw Self.restoreFailure(for: failure)
+		}
+	}
+
+	func restoreAll() async throws -> Int {
+		try await runAfterLatest { try await self.performRestore() }.value
+	}
+
+	/// 控えを読み、`schemaVersion` を確かめてから中身を読み、空の端末に書き込む。
+	/// 読んでいる間にサインアウトされたら、前のアカウントの記録と版を残さないように何も書かない。
+	private func performRestore() async throws -> Int {
+		guard try writer.isEmpty() else { throw BackupRestoreFailure.localNotEmpty }
+		let clearCountAtStart = state.clearCount
+		let data: Data
+		do {
+			let token = try currentToken()
+			data = try await client.sendReturningData("GET", "v1/backup", bearer: token)
+		} catch let failure as BackupFailure {
+			throw Self.restoreFailure(for: failure)
+		} catch APIError.status(404) {
+			throw BackupRestoreFailure.notFound
+		} catch {
+			let failure = failure(for: error)
+			if failure == .signInRequired, state.clearCount == clearCountAtStart {
+				signOutLocally()
+			}
+			throw Self.restoreFailure(for: failure)
+		}
+
+		let envelope: GetBackupEnvelope
+		let snapshot: BackupSnapshot
+		do {
+			envelope = try BackupJSONCoding.decoder.decode(GetBackupEnvelope.self, from: data)
+			guard envelope.schemaVersion == BackupSnapshot.schemaVersion else { throw BackupRestoreFailure.unsupportedVersion }
+			snapshot = try BackupJSONCoding.decoder.decode(GetBackupPayload.self, from: data).payload
+		} catch let failure as BackupRestoreFailure {
+			throw failure
+		} catch {
+			throw BackupRestoreFailure.invalidContents
+		}
+
+		guard state.clearCount == clearCountAtStart else { throw BackupRestoreFailure.signInRequired }
+		do {
+			try writer.write(snapshot)
+		} catch let failure as BackupRestoreFailure {
+			throw failure
+		} catch {
+			throw BackupRestoreFailure.localStoreFailed
+		}
+		state.lastRevision = envelope.revision
+		lastUploadedHash = nil
+		return snapshot.sessions.count
+	}
+
+	private static func restoreFailure(for failure: BackupFailure) -> BackupRestoreFailure {
+		switch failure {
+		case .unreachable:
+			.unreachable
+		case .signInRequired:
+			.signInRequired
+		case .server, .needsConfirmation, .tooLarge, .localReadFailed, .remoteDeletionFailed:
+			.server
+		}
+	}
+
 	/// 前の処理が終わってから、サーバーの控えを消す。順番を待つ間にオンに戻されたら消さない。
 	/// 順番を待つ間に状態が消されたら（サインアウトなど）も消さない。別のアカウントでサインインし直していると、そのアカウントの控えを消してしまうため。
 	private func deleteRemoteAfterLatest() async throws {
@@ -148,7 +226,7 @@ final class RemoteBackupRepository: BackupRepositoryProtocol {
 		let clearCountAtStart = state.clearCount
 		let body: Data
 		do {
-			body = try Self.encoder.encode(PutBackupRequest(snapshot: snapshot))
+			body = try BackupJSONCoding.encoder.encode(PutBackupRequest(snapshot: snapshot))
 		} catch {
 			throw record(.localReadFailed)
 		}
@@ -269,16 +347,5 @@ final class RemoteBackupRepository: BackupRepositoryProtocol {
 		state.clear()
 		lastUploadedHash = nil
 	}
-
-	/// 同じ記録なら同じバイト列になるように、鍵の順をそろえる。日時は秒より下も残す（取り込んだときに並びが変わらないように）。
-	private static let encoder: JSONEncoder = {
-		let encoder = JSONEncoder()
-		encoder.outputFormatting = [.sortedKeys]
-		encoder.dateEncodingStrategy = .custom { date, encoder in
-			var container = encoder.singleValueContainer()
-			try container.encode(date.formatted(Date.ISO8601FormatStyle(includingFractionalSeconds: true)))
-		}
-		return encoder
-	}()
 }
 #endif

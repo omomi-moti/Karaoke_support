@@ -38,6 +38,8 @@ private final class StubBackupRepository: BackupRepositoryProtocol {
 	func fetchRemoteSessionCount() async throws -> Int? { nil }
 	func disable() async throws {}
 	func retryRemoteDeletion() async throws {}
+	func fetchRestorableBackup() async throws -> BackupRestorableSummary? { nil }
+	func restoreAll() async throws -> Int { 0 }
 }
 
 @Suite("BackgroundBackupTrigger")

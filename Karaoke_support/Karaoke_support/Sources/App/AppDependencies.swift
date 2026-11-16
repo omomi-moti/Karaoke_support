@@ -36,7 +36,8 @@ struct AppDependencies {
 				client: client,
 				tokenStore: tokenStore,
 				state: backupState,
-				reader: SwiftDataBackupSnapshotReader(modelContext: context)
+				reader: SwiftDataBackupSnapshotReader(modelContext: context),
+				writer: SwiftDataBackupSnapshotWriter(modelContext: context)
 			)
 		}
 		#endif

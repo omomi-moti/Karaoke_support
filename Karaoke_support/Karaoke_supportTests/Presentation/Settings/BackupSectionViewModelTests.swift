@@ -91,6 +91,9 @@ private final class StubBackupRepository: BackupRepositoryProtocol {
 	func retryRemoteDeletion() async throws {
 		try await finishCall("retryRemoteDeletion")
 	}
+
+	func fetchRestorableBackup() async throws -> BackupRestorableSummary? { nil }
+	func restoreAll() async throws -> Int { 0 }
 }
 
 @Suite("BackupSectionViewModel")

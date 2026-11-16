@@ -60,5 +60,29 @@ final class SingingSession {
 		self.recordedWantAgain = wantAgain
 		self.recordedIsCompleted = isCompleted
 	}
+
+	/// バックアップから戻すときだけ使う（ADR 0061）。保存する値（`recorded…`）を、空も含めて元の端末のまま入れる。
+	/// 新しい記録は上の `init` で作る。メモはバックアップに入っていないので空のまま。
+	init(
+		restoringID id: UUID,
+		track: Track,
+		intent: Intent,
+		performedAt: Date,
+		score: Double?,
+		recordedSource: RecordSource?,
+		recordedWantAgain: Bool?,
+		recordedIsCompleted: Bool?
+	) {
+		precondition(score.map { (0...100).contains($0) } ?? true, "SingingSession score must be in 0...100.")
+		self.id = id
+		self.track = track
+		self.intent = intent
+		self.performedAt = performedAt
+		self.score = score
+		self.memo = nil
+		self.recordedSource = recordedSource
+		self.recordedWantAgain = recordedWantAgain
+		self.recordedIsCompleted = recordedIsCompleted
+	}
 }
 

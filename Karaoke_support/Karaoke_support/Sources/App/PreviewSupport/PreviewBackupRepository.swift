@@ -43,5 +43,13 @@ final class PreviewBackupRepository: BackupRepositoryProtocol {
 	func retryRemoteDeletion() async throws {
 		try await disable()
 	}
+
+	func fetchRestorableBackup() async throws -> BackupRestorableSummary? {
+		nil
+	}
+
+	func restoreAll() async throws -> Int {
+		42
+	}
 }
 #endif
