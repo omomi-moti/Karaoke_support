@@ -14,6 +14,7 @@ var errorCodes = map[int]string{
 	http.StatusPreconditionFailed:    "precondition_failed",
 	http.StatusRequestEntityTooLarge: "request_too_large",
 	http.StatusPreconditionRequired:  "precondition_required",
+	http.StatusTooManyRequests:       "too_many_requests",
 	http.StatusInternalServerError:   "internal",
 }
 

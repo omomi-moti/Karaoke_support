@@ -27,7 +27,7 @@ func TestBackupFlow(t *testing.T) {
 
 	h := NewHandler(NewService(NewStore(db)))
 	ok := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
-	router := httpapi.NewRouter(db, tokenAuth{}, httpapi.Handlers{
+	router := httpapi.NewRouter(tokenAuth{}, httpapi.Handlers{
 		SignInWithApple: ok, SignOut: ok, Me: ok, DeleteMe: ok,
 		BackupSummary: http.HandlerFunc(h.Summary),
 		GetBackup:     http.HandlerFunc(h.Get),

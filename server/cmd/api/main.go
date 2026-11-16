@@ -68,7 +68,7 @@ func run() error {
 
 	srv := &http.Server{
 		Addr: ":" + port,
-		Handler: httpapi.NewRouter(pool, accounts, httpapi.Handlers{
+		Handler: httpapi.NewRateLimiter().Wrap(httpapi.NewRouter(accounts, httpapi.Handlers{
 			SignInWithApple: http.HandlerFunc(accountHandler.SignInWithApple),
 			SignOut:         http.HandlerFunc(accountHandler.SignOut),
 			Me:              http.HandlerFunc(accountHandler.Me),
@@ -77,7 +77,7 @@ func run() error {
 			GetBackup:       http.HandlerFunc(backupHandler.Get),
 			PutBackup:       http.HandlerFunc(backupHandler.Put),
 			DeleteBackup:    http.HandlerFunc(backupHandler.Delete),
-		}),
+		})),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      20 * time.Second,
