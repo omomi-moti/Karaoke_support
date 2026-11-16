@@ -87,9 +87,7 @@ final class BackupSectionViewModel {
 
 	func load() async {
 		isUpToDate = false
-		if let message = await refresh() {
-			errorMessage = message
-		}
+		await refresh()
 	}
 
 	/// 同意の画面の「オンにする」。送るのに失敗してもオンのままになるので、結果はこの欄に出す。
@@ -122,7 +120,7 @@ final class BackupSectionViewModel {
 			}
 		} catch BackupFailure.signInRequired {
 			onSignInRequired()
-			errorMessage = await refresh()
+			await refresh()
 		} catch {
 			disableConfirmation = .unknown
 		}
@@ -159,38 +157,38 @@ final class BackupSectionViewModel {
 		if thrown == .signInRequired {
 			onSignInRequired()
 		}
-		let refreshMessage = await refresh()
+		await refresh()
 		if let thrown, thrown != .signInRequired, thrown != status.lastFailure {
 			errorMessage = Self.message(for: thrown)
-		} else {
-			errorMessage = refreshMessage
 		}
 	}
 
-	/// 端末の状態を写し、「確認が要る」なら件数を読む。読み終えたときに新しい読み込みが始まっていたら、件数は書かない。
-	/// 件数を読めなかったときは、出す文を返す（出すかどうかは呼ぶ側が決める）。
-	private func refresh() async -> String? {
+	/// 端末の状態を写し、「確認が要る」なら件数を読む。件数と、件数を読めなかった文は、この読み込みが最新のときだけ書く。
+	/// 読み終えたときに新しい読み込みが始まっていたら、何も書かない。
+	private func refresh() async {
 		loadGeneration += 1
 		let generation = loadGeneration
 		status = backupRepository.status
 		guard status.lastFailure == .needsConfirmation else {
 			conflict = nil
-			return nil
+			errorMessage = nil
+			return
 		}
 		do {
 			let conflict = try await backupRepository.fetchConflict()
-			guard generation == loadGeneration else { return nil }
+			guard generation == loadGeneration else { return }
 			self.conflict = conflict
-			return nil
+			errorMessage = nil
 		} catch {
-			guard generation == loadGeneration else { return nil }
+			guard generation == loadGeneration else { return }
 			conflict = nil
 			if error as? BackupFailure == .signInRequired {
 				onSignInRequired()
 				status = backupRepository.status
-				return nil
+				errorMessage = nil
+				return
 			}
-			return "サーバーのバックアップの件数を読めませんでした。時間をおいてもう一度お試しください"
+			errorMessage = "サーバーのバックアップの件数を読めませんでした。時間をおいてもう一度お試しください"
 		}
 	}
 

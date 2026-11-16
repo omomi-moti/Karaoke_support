@@ -239,6 +239,40 @@ struct BackupSectionViewModelTests {
 		#expect(!viewModel.isUpToDate)
 	}
 
+	@Test("件数を読めなかった文は、読み直して読めたら消える")
+	func countFailureIsClearedByReload() async {
+		repository.status = on(lastFailure: .needsConfirmation)
+		repository.conflictError = BackupFailure.unreachable
+		let viewModel = BackupSectionViewModel(backupRepository: repository)
+		await viewModel.load()
+		#expect(viewModel.failureMessage == "サーバーのバックアップの件数を読めませんでした。時間をおいてもう一度お試しください")
+
+		repository.conflictError = nil
+		await viewModel.load()
+
+		#expect(viewModel.conflict != nil)
+		#expect(viewModel.failureMessage == "ほかの端末から送ったバックアップと食い違っています")
+	}
+
+	@Test("古い読み込みが、新しい読み込みの失敗の文を消さない")
+	func staleLoadKeepsNewerFailure() async throws {
+		repository.status = on(lastFailure: .needsConfirmation)
+		repository.holdsNextConflict = true
+		let viewModel = BackupSectionViewModel(backupRepository: repository)
+		let older = Task { await viewModel.load() }
+		try await waitUntil { repository.isHoldingConflict }
+
+		repository.conflictError = BackupFailure.unreachable
+		await viewModel.load()
+		#expect(viewModel.failureMessage == "サーバーのバックアップの件数を読めませんでした。時間をおいてもう一度お試しください")
+
+		repository.conflictError = nil
+		repository.resumeHeldConflict()
+		await older.value
+
+		#expect(viewModel.failureMessage == "サーバーのバックアップの件数を読めませんでした。時間をおいてもう一度お試しください")
+	}
+
 	@Test("やり直している間は前の失敗を消さず、終わったときに入れ替える")
 	func failureStaysUntilRetryFinishes() async throws {
 		repository.status = on()
