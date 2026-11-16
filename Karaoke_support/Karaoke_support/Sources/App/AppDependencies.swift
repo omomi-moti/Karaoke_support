@@ -11,6 +11,8 @@ struct AppDependencies {
 	#if DEBUG || BETA
 	/// サーバーのつなぎ先がないときは nil（アカウントの欄を出さない）。作るときに通信はしない。
 	var accountRepository: (any AccountRepositoryProtocol)? = nil
+	/// サーバーのつなぎ先がないときは nil（バックアップの欄を出さない）。作るときに通信はしない。
+	var backupRepository: (any BackupRepositoryProtocol)? = nil
 	#endif
 
 	/// DB を開き、Repository を作る。DB を開けなければ throw する。
@@ -25,8 +27,17 @@ struct AppDependencies {
 			trackStatsRepository: SwiftDataTrackStatsRepository(modelContext: context)
 		)
 		#if DEBUG || BETA
-		dependencies.accountRepository = APIConfiguration.baseURL().map {
-			RemoteAccountRepository(client: APIClient(baseURL: $0), tokenStore: KeychainTokenStore())
+		if let baseURL = APIConfiguration.baseURL() {
+			let client = APIClient(baseURL: baseURL)
+			let tokenStore = KeychainTokenStore()
+			let backupState = UserDefaultsBackupStateStore()
+			dependencies.accountRepository = RemoteAccountRepository(client: client, tokenStore: tokenStore, backupState: backupState)
+			dependencies.backupRepository = RemoteBackupRepository(
+				client: client,
+				tokenStore: tokenStore,
+				state: backupState,
+				reader: SwiftDataBackupSnapshotReader(modelContext: context)
+			)
 		}
 		#endif
 		return dependencies

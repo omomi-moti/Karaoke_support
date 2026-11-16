@@ -74,12 +74,14 @@ Sources/
 
 `ModelContainer` と Repository は `AppDependencies.make(configuration:)` の 1 か所で作る。`KaraokeSupportApp` がその結果を持ち、`Sources/App/Environment/` の `EnvironmentKey` で Repository を注入する。Container の View は `@Environment(\.sessionRepository)` などで読み、ViewModel の `init` に渡す。プレビュー用のモックは `Sources/App/PreviewSupport/`。
 
+Debug と Beta のビルドでは、`KaraokeSupportApp` がバックアップのきっかけ（`BackgroundBackupTrigger`）も持ち、`scenePhase` の変化を渡す。送り終えるたびに `backupStatusTick` を環境に配る。
+
 保存先の DB を開けなかったときは `DataLoadErrorView` を出し、メモリ上の DB には切り替えない（ADR 0033）。デバッグのビルドでは `KARAOKE_SIMULATE_DATA_LOAD_FAILURE=1` でこの画面を出せる。
 
 環境に置く値の書き方は、初期値に同一性があるかで分ける（ADR 0031）。
 
 - **値とクロージャ**（`historyReloadTick`、`navigateTo…`）：`@Entry`
-- **状態を持つ参照型**（Repository）：`EnvironmentKey` + `static let defaultValue`。Repository のプロトコルは `@MainActor` かつ `Sendable`。プレビュー用の Repository は `nonisolated init()` を持つ（ADR 0027）。例外は `accountRepository` で、つなぎ先がないときは nil にするため、初期値 nil の `@Entry` で書く（ADR 0055）
+- **状態を持つ参照型**（Repository）：`EnvironmentKey` + `static let defaultValue`。Repository のプロトコルは `@MainActor` かつ `Sendable`。プレビュー用の Repository は `nonisolated init()` を持つ（ADR 0027）。例外は `accountRepository` と `backupRepository` で、つなぎ先がないときは nil にするため、初期値 nil の `@Entry` で書く（ADR 0055）
 - **アプリに 1 つの `@Observable` のオブジェクト**（`NetworkMonitor`）：`.environment(networkMonitor)` / `@Environment(NetworkMonitor.self)`。初期値はない
 
 ### 主なモデル

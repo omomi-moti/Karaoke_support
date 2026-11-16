@@ -1,6 +1,6 @@
 # server
 
-からログの記録をバックアップする API サーバー（Go）。設計は [docs/backend_design.md](../docs/backend_design.md)、判断は [ADR 0048](../docs/adr/0048-introduce-go-server.md)・[0049](../docs/adr/0049-account-and-full-backup.md)・[0050](../docs/adr/0050-postgres-on-neon.md)・[0051](../docs/adr/0051-public-cloud-run-with-caps.md)・[0054](../docs/adr/0054-sign-in-and-server-tokens.md)。
+からログの記録をバックアップする API サーバー（Go）。設計は [docs/backend_design.md](../docs/backend_design.md)、判断は [ADR 0048](../docs/adr/0048-introduce-go-server.md)・[0049](../docs/adr/0049-account-and-full-backup.md)・[0050](../docs/adr/0050-postgres-on-neon.md)・[0051](../docs/adr/0051-public-cloud-run-with-caps.md)・[0054](../docs/adr/0054-sign-in-and-server-tokens.md)・[0058](../docs/adr/0058-backup-consent-and-auto-upload.md)。
 
 コマンドは、とくに書いていなければ `server/` の中で打つ。
 
@@ -83,9 +83,9 @@ docker run --rm -p 8080:8080 --network server_default -e DATABASE_URL='postgres:
 go test ./...
 ```
 
-DB を使わないテスト（ハンドラー・service・Apple のトークンの検証と取り消し）は、偽物に差し替えて確かめる。Apple のトークンの取り消しは、`httptest` で立てた偽の Apple に送り、送る項目と `client_secret` の中身を確かめる。
+DB を使わないテスト（ハンドラー・service・Apple のトークンの検証と取り消し）は、偽物に差し替えて確かめる。バックアップのハンドラーのテストは、失敗したときも曲名がログとエラーの返事に出ないことも確かめる。Apple のトークンの取り消しは、`httptest` で立てた偽の Apple に送り、送る項目と `client_secret` の中身を確かめる。
 
-store の SQL のテストと、サインインからログアウトまで・アカウントの削除までを本物の DB で通すテストは、手元の Postgres の URL を `TEST_DATABASE_URL` で渡したときだけ流れる。ないとき・localhost 以外を指すとき・つながらないときは、理由を出して飛ばす。`DATABASE_URL` は使わない（staging の値がシェルに残っていても、テストが staging を書き換えないようにするため）
+store の SQL のテストと、サインインからログアウトまで・アカウントの削除まで・バックアップの版の番号つきの置き換え（412・428・ほかの人の控えに届かない）を本物の DB で通すテストは、手元の Postgres の URL を `TEST_DATABASE_URL` で渡したときだけ流れる。ないとき・localhost 以外を指すとき・つながらないときは、理由を出して飛ばす。`DATABASE_URL` は使わない（staging の値がシェルに残っていても、テストが staging を書き換えないようにするため）
 
 ```bash
 docker compose up -d

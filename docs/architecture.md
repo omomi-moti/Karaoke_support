@@ -7,7 +7,7 @@
 | **Presentation** | View（描画専用）+ ViewModel（`@Observable`・`@MainActor`） | Yes |
 | **Domain** | Protocol 定義・Model 定義・ヘルパー。外部 FW 非依存が原則 | No（※ @Model のみ例外許容） |
 | **Data** | SwiftData / Network の具体実装 | No |
-| **App** | `@main` エントリ、DI 組み立て、EnvironmentKey 定義 | Yes |
+| **App** | `@main` エントリ、DI 組み立て、EnvironmentKey 定義、アプリが裏に回った・前に戻ったときのバックアップのきっかけ（`BackgroundBackupTrigger`） | Yes |
 
 ---
 
@@ -201,6 +201,7 @@ erDiagram
 | 履歴 | 日時の新しい順に 20 件ずつ読み、最大 500 件まで出す |
 | 気分での絞り込み | `#Predicate` で enum を使わず、直近 200 件を読んでからメモリで絞る（[ADR 0007](adr/0007-filter-intent-in-memory.md)） |
 | 集計（ランキング・曲ごとの集計・入口の数） | 集計した値は保存せず、読むたびに記録から計算する（[ADR 0029](adr/0029-recompute-track-stats-without-cache.md)） |
+| バックアップ（Debug のビルドだけ） | 全部の曲と記録を読み、メモを除いて `BackupSnapshot` に写す。同じ記録なら同じ中身になるように id の順に並べる（[ADR 0058](adr/0058-backup-consent-and-auto-upload.md)） |
 
 ### 項目を足すとき
 
@@ -238,3 +239,5 @@ flowchart TD
     S3 --> UP["スコア・Intent・歌い切れた？・歌唱日時・メモ・ハートを直して更新"]
     UP --> CLOSE2["シートを閉じ、履歴を読み直す<br>（保存直後のシートは出さない）"]
 ```
+
+設定のバックアップ（Debug と Beta のビルドだけ）は、サインインしているときだけ欄を出す。オフのときは「バックアップをオンにする」の行から、設定の `NavigationStack` の中で同意の画面へ進み、「オンにする」で前に戻って 1 回送る。オンのときは「バックアップをオフにする」のボタンで、サーバーの件数を見せて確認してから消す。スイッチは使わない（ADR 0060）。どちらもシートを使わないので、`RootView` の 1 つのシートとはぶつからない（#161、ADR 0058）。アプリが裏に回ったとき・前に戻ったときは、`KaraokeSupportApp` が `scenePhase` の変化を `BackgroundBackupTrigger` に渡して送る。送り終えるたびに `backupStatusTick` が増え、設定の欄はそれで状態を読み直す。

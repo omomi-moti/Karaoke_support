@@ -33,8 +33,17 @@ final class AccountSectionViewModel {
 			status = .signedOut
 			return
 		}
-		status = .loading
+		if case .signedIn = status {} else {
+			status = .loading
+		}
 		await fetchAccount()
+	}
+
+	/// 端末のトークンが消えていたら、サーバーに問い合わせずにサインインしていない表示に戻す。
+	/// 裏で送ったバックアップが 401 でトークンを消したときに、この欄を合わせるため（ADR 0059）。
+	func refreshSignInState() {
+		guard case .signedIn = status, !accountRepository.isSignedIn else { return }
+		status = .signedOut
 	}
 
 	/// 新しい nonce を作って持ち、Apple の要求に入れるハッシュを返す。

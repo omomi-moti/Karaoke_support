@@ -23,10 +23,10 @@ struct AccountActionsSectionView: View {
 					}
 					Button("キャンセル", role: .cancel) {}
 				} message: {
-					Text("続けると、Apple で本人の確認をしてから削除します。")
+					Text("続けると、Apple で本人の確認をしてから削除します。サーバーのバックアップも消えます。")
 				}
 			} footer: {
-				Text("削除すると、サーバーのアカウントを消します。この iPhone の記録は消えません。")
+				Text("削除すると、サーバーのアカウントとバックアップを消します。この iPhone の記録は消えません。")
 			}
 		}
 	}

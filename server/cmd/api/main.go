@@ -13,6 +13,7 @@ import (
 
 	"github.com/omomi-moti/Karaoke_support/server/internal/account"
 	"github.com/omomi-moti/Karaoke_support/server/internal/appleauth"
+	"github.com/omomi-moti/Karaoke_support/server/internal/backup"
 	"github.com/omomi-moti/Karaoke_support/server/internal/httpapi"
 )
 
@@ -63,6 +64,7 @@ func run() error {
 	}
 	accounts := account.NewService(appleauth.NewVerifier(appleKeys, appleBundleID), appleRevoker, account.NewStore(pool))
 	accountHandler := account.NewHandler(accounts)
+	backupHandler := backup.NewHandler(backup.NewService(backup.NewStore(pool)))
 
 	srv := &http.Server{
 		Addr: ":" + port,
@@ -71,6 +73,10 @@ func run() error {
 			SignOut:         http.HandlerFunc(accountHandler.SignOut),
 			Me:              http.HandlerFunc(accountHandler.Me),
 			DeleteMe:        http.HandlerFunc(accountHandler.DeleteMe),
+			BackupSummary:   http.HandlerFunc(backupHandler.Summary),
+			GetBackup:       http.HandlerFunc(backupHandler.Get),
+			PutBackup:       http.HandlerFunc(backupHandler.Put),
+			DeleteBackup:    http.HandlerFunc(backupHandler.Delete),
 		}),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,

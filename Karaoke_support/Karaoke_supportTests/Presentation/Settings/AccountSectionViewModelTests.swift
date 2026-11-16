@@ -117,6 +117,19 @@ struct AccountSectionViewModelTests {
 		#expect(vm.status == .signedOut)
 	}
 
+	@Test("サインイン中の表示で、トークンが消えていれば問い合わせずに戻し、残っていればそのまま", arguments: [false, true])
+	func refreshSignInState(isTokenLeft: Bool) async {
+		repository.isSignedIn = true
+		let vm = makeViewModel()
+		await vm.load()
+
+		repository.isSignedIn = isTokenLeft
+		vm.refreshSignInState()
+
+		#expect(vm.status == (isTokenLeft ? .signedIn(repository.account) : .signedOut))
+		#expect(repository.fetchCount == 1)
+	}
+
 	@Test("届かなければ失敗を出し、読み直すとアカウントを出す", arguments: [AccountRepositoryError.unreachable, .server])
 	func loadFailureCanRetry(error: AccountRepositoryError) async {
 		repository.isSignedIn = true
@@ -247,6 +260,22 @@ struct AccountSectionViewModelTests {
 		await vm.signOut()
 
 		#expect(isFailed(vm.status))
+	}
+
+	@Test("サインイン中に読み直す間は、読み込み中に替えずに今の表示のままにする")
+	func reloadKeepsSignedInWhileFetching() async {
+		let vm = await makeSignedInViewModel()
+		repository.holdsNextFetch = true
+
+		let load = Task { await vm.load() }
+		while repository.heldContinuation == nil {
+			await Task.yield()
+		}
+		#expect(vm.status == .signedIn(repository.account))
+
+		repository.resumeHeldFetch()
+		await load.value
+		#expect(vm.status == .signedIn(repository.account))
 	}
 
 	@Test("画面を離れて読み込みが取り消されたときは、失敗を出さない")

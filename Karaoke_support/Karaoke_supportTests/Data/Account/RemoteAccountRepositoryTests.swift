@@ -94,12 +94,37 @@ private final class InMemoryTokenStore: ServerTokenStoring, @unchecked Sendable 
 	}
 }
 
+/// バックアップの状態を覚えるだけの偽物。消されたかを見る。
+@MainActor
+private final class InMemoryBackupState: BackupStateStoring {
+	var isEnabled = true
+	var consentVersion: Int? = 1
+	var lastRevision: Int? = 3
+	var lastSucceededAt: Date? = Date(timeIntervalSince1970: 0)
+	var lastFailure: BackupFailure?
+	private(set) var clearCount = 0
+
+	var isCleared: Bool {
+		!isEnabled && consentVersion == nil && lastRevision == nil && lastSucceededAt == nil && lastFailure == nil
+	}
+
+	func clear() {
+		isEnabled = false
+		consentVersion = nil
+		lastRevision = nil
+		lastSucceededAt = nil
+		lastFailure = nil
+		clearCount += 1
+	}
+}
+
 @Suite("RemoteAccountRepository")
 @MainActor
 struct RemoteAccountRepositoryTests {
 
 	private func makeRepository(
 		tokenStore: InMemoryTokenStore = InMemoryTokenStore(),
+		backupState: InMemoryBackupState? = nil,
 		log: RequestLog = RequestLog(),
 		respond: @escaping @Sendable (URLRequest) throws -> (Int, String)
 	) -> RemoteAccountRepository {
@@ -109,7 +134,7 @@ struct RemoteAccountRepositoryTests {
 			return (status, Data(text.utf8))
 		}
 		let session = APIClient.makeSession(protocolClasses: [StubURLProtocol.self])
-		return RemoteAccountRepository(client: APIClient(baseURL: baseURL, session: session), tokenStore: tokenStore)
+		return RemoteAccountRepository(client: APIClient(baseURL: baseURL, session: session), tokenStore: tokenStore, backupState: backupState ?? InMemoryBackupState())
 	}
 
 	@Test("サインインすると、Apple のトークンと nonce の元の値を送り、返ったトークンを保存する")
@@ -132,6 +157,18 @@ struct RemoteAccountRepositoryTests {
 		#expect(request.value(forHTTPHeaderField: "Authorization") == nil)
 		let sent = try JSONSerialization.jsonObject(with: try #require(body)) as? [String: String]
 		#expect(sent == ["identityToken": "apple-id-token", "nonce": "raw-nonce"])
+	}
+
+	@Test("サインインしたら、前に残っていたバックアップの状態を消し、オフから始める")
+	func signInClearsBackupState() async throws {
+		let backupState = InMemoryBackupState()
+		let repository = makeRepository(backupState: backupState) { _ in
+			(200, #"{"token":"klog_issued","expiresAt":"2027-02-08T11:18:18Z"}"#)
+		}
+
+		try await repository.signInWithApple(identityToken: "apple-id-token", rawNonce: "raw-nonce")
+
+		#expect(backupState.isCleared)
 	}
 
 	@Test("サインインに失敗したら、種類ごとのエラーになり、トークンを保存しない", arguments: [
@@ -199,10 +236,11 @@ struct RemoteAccountRepositoryTests {
 		#expect(log.count == 0)
 	}
 
-	@Test("自分の情報で 401 なら、端末のトークンを消して unauthorized")
+	@Test("自分の情報で 401 なら、端末のトークンとバックアップの状態を消して unauthorized")
 	func fetchMeUnauthorized() async throws {
 		let tokenStore = InMemoryTokenStore(token: "klog_expired")
-		let repository = makeRepository(tokenStore: tokenStore) { _ in
+		let backupState = InMemoryBackupState()
+		let repository = makeRepository(tokenStore: tokenStore, backupState: backupState) { _ in
 			(401, #"{"error":"unauthorized"}"#)
 		}
 
@@ -211,6 +249,7 @@ struct RemoteAccountRepositoryTests {
 		}
 		#expect(try tokenStore.read() == nil)
 		#expect(!repository.isSignedIn)
+		#expect(backupState.isCleared)
 	}
 
 	@Test("自分の情報が 401 以外で失敗したら、端末のトークンを残す", arguments: [500, 0])
@@ -227,15 +266,17 @@ struct RemoteAccountRepositoryTests {
 		#expect(try tokenStore.read() == "klog_saved")
 	}
 
-	@Test("ログアウトすると、トークンを Bearer で送って消してもらい、端末のトークンも消す")
+	@Test("ログアウトすると、トークンを Bearer で送って消してもらい、端末のトークンとバックアップの状態も消す")
 	func signOutSendsDeleteAndClearsToken() async throws {
 		let tokenStore = InMemoryTokenStore(token: "klog_saved")
+		let backupState = InMemoryBackupState()
 		let log = RequestLog()
-		let repository = makeRepository(tokenStore: tokenStore, log: log) { _ in (204, "") }
+		let repository = makeRepository(tokenStore: tokenStore, backupState: backupState, log: log) { _ in (204, "") }
 
 		try await repository.signOut()
 
 		#expect(try tokenStore.read() == nil)
+		#expect(backupState.isCleared)
 		#expect(!repository.isSignedIn)
 		let (request, _) = try #require(log.last)
 		#expect(request.httpMethod == "DELETE")
@@ -246,7 +287,8 @@ struct RemoteAccountRepositoryTests {
 	@Test("サーバーが失敗しても届かなくても、端末のトークンは消してエラーにしない", arguments: [401, 500, 0])
 	func signOutClearsTokenEvenWhenServerFails(status: Int) async throws {
 		let tokenStore = InMemoryTokenStore(token: "klog_saved")
-		let repository = makeRepository(tokenStore: tokenStore) { _ in
+		let backupState = InMemoryBackupState()
+		let repository = makeRepository(tokenStore: tokenStore, backupState: backupState) { _ in
 			if status == 0 { throw URLError(.notConnectedToInternet) }
 			return (status, #"{"error":"x"}"#)
 		}
@@ -254,6 +296,7 @@ struct RemoteAccountRepositoryTests {
 		try await repository.signOut()
 
 		#expect(try tokenStore.read() == nil)
+		#expect(backupState.isCleared)
 	}
 
 	@Test("トークンがなければ、通信せずに終わる")
@@ -266,15 +309,17 @@ struct RemoteAccountRepositoryTests {
 		#expect(log.count == 0)
 	}
 
-	@Test("アカウントを消すと、Bearer と Apple の 3 つの値を DELETE /v1/me に送り、端末のトークンも消す")
+	@Test("アカウントを消すと、Bearer と Apple の 3 つの値を DELETE /v1/me に送り、端末のトークンとバックアップの状態も消す")
 	func deleteAccountSendsBodyAndClearsToken() async throws {
 		let tokenStore = InMemoryTokenStore(token: "klog_saved")
+		let backupState = InMemoryBackupState()
 		let log = RequestLog()
-		let repository = makeRepository(tokenStore: tokenStore, log: log) { _ in (204, "") }
+		let repository = makeRepository(tokenStore: tokenStore, backupState: backupState, log: log) { _ in (204, "") }
 
 		try await repository.deleteAccount(identityToken: "apple-id-token", authorizationCode: "apple-code", rawNonce: "raw-nonce")
 
 		#expect(try tokenStore.read() == nil)
+		#expect(backupState.isCleared)
 		let (request, body) = try #require(log.last)
 		#expect(request.httpMethod == "DELETE")
 		#expect(request.url?.path == "/v1/me")
@@ -283,7 +328,7 @@ struct RemoteAccountRepositoryTests {
 		#expect(sent == ["identityToken": "apple-id-token", "authorizationCode": "apple-code", "nonce": "raw-nonce"])
 	}
 
-	@Test("アカウントを消せなければ種類ごとのエラーになり、401 のときだけ端末のトークンを消す", arguments: [
+	@Test("アカウントを消せなければ種類ごとのエラーになり、401 のときだけ端末のトークンとバックアップの状態を消す", arguments: [
 		(401, AccountRepositoryError.unauthorized, true),
 		(403, AccountRepositoryError.appleAccountMismatch, false),
 		(400, AccountRepositoryError.appleCredentialRejected, false),
@@ -292,7 +337,8 @@ struct RemoteAccountRepositoryTests {
 	])
 	func deleteAccountFailures(status: Int, expected: AccountRepositoryError, clearsToken: Bool) async throws {
 		let tokenStore = InMemoryTokenStore(token: "klog_saved")
-		let repository = makeRepository(tokenStore: tokenStore) { _ in
+		let backupState = InMemoryBackupState()
+		let repository = makeRepository(tokenStore: tokenStore, backupState: backupState) { _ in
 			if status == 0 { throw URLError(.notConnectedToInternet) }
 			return (status, #"{"error":"x"}"#)
 		}
@@ -301,6 +347,7 @@ struct RemoteAccountRepositoryTests {
 			try await repository.deleteAccount(identityToken: "apple-id-token", authorizationCode: "apple-code", rawNonce: "raw-nonce")
 		}
 		#expect((try tokenStore.read() == nil) == clearsToken)
+		#expect(backupState.isCleared == clearsToken)
 	}
 
 	@Test("アカウントの削除で、トークンがなければ通信せずに unauthorized")

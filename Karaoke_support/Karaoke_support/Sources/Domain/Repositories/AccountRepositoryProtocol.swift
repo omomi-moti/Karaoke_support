@@ -9,20 +9,22 @@ protocol AccountRepositoryProtocol: Sendable {
 	var isSignedIn: Bool { get }
 
 	/// Apple のトークンと nonce の元の値をサーバーに渡し、受け取ったサーバーのトークンを端末に保存する。
+	/// 保存できたら、前に残っていたバックアップの状態を消し、バックアップはオフから始める（ADR 0058 の 1-B）。
 	/// 失敗したときは ``AccountRepositoryError`` を投げる。
 	func signInWithApple(identityToken: String, rawNonce: String) async throws
 
 	/// サインインしている自分のアカウントを読む。トークンがなければ ``AccountRepositoryError/unauthorized`` を投げる。
-	/// サーバーがトークンを受け付けなかったときは、端末のトークンも消してから投げる。
+	/// サーバーがトークンを受け付けなかったときは、端末のトークンとバックアップの状態も消してから投げる。
 	func fetchMe() async throws -> Account
 
-	/// サーバーにこの端末のトークンを消すよう頼み、端末のトークンも消す。
+	/// サーバーにこの端末のトークンを消すよう頼み、端末のトークンとバックアップの状態も消す。サーバーのバックアップは残す。
 	/// サーバーに届かない・失敗したときも端末のトークンは消し、エラーにしない。
 	/// 端末のトークンを消せなかったときだけ ``AccountRepositoryError/tokenStorage`` を投げる。
 	func signOut() async throws
 
 	/// もう一度 Sign in with Apple で受け取った値をサーバーに渡し、Apple のトークンの取り消しとアカウントの削除を頼む（ADR 0057）。
-	/// 消せたら端末のトークンも消す。サーバーが 401 を返したときも端末のトークンを消して ``AccountRepositoryError/unauthorized`` を投げる。
+	/// 消せたら端末のトークンとバックアップの状態も消す（サーバーのバックアップはアカウントと一緒に消える）。
+	/// サーバーが 401 を返したときも端末のトークンとバックアップの状態を消して ``AccountRepositoryError/unauthorized`` を投げる。
 	/// 届かない・サーバーの失敗のときはアカウントは消えていないので、端末のトークンは残す。
 	/// この端末の記録（SwiftData）には触れない。
 	func deleteAccount(identityToken: String, authorizationCode: String, rawNonce: String) async throws
