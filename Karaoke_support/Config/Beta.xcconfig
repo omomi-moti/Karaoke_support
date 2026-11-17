@@ -1,0 +1,5 @@
+// Beta のビルドだけに効く設定。TestFlight で外部テスターに配る（ADR 0053）。
+// Release を写した構成に、アカウントとバックアップのコード（#if DEBUG || BETA）を入れる印と、staging のつなぎ先を足す。
+// つなぎ先は、コミットしない Local.xcconfig に書く（作り方は Local.xcconfig.example）。なければアカウントの欄は出ない。
+#include? "Local.xcconfig"
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = BETA $(inherited)
