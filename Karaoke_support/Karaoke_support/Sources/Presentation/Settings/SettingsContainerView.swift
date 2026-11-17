@@ -43,6 +43,7 @@ struct SettingsContainerView: View {
 				#else
 				Label("記録はこの iPhone の中にだけ保存されます", systemImage: "iphone")
 				#endif
+				PrivacyPolicyLinkView()
 			} header: {
 				Text("データについて")
 			} footer: {
