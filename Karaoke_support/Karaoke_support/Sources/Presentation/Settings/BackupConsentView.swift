@@ -7,8 +7,6 @@ struct BackupConsentView: View {
 	let onEnable: () -> Void
 	@Environment(\.dismiss) private var dismiss
 
-	private static let privacyPolicyURL = URL(string: "https://omomi-moti.github.io/Karaoke_support/privacy/")!
-
 	var body: some View {
 		List {
 			Section("送るもの") {
@@ -30,7 +28,7 @@ struct BackupConsentView: View {
 			}
 			Section {
 				Text("開発中のため、サーバーのデータを消すことがあります")
-				Link("プライバシーポリシー", destination: Self.privacyPolicyURL)
+				PrivacyPolicyLinkView()
 			}
 			Section {
 				Button("オンにする") {
