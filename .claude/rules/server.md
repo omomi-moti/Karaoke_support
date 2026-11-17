@@ -33,7 +33,7 @@ paths:
 
 ## 秘密
 
-- 秘密の値（DB の URL、鍵、トークン）をコード・テスト・文書・コミットに書かない。例外は手元の `compose.yaml` の Postgres のパスワードだけ。staging の値は Secret Manager に置く。
+- 秘密の値（DB の URL、鍵、トークン）をコード・テスト・文書・コミットに書かない。例外は、手元の `compose.yaml` と CI（`.github/workflows/server.yml`）の Postgres のパスワード（同じ値）だけ。staging の値は Secret Manager に置く。
 - 秘密の値を読むコマンド（`gcloud secrets versions access` など）は、形を確かめるだけでも、本人の了承をもらってから打つ。
 
 ## 変えたら流すもの
