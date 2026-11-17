@@ -50,6 +50,8 @@ xcodebuild test \
 
 iOS にリンターはない。Swift コンパイラの警告をリントの代わりにする。サーバーは `gofmt` と `go vet` を流す。
 
+CI はサーバーだけにある（`.github/workflows/server.yml`）。`server/` を変えた PR と `main` への push で、gofmt・`go vet`・`go test -race`（Postgres つき。`--- SKIP` が出たら失敗）・govulncheck を流す。iOS の CI はない。
+
 ---
 
 ## アーキテクチャ

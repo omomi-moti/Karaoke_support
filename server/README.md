@@ -94,6 +94,10 @@ goose -dir migrations postgres "$TEST_DATABASE_URL" up
 go test -count=1 ./...
 ```
 
+### CI
+
+`server/` かワークフローを変えた `main` への PR と、`main` への push で、GitHub Actions（[`.github/workflows/server.yml`](../.github/workflows/server.yml)）が同じものを流す。Postgres を service container で起こし、マイグレーションを流してから、`gofmt -l .`（何か出たら失敗）・`go vet ./...`・`go test -race -count=1 ./...`・govulncheck を流す。DB のテストが飛ばされたまま通らないよう、`--- SKIP` が 1 つでも出たら失敗にする。DB の URL とパスワードは `compose.yaml` の手元用と同じで、Secrets は使わない
+
 ## マイグレーション
 
 - ファイルは `migrations/` に、`00001_create_users.sql` のように 5 桁の連番で置く。中は `-- +goose Up` と `-- +goose Down` に分ける
