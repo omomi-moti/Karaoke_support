@@ -54,6 +54,8 @@ xcodebuild build \
   -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
+TestFlight と App Store に上げる手順と、Beta のビルド番号の控えは `docs/app_store/release_steps.md`。Beta のビルドを App Store の審査に出さない（ADR 0053）。
+
 ビルドの構成は Debug・Beta・Release の 3 つ。アカウントとバックアップ（`#if DEBUG || BETA`）は Release に入らない。Beta だけの設定は `Config/Beta.xcconfig`、どの構成にどの Privacy Manifest が入るかは pbxproj の `EXCLUDED_SOURCE_FILE_NAMES`（ADR 0064）。
 
 iOS にリンターはない。Swift コンパイラの警告をリントの代わりにする。サーバーは `gofmt` と `go vet` を流す。
