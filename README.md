@@ -58,7 +58,8 @@
 本人がオンにしたときだけ、メモ以外の記録を自前のサーバーにバックアップできるよう、サーバーを作っている。記録の正は端末の SwiftData のままで、サーバーにつながらなくても記録と履歴は動く。この機能は App Store に出すビルド（Release）には入れず、Debug と、TestFlight で外部テスターに配る Beta のビルドだけで動く（ADR 0048・0049・0053・0064）。
 
 - 済み：Sign in with Apple でのサインイン・ログアウト・アカウントの削除（Apple のトークンの取り消しを含む）、記録のバックアップ（オンにする前に同意の画面を出し、オンの間はアプリを閉じたときに自動で送る。設定から今すぐ送る・オフにしてサーバーの控えを消すこともできる）、曲も記録もない端末への取り込み（サインインの直後に聞く。記録がない間は設定の行と、履歴・選曲の空の画面の案内からも取り込める。ADR 0061）
-- これから：TestFlight での外部テスターへの配布、Apple Music の曲の候補（MusicKit）
+- TestFlight の外部テスターに Beta のビルドを配っている（上げる手順は [`docs/app_store/release_steps.md`](docs/app_store/release_steps.md)）
+- これから：Apple Music の曲の候補（MusicKit）
 
 設計は [`docs/backend_design.md`](docs/backend_design.md)、手元で動かす手順とデプロイは [`server/README.md`](server/README.md)。
 
