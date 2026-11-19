@@ -25,6 +25,7 @@ final class SwiftDataTrackStatsRepository: TrackStatsRepositoryProtocol {
 				trackId: track.id,
 				spotifyTrackId: track.spotifyTrackId,
 				userEnteredName: track.userEnteredName,
+				userEnteredArtistName: track.userEnteredArtistName,
 				latestIntent: latest.intent,
 				lastPerformedAt: latest.performedAt,
 				bestScore: trackSessions.compactMap(\.score).max(),

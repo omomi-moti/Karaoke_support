@@ -53,10 +53,20 @@ struct RecordingSheetContentView: View {
                         isLockedForEdit: viewModel.isTrackInputLockedForEdit,
                         suggestionState: trackSectionDisabled ? .hidden : viewModel.trackSuggestionState,
                         isSuggestionStale: viewModel.isTrackSuggestionStale,
-                        onSelectSuggestion: viewModel.applyTrackSuggestion
+                        suggestionField: viewModel.trackSuggestionField,
+                        artistNameSuggestions: viewModel.artistNameSuggestions,
+                        artistlessQuestion: trackSectionDisabled ? nil : viewModel.artistlessTrackQuestion,
+                        artistlessChoice: viewModel.currentArtistlessTrackChoice,
+                        isArtistlessChoiceMissing: viewModel.isArtistlessTrackChoiceMissing,
+                        onSelectSuggestion: viewModel.applyTrackSuggestion,
+                        onSelectArtistName: viewModel.applyArtistNameSuggestion,
+                        onChooseArtistless: viewModel.chooseArtistlessTrack(isSameTrack:)
                     )
                     .task(id: viewModel.trackState.manualName) {
                         await viewModel.updateTrackSuggestions(for: viewModel.trackState.manualName)
+                    }
+                    .task(id: viewModel.trackState.manualArtistName) {
+                        await viewModel.updateArtistSuggestions(for: viewModel.trackState.manualArtistName)
                     }
                     RecordingSheetScoreSection(
                         score: $viewModel.draft.score,

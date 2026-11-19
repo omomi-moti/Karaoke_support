@@ -18,6 +18,19 @@ enum TrackDisplayTitle {
 		return "不明"
 	}
 
+	/// 曲名の横に出す歌手名。歌手名のない曲（歌手名を足す前に作った曲・Spotify の曲）は `nil`。
+	static func artist(for track: Track) -> String? {
+		artist(userEnteredArtistName: track.userEnteredArtistName)
+	}
+
+	/// ``artist(for:)`` と同じ規則。``Track`` を持たない値型から使う。
+	static func artist(userEnteredArtistName: String?) -> String? {
+		guard let name = userEnteredArtistName?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty else {
+			return nil
+		}
+		return name
+	}
+
 	/// `spotify:track:...` のような URI は **最後の `:` 以降（実体 ID）** を表示対象にする。先頭 16 文字だけ切ると `spotify:track:` で固定になり識別できないため。
 	static func shortenedSpotifyDisplayId(_ sid: String) -> String {
 		let coreId: String

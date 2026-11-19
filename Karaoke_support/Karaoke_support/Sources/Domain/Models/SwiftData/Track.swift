@@ -14,6 +14,8 @@ final class Track {
 	var spotifyTrackId: String?
 	/// 手動入力曲用。ユーザーが入力した曲名（ユーザー生成データのため永続化可）。Spotify メタデータではない。
 	var userEnteredName: String?
+	/// 手動入力曲の歌手名（ユーザー生成データ）。歌手名を足す前に作った曲は `nil`。同じ曲かは曲名と合わせて判定する（ADR 0011）。
+	var userEnteredArtistName: String?
 	var singCount: Int
 	var createdAt: Date
 	var updatedAt: Date
@@ -26,6 +28,7 @@ final class Track {
 		id: UUID,
 		spotifyTrackId: String?,
 		userEnteredName: String?,
+		userEnteredArtistName: String?,
 		singCount: Int,
 		createdAt: Date,
 		updatedAt: Date
@@ -33,6 +36,7 @@ final class Track {
 		self.id = id
 		self.spotifyTrackId = spotifyTrackId
 		self.userEnteredName = userEnteredName
+		self.userEnteredArtistName = userEnteredArtistName
 		self.singCount = singCount
 		self.createdAt = createdAt
 		self.updatedAt = updatedAt
@@ -53,6 +57,7 @@ final class Track {
 			id: id,
 			spotifyTrackId: spotifyTrackId,
 			userEnteredName: userEnteredName,
+			userEnteredArtistName: nil,
 			singCount: singCount,
 			createdAt: createdAt,
 			updatedAt: resolvedUpdatedAt
@@ -63,6 +68,7 @@ final class Track {
 	convenience init(
 		id: UUID = UUID(),
 		userEnteredName: String,
+		userEnteredArtistName: String? = nil,
 		spotifyTrackId: String? = nil,
 		singCount: Int = 0,
 		createdAt: Date = .now,
@@ -74,6 +80,7 @@ final class Track {
 			id: id,
 			spotifyTrackId: spotifyTrackId,
 			userEnteredName: userEnteredName,
+			userEnteredArtistName: userEnteredArtistName,
 			singCount: singCount,
 			createdAt: createdAt,
 			updatedAt: resolvedUpdatedAt

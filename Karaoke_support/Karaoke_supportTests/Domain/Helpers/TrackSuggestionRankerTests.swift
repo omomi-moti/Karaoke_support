@@ -121,4 +121,28 @@ struct TrackSuggestionRankerTests {
 		#expect(rankedNames([a, b], query: "le") == ["lemon a", "lemon b"])
 		#expect(rankedNames([b, a], query: "le") == ["lemon a", "lemon b"])
 	}
+
+	// MARK: 歌手名で並べる
+
+	@Test("歌手名の欄では、歌手名で段を決める（曲名の一致は見ない）")
+	func rankByArtistUsesArtistTier() {
+		let prefix = Track(userEnteredName: "Lemon", userEnteredArtistName: "米津玄師", singCount: 1, createdAt: baseDate)
+		let contains = Track(userEnteredName: "米津のうた", userEnteredArtistName: "ハチ（米津）", singCount: 10, createdAt: baseDate)
+
+		let ranked = TrackSuggestionRanker.rank([contains, prefix], query: "米津", matchedText: \.userEnteredArtistName)
+
+		#expect(ranked.map(\.userEnteredName) == ["Lemon", "米津のうた"])
+	}
+
+	@Test("歌手名で並べてすべて同じなら、曲名の順で毎回同じ並びになる")
+	func rankByArtistFullTieSortsByName() {
+		let a = Track(userEnteredName: "Lemon", userEnteredArtistName: "米津玄師", singCount: 3, createdAt: baseDate)
+		let b = Track(userEnteredName: "馬と鹿", userEnteredArtistName: "米津玄師", singCount: 3, createdAt: baseDate)
+
+		let names = { (tracks: [Track]) in
+			TrackSuggestionRanker.rank(tracks, query: "米津", matchedText: \.userEnteredArtistName).map(\.userEnteredName)
+		}
+		#expect(names([a, b]) == ["Lemon", "馬と鹿"])
+		#expect(names([b, a]) == ["Lemon", "馬と鹿"])
+	}
 }

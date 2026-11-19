@@ -7,8 +7,14 @@ import Testing
 private final class UnusedTrackRepository: TrackRepositoryProtocol {
 	func searchLocal(query: String) async throws -> [Track] { [] }
 
-	func getOrCreate(spotifyTrackId: String?, userEnteredName: String?) async throws -> Track {
+	func getOrCreate(spotifyTrackId: String?, userEnteredName: String?, userEnteredArtistName: String?) async throws -> Track {
 		Track(userEnteredName: userEnteredName ?? "曲")
+	}
+
+	func searchLocalByArtist(query: String) async throws -> [Track] { [] }
+
+	func fillArtistName(_ artistName: String, trackId: UUID) async throws -> Track {
+		Track(id: trackId, userEnteredName: "曲", userEnteredArtistName: artistName)
 	}
 
 	func incrementSingCount(trackId: UUID) async throws {}

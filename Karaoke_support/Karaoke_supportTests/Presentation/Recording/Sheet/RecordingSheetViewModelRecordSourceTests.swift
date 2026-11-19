@@ -9,7 +9,13 @@ private final class FixedTrackRepository: TrackRepositoryProtocol {
 
 	func searchLocal(query: String) async throws -> [Track] { [] }
 
-	func getOrCreate(spotifyTrackId: String?, userEnteredName: String?) async throws -> Track { track }
+	func getOrCreate(spotifyTrackId: String?, userEnteredName: String?, userEnteredArtistName: String?) async throws -> Track { track }
+
+	func searchLocalByArtist(query: String) async throws -> [Track] { [] }
+
+	func fillArtistName(_ artistName: String, trackId: UUID) async throws -> Track {
+		Track(id: trackId, userEnteredName: "曲", userEnteredArtistName: artistName)
+	}
 
 	func incrementSingCount(trackId: UUID) async throws {}
 }
@@ -58,7 +64,7 @@ struct RecordingSheetViewModelRecordSourceTests {
 
 	@Test("提案のカードから開いて、曲を変えずに保存すると suggestion")
 	func suggestionWhenTrackUnchanged() async throws {
-		let selected = try #require(SelectedTrack(spotifyTrackId: nil, userEnteredName: "涙そうそう"))
+		let selected = try #require(SelectedTrack(spotifyTrackId: nil, userEnteredName: "涙そうそう", userEnteredArtistName: "歌手"))
 		let vm = makeViewModel(selected, source: .suggestion)
 
 		#expect(await vm.save() != nil)
@@ -76,7 +82,7 @@ struct RecordingSheetViewModelRecordSourceTests {
 
 	@Test("気分だけ変えて保存しても suggestion のまま")
 	func suggestionWhenOnlyIntentChanged() async throws {
-		let selected = try #require(SelectedTrack(spotifyTrackId: nil, userEnteredName: "涙そうそう"))
+		let selected = try #require(SelectedTrack(spotifyTrackId: nil, userEnteredName: "涙そうそう", userEnteredArtistName: "歌手"))
 		let vm = makeViewModel(selected, source: .suggestion)
 		vm.draft.intent = .practice
 
@@ -86,9 +92,10 @@ struct RecordingSheetViewModelRecordSourceTests {
 
 	@Test("提案のカードから開いても、曲名を書き換えて保存すると manual")
 	func manualWhenTrackNameEdited() async throws {
-		let selected = try #require(SelectedTrack(spotifyTrackId: nil, userEnteredName: "涙そうそう"))
+		let selected = try #require(SelectedTrack(spotifyTrackId: nil, userEnteredName: "涙そうそう", userEnteredArtistName: "歌手"))
 		let vm = makeViewModel(selected, source: .suggestion)
 		vm.trackState.manualName = "島唄"
+		vm.trackState.manualArtistName = "歌手"
 
 		#expect(await vm.save() != nil)
 		#expect(sessionRepository.savedSessions.map(\.recordedSource) == [.manual])
@@ -96,9 +103,10 @@ struct RecordingSheetViewModelRecordSourceTests {
 
 	@Test("曲名の前後に空白を足しただけなら、書き換えたことにしない")
 	func suggestionWhenOnlyWhitespaceAdded() async throws {
-		let selected = try #require(SelectedTrack(spotifyTrackId: nil, userEnteredName: "涙そうそう"))
+		let selected = try #require(SelectedTrack(spotifyTrackId: nil, userEnteredName: "涙そうそう", userEnteredArtistName: "歌手"))
 		let vm = makeViewModel(selected, source: .suggestion)
 		vm.trackState.manualName = " 涙そうそう "
+		vm.trackState.manualArtistName = "歌手"
 
 		#expect(await vm.save() != nil)
 		#expect(sessionRepository.savedSessions.map(\.recordedSource) == [.suggestion])
@@ -106,7 +114,7 @@ struct RecordingSheetViewModelRecordSourceTests {
 
 	@Test("選曲画面のカードから開いて、曲を変えずに保存すると selectionScreen")
 	func selectionScreenWhenTrackUnchanged() async throws {
-		let selected = try #require(SelectedTrack(spotifyTrackId: nil, userEnteredName: "涙そうそう"))
+		let selected = try #require(SelectedTrack(spotifyTrackId: nil, userEnteredName: "涙そうそう", userEnteredArtistName: "歌手"))
 		let vm = makeViewModel(selected, source: .selectionScreen)
 
 		#expect(await vm.save() != nil)
@@ -115,9 +123,10 @@ struct RecordingSheetViewModelRecordSourceTests {
 
 	@Test("選曲画面のカードから開いても、曲名を書き換えて保存すると manual")
 	func manualWhenTrackNameEditedFromSelectionScreen() async throws {
-		let selected = try #require(SelectedTrack(spotifyTrackId: nil, userEnteredName: "涙そうそう"))
+		let selected = try #require(SelectedTrack(spotifyTrackId: nil, userEnteredName: "涙そうそう", userEnteredArtistName: "歌手"))
 		let vm = makeViewModel(selected, source: .selectionScreen)
 		vm.trackState.manualName = "島唄"
+		vm.trackState.manualArtistName = "歌手"
 
 		#expect(await vm.save() != nil)
 		#expect(sessionRepository.savedSessions.map(\.recordedSource) == [.manual])
@@ -125,7 +134,7 @@ struct RecordingSheetViewModelRecordSourceTests {
 
 	@Test("ランキングや検索など、提案以外から曲を入れて開くと manual")
 	func manualWhenOpenedFromElsewhere() async throws {
-		let selected = try #require(SelectedTrack(spotifyTrackId: nil, userEnteredName: "涙そうそう"))
+		let selected = try #require(SelectedTrack(spotifyTrackId: nil, userEnteredName: "涙そうそう", userEnteredArtistName: "歌手"))
 		let vm = makeViewModel(selected, source: .manual)
 
 		#expect(await vm.save() != nil)
@@ -140,6 +149,7 @@ struct RecordingSheetViewModelRecordSourceTests {
 			trackRepository: FixedTrackRepository()
 		)
 		vm.trackState.manualName = "涙そうそう"
+		vm.trackState.manualArtistName = "歌手"
 
 		#expect(await vm.save() != nil)
 		#expect(sessionRepository.savedSessions.map(\.recordedSource) == [.manual])

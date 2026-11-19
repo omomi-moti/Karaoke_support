@@ -147,4 +147,15 @@ struct SwiftDataTrackStatsRepositoryTests {
 		let stats = try await repository.fetchTrackSingingStats()
 		#expect(stats.first?.latestMemo == "サビのキーが高かった")
 	}
+
+	@Test("曲の歌手名を写す")
+	func copiesArtistName() async throws {
+		let track = Track(userEnteredName: "Lemon", userEnteredArtistName: "米津玄師")
+		context.insert(track)
+		try context.save()
+		try await save(track, .emo, at: 100, score: nil)
+
+		let stats = try await repository.fetchTrackSingingStats()
+		#expect(stats.first?.userEnteredArtistName == "米津玄師")
+	}
 }

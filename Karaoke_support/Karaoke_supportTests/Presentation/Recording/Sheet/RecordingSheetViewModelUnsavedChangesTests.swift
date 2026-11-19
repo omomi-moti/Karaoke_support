@@ -9,7 +9,13 @@ private final class FixedTrackRepository: TrackRepositoryProtocol {
 
 	func searchLocal(query: String) async throws -> [Track] { [] }
 
-	func getOrCreate(spotifyTrackId: String?, userEnteredName: String?) async throws -> Track { track }
+	func getOrCreate(spotifyTrackId: String?, userEnteredName: String?, userEnteredArtistName: String?) async throws -> Track { track }
+
+	func searchLocalByArtist(query: String) async throws -> [Track] { [] }
+
+	func fillArtistName(_ artistName: String, trackId: UUID) async throws -> Track {
+		Track(id: trackId, userEnteredName: "曲", userEnteredArtistName: artistName)
+	}
 
 	func incrementSingCount(trackId: UUID) async throws {}
 }

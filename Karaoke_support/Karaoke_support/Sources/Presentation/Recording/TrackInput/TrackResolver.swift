@@ -13,7 +13,11 @@ struct TrackResolver: Sendable {
 			guard let name = state.normalizedManualName else {
 				throw TrackResolveError.emptyManualName
 			}
-			guard let selected = SelectedTrack(spotifyTrackId: nil, userEnteredName: name) else {
+			guard let selected = SelectedTrack(
+				spotifyTrackId: nil,
+				userEnteredName: name,
+				userEnteredArtistName: state.normalizedManualArtistName
+			) else {
 				throw TrackResolveError.invalidSelectedTrack
 			}
 			return selected

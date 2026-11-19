@@ -13,7 +13,13 @@ private final class FixedTrackRepository: TrackRepositoryProtocol {
 
 	func searchLocal(query: String) async throws -> [Track] { [] }
 
-	func getOrCreate(spotifyTrackId: String?, userEnteredName: String?) async throws -> Track { track }
+	func getOrCreate(spotifyTrackId: String?, userEnteredName: String?, userEnteredArtistName: String?) async throws -> Track { track }
+
+	func searchLocalByArtist(query: String) async throws -> [Track] { [] }
+
+	func fillArtistName(_ artistName: String, trackId: UUID) async throws -> Track {
+		Track(id: trackId, userEnteredName: "曲", userEnteredArtistName: artistName)
+	}
 
 	func incrementSingCount(trackId: UUID) async throws {}
 }
@@ -58,6 +64,7 @@ struct RecordingSheetViewModelSavedRecordingTests {
 			trackRepository: FixedTrackRepository(track: track)
 		)
 		vm.trackState.manualName = "Pretender"
+		vm.trackState.manualArtistName = "歌手"
 		vm.draft.intent = .emo
 		vm.draft.score = ScoreDigitInput(score: 91.25)
 
@@ -97,6 +104,7 @@ struct RecordingSheetViewModelSavedRecordingTests {
 			trackRepository: FixedTrackRepository(track: Track(userEnteredName: "失敗する曲"))
 		)
 		vm.trackState.manualName = "失敗する曲"
+		vm.trackState.manualArtistName = "歌手"
 
 		#expect(await vm.save() == nil)
 	}
