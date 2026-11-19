@@ -21,11 +21,12 @@ struct HistoryListContainerView: View {
 			HistoryListView(viewModel: viewModel, navigationPath: $navigationPath)
 				.navigationDestination(for: HistoryRoute.self) { route in
 					switch route {
-					case .trackDetail(let trackId, let title):
+					case .trackDetail(let trackId, let title, let artistName):
 						TrackDetailContainerView(
 							sessionRepository: sessionRepository,
 							trackId: trackId,
-							trackTitle: title
+							trackTitle: title,
+							trackArtistName: artistName
 						)
 					}
 				}

@@ -9,6 +9,8 @@ struct HistorySessionRowDisplayItem: Identifiable, Equatable {
 	let trackId: UUID
 	let intent: Intent
 	let trackPrimaryTitle: String
+	/// 歌手名のない曲は `nil`。
+	let trackArtistName: String?
 	let performedAt: Date
 	/// 点数なしの記録は `nil`。
 	let score: Double?
@@ -18,6 +20,7 @@ struct HistorySessionRowDisplayItem: Identifiable, Equatable {
 		trackId: UUID,
 		intent: Intent,
 		trackPrimaryTitle: String,
+		trackArtistName: String? = nil,
 		performedAt: Date,
 		score: Double?
 	) {
@@ -25,6 +28,7 @@ struct HistorySessionRowDisplayItem: Identifiable, Equatable {
 		self.trackId = trackId
 		self.intent = intent
 		self.trackPrimaryTitle = trackPrimaryTitle
+		self.trackArtistName = trackArtistName
 		self.performedAt = performedAt
 		self.score = score
 	}
@@ -35,6 +39,7 @@ struct HistorySessionRowDisplayItem: Identifiable, Equatable {
 			trackId: session.track.id,
 			intent: session.intent,
 			trackPrimaryTitle: TrackDisplayTitle.primary(for: session.track),
+			trackArtistName: TrackDisplayTitle.artist(for: session.track),
 			performedAt: session.performedAt,
 			score: session.score
 		)

@@ -7,13 +7,15 @@ struct TrackDetailContainerView: View {
 	init(
 		sessionRepository: any SessionRepositoryProtocol,
 		trackId: UUID,
-		trackTitle: String
+		trackTitle: String,
+		trackArtistName: String? = nil
 	) {
 		_viewModel = State(
 			initialValue: TrackDetailViewModel(
 				sessionRepository: sessionRepository,
 				trackId: trackId,
-				trackTitle: trackTitle
+				trackTitle: trackTitle,
+				trackArtistName: trackArtistName
 			)
 		)
 	}
@@ -28,7 +30,8 @@ struct TrackDetailContainerView: View {
 		TrackDetailContainerView(
 			sessionRepository: PreviewSessionRepository(),
 			trackId: PreviewSessionRepository.sampleTrackIdForTrend,
-			trackTitle: "アイドル"
+			trackTitle: "アイドル",
+			trackArtistName: "YOASOBI"
 		)
 	}
 }

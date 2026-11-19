@@ -102,6 +102,7 @@ struct SelectionView: View {
 						spotifyTrackId: recommendation.stats.spotifyTrackId,
 						userEnteredName: recommendation.stats.userEnteredName
 					),
+					artistName: TrackDisplayTitle.artist(userEnteredArtistName: recommendation.stats.userEnteredArtistName),
 					reason: isChallenge ? RecommendationReasonFormat.challenge(recommendation) : reason(for: recommendation),
 					note: isChallenge && !recommendation.stats.latestIsCompleted ? recommendation.stats.latestMemo : nil,
 					isWantAgain: recommendation.stats.latestWantAgain,

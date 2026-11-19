@@ -129,8 +129,8 @@ struct RootView: View {
 
     /// 履歴タブで曲詳細を開いているときの曲。ほかの画面では `nil`。
     private var trackOnScreen: SelectedTrack? {
-        guard selectedTab == .history, case .trackDetail(_, let title)? = historyPath.last else { return nil }
-        return SelectedTrack(spotifyTrackId: nil, userEnteredName: title)
+        guard selectedTab == .history, case .trackDetail(_, let title, let artistName)? = historyPath.last else { return nil }
+        return SelectedTrack(spotifyTrackId: nil, userEnteredName: title, userEnteredArtistName: artistName)
     }
 
     /// ＋は、曲詳細ではその曲名を入れて、ほかの画面では空で記録シートを開く（ADR 0047）。
@@ -187,7 +187,8 @@ struct RootView: View {
     private func recordRecommendation(_ recommendation: TrackRecommendation, intent: Intent) {
         guard let selected = SelectedTrack(
             spotifyTrackId: recommendation.stats.spotifyTrackId,
-            userEnteredName: recommendation.stats.userEnteredName
+            userEnteredName: recommendation.stats.userEnteredName,
+            userEnteredArtistName: recommendation.stats.userEnteredArtistName
         ) else { return }
         closeSheet(then: .recording(.selectedTrack(selected, intent: intent, source: .suggestion)))
     }
@@ -196,7 +197,8 @@ struct RootView: View {
     private func recordFromSelectionScreen(_ recommendation: TrackRecommendation, intent: Intent) {
         guard let selected = SelectedTrack(
             spotifyTrackId: recommendation.stats.spotifyTrackId,
-            userEnteredName: recommendation.stats.userEnteredName
+            userEnteredName: recommendation.stats.userEnteredName,
+            userEnteredArtistName: recommendation.stats.userEnteredArtistName
         ) else { return }
         present(.recording(.selectedTrack(selected, intent: intent, source: .selectionScreen)))
     }

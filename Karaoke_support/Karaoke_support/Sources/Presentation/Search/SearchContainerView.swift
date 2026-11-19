@@ -45,7 +45,8 @@ struct SearchContainerView: View {
     private func select(_ item: SearchResultDisplayItem) {
         guard let selected = SelectedTrack(
             spotifyTrackId: item.spotifyTrackId,
-            userEnteredName: item.userEnteredName
+            userEnteredName: item.userEnteredName,
+            userEnteredArtistName: item.artistName
         ) else {
             assertionFailure("Track must have spotifyTrackId or userEnteredName.")
             return

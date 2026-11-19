@@ -10,10 +10,7 @@ struct SearchResultRowView: View {
 			HStack(spacing: 12) {
 				VStack(alignment: .leading, spacing: 2) {
 					HStack(spacing: 6) {
-						Text(item.title)
-							.font(.body.weight(.semibold))
-							.foregroundStyle(AppColor.textPrimary)
-							.lineLimit(1)
+						TrackTitleLineView(title: item.title, artistName: item.artistName)
 						if item.isWantAgain {
 							Image(systemName: "heart.fill")
 								.font(.caption)
@@ -40,7 +37,9 @@ struct SearchResultRowView: View {
 	}
 
 	private var accessibilityText: String {
-		var parts = [item.title, item.subtitle]
+		var parts = [item.title]
+		if let artistName = item.artistName { parts.append(artistName) }
+		parts.append(item.subtitle)
 		if item.isWantAgain { parts.append("また歌いたい") }
 		return parts.joined(separator: "、")
 	}
@@ -54,6 +53,7 @@ struct SearchResultRowView: View {
 					trackId: UUID(),
 					spotifyTrackId: nil,
 					userEnteredName: "アイドル",
+					userEnteredArtistName: "YOASOBI",
 					latestIntent: .shout,
 					lastPerformedAt: .now.addingTimeInterval(-5 * 86_400),
 					bestScore: 92.5,
