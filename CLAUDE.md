@@ -120,7 +120,7 @@ Debug と Beta のビルドでは、`KaraokeSupportApp` がバックアップの
 - **ブランチ名**：`{種類}/{英語の短い名前}`。Issue 番号は付けない（例：`feature/after-save-recommendation`、`fix/data-load-error`）。種類は `feature` / `fix` / `refactor` / `docs` / `chore`。1 つの Issue（1 スプリント）に 1 ブランチ。どのブランチも、終わった時点でアプリが動く状態にする。
 - **Issue とのつながり**：コミットメッセージに `Refs #N`、PR の本文に `Closes #N`。
 - **コミットメッセージ**：`{プレフィックス}: {50 文字以内の要約}` を日本語で。必要なら本文に「何を」「なぜ」を書く。プレフィックスは `feat:` / `fix:` / `refactor:` / `docs:` / `test:` / `chore:`。
-- **マージ**：PR を squash merge で `main` に入れる。`main` に直接 push しない。
+- **マージ**：PR をマージコミットで `main` に入れる（squash しない）。ブランチのコミットがそのまま `main` に残るので、どのコミットもビルドが通るように分ける。`main` に直接 push しない。
 
 ---
 
