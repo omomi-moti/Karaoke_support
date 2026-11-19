@@ -16,7 +16,7 @@
 | [0008](0008-single-recording-sheet-on-root.md) | 歌唱記録は 1 枚のシートにまとめ、`RootView` に 1 つだけ置く | 置き換え済み（→ 0025） |
 | [0009](0009-tiered-track-suggestions.md) | 曲名の候補は一致した場所で段を分けて並べる | 承認 |
 | [0010](0010-issues-and-adr-as-source-of-truth.md) | タスクは GitHub Issues、判断は ADR を正とし、旧 Issue 一覧は archive に残す | 承認 |
-| [0011](0011-identify-tracks-by-name-and-artist.md) | 手入力の曲は曲名＋歌手名で区別し、新しい曲では歌手名を必須にする | 提案 |
+| [0011](0011-identify-tracks-by-name-and-artist.md) | 手入力の曲は曲名＋歌手名で区別し、新しい曲では歌手名を必須にする | 承認 |
 | [0012](0012-score-three-decimals-optional.md) | 点数は小数第3位までの任意入力にする | 承認 |
 | [0013](0013-score-input-with-system-number-pad.md) | 点数は標準テンキーで右詰めに入力し、入力欄は見えなくする | 承認 |
 | [0014](0014-score-display-without-rounding.md) | 点数は丸めず小数第3位まで表示し、平均は切り捨てる | 承認 |

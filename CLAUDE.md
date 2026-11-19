@@ -100,7 +100,7 @@ Debug と Beta のビルドでは、`KaraokeSupportApp` がバックアップの
 
 | 型 | ファイル | メモ |
 |------|------|-------|
-| `Track` | `Domain/Models/SwiftData/Track.swift` | `userEnteredName`（今は必ず入る）か `spotifyTrackId`（使っていない。常に nil） |
+| `Track` | `Domain/Models/SwiftData/Track.swift` | `userEnteredName`（今は必ず入る）か `spotifyTrackId`（使っていない。常に nil）。`userEnteredArtistName` は空を許す（前からの曲は nil）。曲名＋歌手名で同じ曲とみなす |
 | `SingingSession` | `Domain/Models/SwiftData/SingingSession.swift` | UUID が冪等キー。Track と N:1 |
 | `Intent` | `Domain/Models/Enums/Intent.swift` | `.shout` / `.emo` / `.practice`。RawValue は `String` |
 | `RecordSource` | `Domain/Models/Enums/RecordSource.swift` | `.manual` / `.suggestion` / `.selectionScreen`。空を許す `recordedSource` に保存し、`source` で読む（ADR 0034） |
