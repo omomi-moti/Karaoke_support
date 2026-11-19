@@ -9,6 +9,8 @@ struct SearchResultDisplayItem: Identifiable, Equatable {
 	let spotifyTrackId: String?
 	let userEnteredName: String?
 	let title: String
+	/// 曲名の横に出す歌手名。歌手名のない曲は `nil`。
+	let artistName: String?
 	/// 例:「4回歌った ・ 前回は5日前」。
 	let history: String
 	/// 最新の記録の気分。記録が 1 件もない曲は `nil`。
@@ -23,6 +25,7 @@ struct SearchResultDisplayItem: Identifiable, Equatable {
 		spotifyTrackId = track.spotifyTrackId
 		userEnteredName = track.userEnteredName
 		title = TrackDisplayTitle.primary(for: track)
+		artistName = TrackDisplayTitle.artist(for: track)
 		history = Self.history(count: track.sessions.count, lastPerformedAt: latest?.performedAt, now: now, calendar: calendar)
 		latestIntent = latest?.intent
 		isWantAgain = latest?.wantAgain ?? false
@@ -33,6 +36,7 @@ struct SearchResultDisplayItem: Identifiable, Equatable {
 		spotifyTrackId = stats.spotifyTrackId
 		userEnteredName = stats.userEnteredName
 		title = TrackDisplayTitle.primary(spotifyTrackId: stats.spotifyTrackId, userEnteredName: stats.userEnteredName)
+		artistName = TrackDisplayTitle.artist(userEnteredArtistName: stats.userEnteredArtistName)
 		history = Self.history(count: stats.sessionCount, lastPerformedAt: stats.lastPerformedAt, now: now, calendar: calendar)
 		latestIntent = stats.latestIntent
 		isWantAgain = stats.latestWantAgain

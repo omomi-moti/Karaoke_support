@@ -35,6 +35,7 @@ struct AfterSaveRecommendationSheetView: View {
 								spotifyTrackId: recommendation.stats.spotifyTrackId,
 								userEnteredName: recommendation.stats.userEnteredName
 							),
+							artistName: TrackDisplayTitle.artist(userEnteredArtistName: recommendation.stats.userEnteredArtistName),
 							reason: isShowingChallenges
 								? RecommendationReasonFormat.challenge(recommendation)
 								: RecommendationReasonFormat.sinceLastSung(days: recommendation.daysSinceLastSung),
@@ -100,10 +101,12 @@ struct AfterSaveRecommendationSheetView: View {
 		.accessibilityElement(children: .combine)
 	}
 
-	/// 例:「Pretender ・ Emo ・ 91.250」。点数なしなら点数は出さない。
+	/// 例:「Pretender ・ Official髭男dism ・ Emo ・ 91.250」。歌手名のない曲は歌手名、点数なしなら点数は出さない。
 	private var savedSummaryLine: String {
 		let saved = content.saved
-		var parts = [saved.trackTitle, IntentLabel.title(saved.intent)]
+		var parts = [saved.trackTitle]
+		if let artistName = saved.trackArtistName { parts.append(artistName) }
+		parts.append(IntentLabel.title(saved.intent))
 		if saved.score != nil {
 			parts.append(ScoreFormat.text(saved.score))
 		}

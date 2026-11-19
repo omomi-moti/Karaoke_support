@@ -7,10 +7,12 @@ struct HistorySessionRowView: View {
 	var body: some View {
 		HStack(alignment: .top, spacing: 12) {
 			VStack(alignment: .leading, spacing: 6) {
-				Text(item.trackPrimaryTitle)
-					.font(.headline.weight(.semibold))
-					.foregroundStyle(AppColor.textPrimary)
-					.multilineTextAlignment(.leading)
+				TrackTitleLineView(
+					title: item.trackPrimaryTitle,
+					artistName: item.trackArtistName,
+					titleFont: .headline.weight(.semibold),
+					titleLineLimit: nil
+				)
 
 				Text(PerformedAtFormat.dateTime(item.performedAt))
 					.font(.subheadline)
@@ -55,6 +57,7 @@ struct HistorySessionRowView: View {
 			trackId: UUID(),
 			intent: .shout,
 			trackPrimaryTitle: "アイドル",
+			trackArtistName: "YOASOBI",
 			performedAt: .now,
 			score: 92.5
 		)

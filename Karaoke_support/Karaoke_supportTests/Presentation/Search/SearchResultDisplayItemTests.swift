@@ -95,4 +95,33 @@ struct SearchResultDisplayItemTests {
 		#expect(item.subtitle == "4回歌った ・ 前回は2週間前 ・ Practice")
 		#expect(item.isWantAgain)
 	}
+
+	@Test("曲の歌手名を写し、歌手名のない曲は nil")
+	func mapsArtistName() {
+		let withArtist = SearchResultDisplayItem(
+			track: Track(userEnteredName: "Lemon", userEnteredArtistName: "米津玄師"),
+			now: now,
+			calendar: calendar
+		)
+		let withoutArtist = SearchResultDisplayItem(track: Track(userEnteredName: "糸"), now: now, calendar: calendar)
+
+		#expect(withArtist.artistName == "米津玄師")
+		#expect(withoutArtist.artistName == nil)
+	}
+
+	@Test("集計から作るときも歌手名を写す")
+	func mapsArtistNameFromStats() {
+		let stats = TrackSingingStats(
+			trackId: UUID(),
+			spotifyTrackId: nil,
+			userEnteredName: "Lemon",
+			userEnteredArtistName: "米津玄師",
+			latestIntent: .emo,
+			lastPerformedAt: date(daysAgo: 1),
+			bestScore: nil,
+			sessionCount: 1
+		)
+
+		#expect(SearchResultDisplayItem(stats: stats, now: now, calendar: calendar).artistName == "米津玄師")
+	}
 }

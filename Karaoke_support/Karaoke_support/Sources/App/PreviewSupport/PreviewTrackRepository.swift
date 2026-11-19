@@ -9,7 +9,11 @@ final class PreviewTrackRepository: TrackRepositoryProtocol {
 		[]
 	}
 
-	func getOrCreate(spotifyTrackId: String?, userEnteredName: String?) async throws -> Track {
+	func searchLocalByArtist(query: String) async throws -> [Track] {
+		[]
+	}
+
+	func getOrCreate(spotifyTrackId: String?, userEnteredName: String?, userEnteredArtistName: String?) async throws -> Track {
 		let trimmedSpotifyId = spotifyTrackId?.trimmingCharacters(in: .whitespacesAndNewlines)
 		let trimmedUserName = userEnteredName?.trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -23,7 +27,11 @@ final class PreviewTrackRepository: TrackRepositoryProtocol {
 			return Track(spotifyTrackId: sid)
 		}
 
-		return Track(userEnteredName: trimmedUserName ?? "Preview Track")
+		return Track(userEnteredName: trimmedUserName ?? "Preview Track", userEnteredArtistName: userEnteredArtistName)
+	}
+
+	func fillArtistName(_ artistName: String, trackId: UUID) async throws -> Track {
+		Track(id: trackId, userEnteredName: "Preview Track", userEnteredArtistName: artistName)
 	}
 
 	func incrementSingCount(trackId: UUID) async throws {

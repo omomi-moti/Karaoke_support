@@ -9,7 +9,13 @@ private final class FixedTrackRepository: TrackRepositoryProtocol {
 
 	func searchLocal(query: String) async throws -> [Track] { [] }
 
-	func getOrCreate(spotifyTrackId: String?, userEnteredName: String?) async throws -> Track { track }
+	func getOrCreate(spotifyTrackId: String?, userEnteredName: String?, userEnteredArtistName: String?) async throws -> Track { track }
+
+	func searchLocalByArtist(query: String) async throws -> [Track] { [] }
+
+	func fillArtistName(_ artistName: String, trackId: UUID) async throws -> Track {
+		Track(id: trackId, userEnteredName: "曲", userEnteredArtistName: artistName)
+	}
 
 	func incrementSingCount(trackId: UUID) async throws {}
 }
@@ -60,6 +66,7 @@ struct RecordingSheetViewModelWantAgainTests {
 	func newSavePassesWantAgain() async {
 		let vm = RecordingSheetViewModel(trackMode: .manual, sessionRepository: sessionRepository, trackRepository: trackRepository)
 		vm.trackState.manualName = "涙そうそう"
+		vm.trackState.manualArtistName = "歌手"
 		vm.draft.wantAgain = true
 
 		#expect(await vm.save() != nil)

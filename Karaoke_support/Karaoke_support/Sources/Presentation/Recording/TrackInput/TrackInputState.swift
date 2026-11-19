@@ -3,7 +3,9 @@ import Foundation
 struct TrackInputState: Sendable, Equatable {
 	var mode: TrackInputMode
 	var manualName: String = ""
+	var manualArtistName: String = ""
 	var validationMessage: String? = nil
+	var artistValidationMessage: String? = nil
 
 	var isEditable: Bool {
 		if case .manual = mode { return true }
@@ -26,10 +28,16 @@ struct TrackInputState: Sendable, Equatable {
 		return trimmed.isEmpty ? nil : trimmed
 	}
 
+	var normalizedManualArtistName: String? {
+		let trimmed = manualArtistName.trimmingCharacters(in: .whitespacesAndNewlines)
+		return trimmed.isEmpty ? nil : trimmed
+	}
+
 	/// 通常の曲入力（メンバーワイズの代わり。カスタム `init` 追加時に合成されなくなるため明示）。
-	init(mode: TrackInputMode, manualName: String = "", validationMessage: String? = nil) {
+	init(mode: TrackInputMode, manualName: String = "", manualArtistName: String = "", validationMessage: String? = nil) {
 		self.mode = mode
 		self.manualName = manualName
+		self.manualArtistName = manualArtistName
 		self.validationMessage = validationMessage
 	}
 
@@ -39,7 +47,7 @@ struct TrackInputState: Sendable, Equatable {
 		if let sid = track.spotifyTrackId, !sid.isEmpty {
 			self.init(mode: .spotifyHistory(spotifyTrackId: sid, displayName: display))
 		} else if let name = track.userEnteredName, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-			self.init(mode: .manual, manualName: name)
+			self.init(mode: .manual, manualName: name, manualArtistName: track.userEnteredArtistName ?? "")
 		} else {
 			self.init(mode: .manual)
 		}

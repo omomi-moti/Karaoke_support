@@ -21,9 +21,15 @@ private final class SuggestionTrackRepositoryStub: TrackRepositoryProtocol {
 		return tracksToReturn
 	}
 
-	func getOrCreate(spotifyTrackId: String?, userEnteredName: String?) async throws -> Track {
+	func getOrCreate(spotifyTrackId: String?, userEnteredName: String?, userEnteredArtistName: String?) async throws -> Track {
 		getOrCreateNames.append(userEnteredName)
 		return Track(userEnteredName: userEnteredName ?? "fallback")
+	}
+
+	func searchLocalByArtist(query: String) async throws -> [Track] { [] }
+
+	func fillArtistName(_ artistName: String, trackId: UUID) async throws -> Track {
+		Track(id: trackId, userEnteredName: "曲", userEnteredArtistName: artistName)
 	}
 
 	func incrementSingCount(trackId: UUID) async throws {}
@@ -59,8 +65,14 @@ private final class GatedTrackRepositoryStub: TrackRepositoryProtocol {
 		return tracksToReturn
 	}
 
-	func getOrCreate(spotifyTrackId: String?, userEnteredName: String?) async throws -> Track {
+	func getOrCreate(spotifyTrackId: String?, userEnteredName: String?, userEnteredArtistName: String?) async throws -> Track {
 		Track(userEnteredName: userEnteredName ?? "fallback")
+	}
+
+	func searchLocalByArtist(query: String) async throws -> [Track] { [] }
+
+	func fillArtistName(_ artistName: String, trackId: UUID) async throws -> Track {
+		Track(id: trackId, userEnteredName: "曲", userEnteredArtistName: artistName)
 	}
 
 	func incrementSingCount(trackId: UUID) async throws {}
@@ -227,15 +239,17 @@ struct RecordingSheetViewModelSuggestionTests {
 		#expect(vm.trackSuggestionState == .noMatch)
 	}
 
-	@Test("入力が既存の曲名と完全一致なら、何も出さない（既存の曲につながるため）")
-	func exactMatchHidesSuggestions() async {
+	@Test("曲名が同じで歌手名のない曲は、候補ではなく「同じ曲ですか？」で聞き、ほかの曲は候補に残す")
+	func exactArtistlessMatchMovesToQuestion() async {
 		let stub = SuggestionTrackRepositoryStub()
-		stub.tracksToReturn = [makeTrack("Lemon", singCount: 12), makeTrack("Lemon (Live)", singCount: 3)]
+		let lemon = makeTrack("Lemon", singCount: 12)
+		stub.tracksToReturn = [lemon, makeTrack("Lemon (Live)", singCount: 3)]
 		let vm = makeViewModel(trackRepository: stub)
 
 		await type("Lemon", into: vm)
 
-		#expect(vm.trackSuggestionState == .hidden)
+		#expect(suggestedNames(vm) == ["Lemon (Live)"])
+		#expect(vm.artistlessTrackQuestion?.trackId == lemon.id)
 	}
 
 	@Test("歌唱回数 0 の曲と完全一致なら、候補から除いた曲でも既存の曲につながるので何も出さない")

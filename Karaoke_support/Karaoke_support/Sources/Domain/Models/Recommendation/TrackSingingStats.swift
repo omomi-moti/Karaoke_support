@@ -7,6 +7,8 @@ struct TrackSingingStats: Equatable, Sendable {
 	let trackId: UUID
 	let spotifyTrackId: String?
 	let userEnteredName: String?
+	/// 曲の歌手名。歌手名のない曲は `nil`。
+	var userEnteredArtistName: String?
 	/// 最新の記録の気分。
 	let latestIntent: Intent
 	/// 最新の記録の歌唱日時。

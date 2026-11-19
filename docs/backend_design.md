@@ -146,7 +146,7 @@ Apple の公開鍵は keyfunc がキャッシュし、Apple に届かなくて�
 | | 持つもの | 持たないもの |
 |---|---|---|
 | 全体 | `schemaVersion` | |
-| 曲 | `id`, `userEnteredName`, `appleMusicSongId`（M1 から）, `createdAt`, `updatedAt` | Apple Music の曲名・アーティスト名・アートワーク、`singCount`（取り込むときに記録の件数から数え直す）、`spotifyTrackId`（今は常に空） |
+| 曲 | `id`, `userEnteredName`, `appleMusicSongId`（M1 から）, `createdAt`, `updatedAt` | `userEnteredArtistName`（まだ入れていない。次のブランチで足す。ADR 0011）、Apple Music の曲名・アーティスト名・アートワーク、`singCount`（取り込むときに記録の件数から数え直す）、`spotifyTrackId`（今は常に空） |
 | 記録 | `id`, `trackId`, `intent`, `performedAt`, `score`, `recordedSource`, `recordedWantAgain`, `recordedIsCompleted` | **メモ** |
 
 保存する値（`recorded…`）は空のまま送り、読むときの解釈（ADR 0034）はアプリに任せる。

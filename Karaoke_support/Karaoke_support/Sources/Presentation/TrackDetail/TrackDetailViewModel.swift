@@ -10,6 +10,8 @@ final class TrackDetailViewModel {
 	private let sessionRepository: any SessionRepositoryProtocol
 	let trackId: UUID
 	let trackTitle: String
+	/// 歌手名のない曲は `nil`。
+	let trackArtistName: String?
 
 	private(set) var points: [TrackScoreTrendPoint] = []
 	private(set) var summary: TrackScoreSummary?
@@ -38,11 +40,13 @@ final class TrackDetailViewModel {
 	init(
 		sessionRepository: any SessionRepositoryProtocol,
 		trackId: UUID,
-		trackTitle: String
+		trackTitle: String,
+		trackArtistName: String? = nil
 	) {
 		self.sessionRepository = sessionRepository
 		self.trackId = trackId
 		self.trackTitle = trackTitle
+		self.trackArtistName = trackArtistName
 	}
 
 	/// 非同期処理はこの 1 本だけで、所有者は `.task`。古い結果の破棄は世代番号ではなくキャンセルで行う。

@@ -30,13 +30,15 @@ enum TrackSuggestionRanker {
 		return .contains
 	}
 
-	/// 段 → 歌唱回数の多い順 → `updatedAt` の新しい順 → 曲名 の順で並べる。
+	/// 段 → 歌唱回数の多い順 → `updatedAt` の新しい順 → 比べた項目の文字 → 曲名 の順で並べる。
 	///
 	/// 2 曲を比べるとき上から順に見て、違いが見つかった時点で決める。
 	/// 上の条件ほど「今打っている文字に合っているか」、下に行くほど「どちらでもよいときの決め手」になる。
-	static func rank(_ tracks: [Track], query: String) -> [Track] {
+	///
+	/// - Parameter matchedText: 打った文字と比べる項目。曲名の欄では曲名、歌手名の欄では歌手名。並べ方の 4 番目もこの項目で比べる。
+	static func rank(_ tracks: [Track], query: String, matchedText: KeyPath<Track, String?> = \.userEnteredName) -> [Track] {
 		tracks
-			.map { (track: $0, tier: tier(of: $0.userEnteredName ?? "", for: query)) }
+			.map { (track: $0, tier: tier(of: $0[keyPath: matchedText] ?? "", for: query)) }
 			.sorted { a, b in
 				// 1. 段: 今打っている文字に合っているかが最優先。回数を先に見ると、「a」と打ったときに
 				//    途中に a を含むだけのよく歌う曲が、a で始まる曲より上に来てしまう
@@ -46,7 +48,10 @@ enum TrackSuggestionRanker {
 				// 3. updatedAt: 回数も同じなら最近触った曲を上にする。記録の保存だけでなく編集・削除でも
 				//    更新される「最後に歌った日時」の近似なので、重みの低いこの位置に置く
 				if a.track.updatedAt != b.track.updatedAt { return a.track.updatedAt > b.track.updatedAt }
-				// 4. 曲名: 使いやすさではなく、毎回同じ並びにするための保険（`sorted` は同順位の並びを保証しない）
+				// 4. 比べた項目の文字: 使いやすさではなく、毎回同じ並びにするための保険（`sorted` は同順位の並びを保証しない）
+				let aText = a.track[keyPath: matchedText] ?? ""
+				let bText = b.track[keyPath: matchedText] ?? ""
+				if aText != bText { return aText < bText }
 				return (a.track.userEnteredName ?? "") < (b.track.userEnteredName ?? "")
 			}
 			.map(\.track)

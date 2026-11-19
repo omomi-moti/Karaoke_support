@@ -6,6 +6,8 @@ struct SavedRecording: Equatable, Sendable {
 	let trackId: UUID
 	/// 表示用の曲名（``TrackDisplayTitle/primary(for:)``）。
 	let trackTitle: String
+	/// 曲の歌手名（``TrackDisplayTitle/artist(for:)``）。歌手名のない曲は `nil`。
+	var trackArtistName: String? = nil
 	let intent: Intent
 	let score: Double?
 	/// 新規の記録なら `true`、編集して更新した記録なら `false`。

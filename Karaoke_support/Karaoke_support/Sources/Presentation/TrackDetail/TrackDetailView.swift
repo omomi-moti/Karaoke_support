@@ -86,11 +86,12 @@ struct TrackDetailView: View {
 				Text("この曲の記録")
 					.font(.caption.weight(.semibold))
 					.foregroundStyle(AppColor.textSecondary)
-				Text(viewModel.trackTitle)
-					.font(.system(size: 24, weight: .bold))
-					.foregroundStyle(AppColor.textPrimary)
-					.lineLimit(1)
-					.truncationMode(.tail)
+				TrackTitleLineView(
+					title: viewModel.trackTitle,
+					artistName: viewModel.trackArtistName,
+					titleFont: .system(size: 24, weight: .bold),
+					artistFont: .body
+				)
 			}
 		}
 		.frame(maxWidth: .infinity, alignment: .leading)
@@ -191,7 +192,8 @@ struct TrackDetailView: View {
 		TrackDetailContainerView(
 			sessionRepository: PreviewSessionRepository(),
 			trackId: PreviewSessionRepository.sampleTrackIdForTrend,
-			trackTitle: "アイドル"
+			trackTitle: "アイドル",
+			trackArtistName: "YOASOBI"
 		)
 	}
 }

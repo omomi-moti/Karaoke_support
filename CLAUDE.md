@@ -100,7 +100,7 @@ Debug と Beta のビルドでは、`KaraokeSupportApp` がバックアップの
 
 | 型 | ファイル | メモ |
 |------|------|-------|
-| `Track` | `Domain/Models/SwiftData/Track.swift` | `userEnteredName`（今は必ず入る）か `spotifyTrackId`（使っていない。常に nil） |
+| `Track` | `Domain/Models/SwiftData/Track.swift` | `userEnteredName`（今は必ず入る）か `spotifyTrackId`（使っていない。常に nil）。`userEnteredArtistName` は空を許す（前からの曲は nil）。曲名＋歌手名で同じ曲とみなす |
 | `SingingSession` | `Domain/Models/SwiftData/SingingSession.swift` | UUID が冪等キー。Track と N:1 |
 | `Intent` | `Domain/Models/Enums/Intent.swift` | `.shout` / `.emo` / `.practice`。RawValue は `String` |
 | `RecordSource` | `Domain/Models/Enums/RecordSource.swift` | `.manual` / `.suggestion` / `.selectionScreen`。空を許す `recordedSource` に保存し、`source` で読む（ADR 0034） |
@@ -120,7 +120,7 @@ Debug と Beta のビルドでは、`KaraokeSupportApp` がバックアップの
 - **ブランチ名**：`{種類}/{英語の短い名前}`。Issue 番号は付けない（例：`feature/after-save-recommendation`、`fix/data-load-error`）。種類は `feature` / `fix` / `refactor` / `docs` / `chore`。1 つの Issue（1 スプリント）に 1 ブランチ。どのブランチも、終わった時点でアプリが動く状態にする。
 - **Issue とのつながり**：コミットメッセージに `Refs #N`、PR の本文に `Closes #N`。
 - **コミットメッセージ**：`{プレフィックス}: {50 文字以内の要約}` を日本語で。必要なら本文に「何を」「なぜ」を書く。プレフィックスは `feat:` / `fix:` / `refactor:` / `docs:` / `test:` / `chore:`。
-- **マージ**：PR を squash merge で `main` に入れる。`main` に直接 push しない。
+- **マージ**：PR をマージコミットで `main` に入れる（squash しない）。ブランチのコミットがそのまま `main` に残るので、どのコミットもビルドが通るように分ける。`main` に直接 push しない。
 
 ---
 

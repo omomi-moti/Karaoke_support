@@ -6,6 +6,8 @@ import SwiftUI
 struct RecommendationCardView: View {
 	let rank: Int?
 	let title: String
+	/// 曲名の横に出す歌手名。歌手名のない曲は `nil`。
+	var artistName: String?
 	let reason: String
 	var note: String?
 	var isWantAgain = false
@@ -24,10 +26,7 @@ struct RecommendationCardView: View {
 						.accessibilityHidden(true)
 				}
 				VStack(alignment: .leading, spacing: 2) {
-					Text(title)
-						.font(.body.weight(.semibold))
-						.foregroundStyle(AppColor.textPrimary)
-						.multilineTextAlignment(.leading)
+					TrackTitleLineView(title: title, artistName: artistName, titleLineLimit: nil)
 					Text(reason)
 						.font(.caption)
 						.foregroundStyle(AppColor.textSecondary)
@@ -61,7 +60,9 @@ struct RecommendationCardView: View {
 	}
 
 	private var accessibilityText: String {
-		var parts = [title, reason]
+		var parts = [title]
+		if let artistName { parts.append(artistName) }
+		parts.append(reason)
 		if let rank { parts.insert("\(rank)位", at: 0) }
 		if let note { parts.append(note) }
 		if isWantAgain { parts.append("また歌いたい") }
@@ -71,7 +72,7 @@ struct RecommendationCardView: View {
 
 #Preview {
 	VStack(spacing: 8) {
-		RecommendationCardView(rank: 1, title: "涙そうそう", reason: "2ヶ月ぶり", isWantAgain: true, onTap: {})
+		RecommendationCardView(rank: 1, title: "涙そうそう", artistName: "夏川りみ", reason: "2ヶ月ぶり", isWantAgain: true, onTap: {})
 		RecommendationCardView(rank: 2, title: "さよならララ", reason: "3週間ぶり", onTap: {})
 		RecommendationCardView(rank: nil, title: "白日", reason: "歌い切れず ・ 1ヶ月前 ・ Shout", note: "サビのキーが高かった", onTap: {})
 	}
