@@ -3,16 +3,21 @@ import SwiftUI
 /// `@Environment` から渡る Repository で、初回描画時点から ``TrackDetailViewModel`` を生成する。
 struct TrackDetailContainerView: View {
 	@State private var viewModel: TrackDetailViewModel
+	private let onTrackChanged: (UUID, String?) -> Void
 
 	init(
 		sessionRepository: any SessionRepositoryProtocol,
+		trackRepository: any TrackRepositoryProtocol,
 		trackId: UUID,
 		trackTitle: String,
-		trackArtistName: String? = nil
+		trackArtistName: String? = nil,
+		onTrackChanged: @escaping (UUID, String?) -> Void = { _, _ in }
 	) {
+		self.onTrackChanged = onTrackChanged
 		_viewModel = State(
 			initialValue: TrackDetailViewModel(
 				sessionRepository: sessionRepository,
+				trackRepository: trackRepository,
 				trackId: trackId,
 				trackTitle: trackTitle,
 				trackArtistName: trackArtistName
@@ -21,7 +26,7 @@ struct TrackDetailContainerView: View {
 	}
 
 	var body: some View {
-		TrackDetailView(viewModel: viewModel)
+		TrackDetailView(viewModel: viewModel, onTrackChanged: onTrackChanged)
 	}
 }
 
@@ -29,6 +34,7 @@ struct TrackDetailContainerView: View {
 	NavigationStack {
 		TrackDetailContainerView(
 			sessionRepository: PreviewSessionRepository(),
+			trackRepository: PreviewTrackRepository(),
 			trackId: PreviewSessionRepository.sampleTrackIdForTrend,
 			trackTitle: "アイドル",
 			trackArtistName: "YOASOBI"

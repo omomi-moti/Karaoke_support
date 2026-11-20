@@ -8,10 +8,19 @@ final class TrackDetailViewModel {
 	static let maxChartPoints = 50
 
 	private let sessionRepository: any SessionRepositoryProtocol
-	let trackId: UUID
+	private let trackRepository: any TrackRepositoryProtocol
+	/// 別の曲とまとめると、まとめた先の曲に変わる。
+	private(set) var trackId: UUID
 	let trackTitle: String
 	/// 歌手名のない曲は `nil`。
-	let trackArtistName: String?
+	private(set) var trackArtistName: String?
+
+	/// 歌手名を直す欄に入れている文字。
+	var artistNameDraft = ""
+	/// 直した結果、別の曲と重なったときの、まとめる前の確認。
+	private(set) var pendingMerge: TrackMergeCandidate?
+	private(set) var artistEditErrorMessage: String?
+	private var isSavingArtistName = false
 
 	private(set) var points: [TrackScoreTrendPoint] = []
 	private(set) var summary: TrackScoreSummary?
@@ -37,13 +46,24 @@ final class TrackDetailViewModel {
 		scoredPoints.count > Self.maxChartPoints
 	}
 
+	/// 空白だけの歌手名は保存できない（新しい曲と同じく歌手名は必須。ADR 0011）。
+	var canSaveArtistName: Bool {
+		!trimmedArtistNameDraft.isEmpty && !isSavingArtistName
+	}
+
+	private var trimmedArtistNameDraft: String {
+		artistNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+	}
+
 	init(
 		sessionRepository: any SessionRepositoryProtocol,
+		trackRepository: any TrackRepositoryProtocol,
 		trackId: UUID,
 		trackTitle: String,
 		trackArtistName: String? = nil
 	) {
 		self.sessionRepository = sessionRepository
+		self.trackRepository = trackRepository
 		self.trackId = trackId
 		self.trackTitle = trackTitle
 		self.trackArtistName = trackArtistName
@@ -94,5 +114,64 @@ final class TrackDetailViewModel {
 			summary = TrackScoreSummary(points: snapshot)
 			deleteErrorMessage = "削除に失敗しました。もう一度お試しください"
 		}
+	}
+
+	/// 歌手名を直す欄を、今の歌手名で始める。
+	func beginArtistEdit() {
+		artistNameDraft = trackArtistName ?? ""
+		artistEditErrorMessage = nil
+	}
+
+	/// 歌手名を直す。別の曲と重なるときは書かずに ``pendingMerge`` を出す。
+	/// - Returns: 歌手名を書き換えたら `true`（重なったとき・失敗したときは `false`）
+	func saveArtistName() async -> Bool {
+		guard canSaveArtistName else { return false }
+		isSavingArtistName = true
+		defer { isSavingArtistName = false }
+		artistEditErrorMessage = nil
+		let artistName = trimmedArtistNameDraft
+
+		do {
+			switch try await trackRepository.updateArtistName(artistName, trackId: trackId) {
+			case .updated(let track):
+				let changed = trackArtistName != TrackDisplayTitle.artist(for: track)
+				trackArtistName = TrackDisplayTitle.artist(for: track)
+				return changed
+			case .conflicts(let other):
+				pendingMerge = TrackMergeCandidate(
+					trackId: other.id,
+					artistName: artistName,
+					singCount: other.singCount
+				)
+				return false
+			}
+		} catch {
+			artistEditErrorMessage = "歌手名を直せませんでした。もう一度お試しください"
+			return false
+		}
+	}
+
+	/// まとめる前の確認で「まとめる」を押した。確認の表示が閉じるときに ``pendingMerge`` が消えても動くよう、候補は引数で受け取る。
+	/// - Returns: まとめたら `true`
+	func merge(into candidate: TrackMergeCandidate) async -> Bool {
+		guard !isSavingArtistName else { return false }
+		isSavingArtistName = true
+		defer { isSavingArtistName = false }
+		pendingMerge = nil
+		artistEditErrorMessage = nil
+
+		do {
+			let merged = try await trackRepository.mergeTrack(trackId, into: candidate.trackId)
+			trackId = merged.id
+			trackArtistName = TrackDisplayTitle.artist(for: merged)
+			return true
+		} catch {
+			artistEditErrorMessage = "曲をまとめられませんでした。もう一度お試しください"
+			return false
+		}
+	}
+
+	func cancelMerge() {
+		pendingMerge = nil
 	}
 }
