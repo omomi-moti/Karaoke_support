@@ -71,6 +71,7 @@
 | [0063](0063-rate-limit-by-client-ip-and-health-without-db.md) | レート制限は Cloud Run が足した相手の IP ごとにトークンバケットで数え、`/health` は DB を見ない | 承認 |
 | [0064](0064-beta-build-configuration-and-privacy-manifest.md) | Beta の構成は Release を写して xcconfig と専用のスキームで作り、Privacy Manifest は構成ごとに外して差し替える | 承認 |
 | [0065](0065-edit-track-artist-and-merge-duplicates.md) | 曲の歌手名は曲詳細から直し、別の曲と重なったら確かめてまとめる | 承認 |
+| [0066](0066-search-tab-name-artist-scope.md) | 検索タブは検索欄の下の標準の切り替えで、曲名と歌手名のどちらで探すかを選ぶ | 承認 |
 
 ## 書き方
 
