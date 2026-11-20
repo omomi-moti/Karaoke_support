@@ -6,6 +6,7 @@ import SwiftUI
 /// 履歴→曲詳細（行タップ・I-019）を ``HistoryRoute`` で開く。編集（リードスワイプ）は `RootView` の記録シートで開く。
 struct HistoryListContainerView: View {
 	private let sessionRepository: any SessionRepositoryProtocol
+	@Environment(\.trackRepository) private var trackRepository
 	@State private var viewModel: HistoryViewModel
 	/// 画面の積み方は `RootView` が持つ。＋で、曲詳細を開いているかを読むため（ADR 0047）。
 	@Binding private var navigationPath: [HistoryRoute]
@@ -24,12 +25,26 @@ struct HistoryListContainerView: View {
 					case .trackDetail(let trackId, let title, let artistName):
 						TrackDetailContainerView(
 							sessionRepository: sessionRepository,
+							trackRepository: trackRepository,
 							trackId: trackId,
 							trackTitle: title,
 							trackArtistName: artistName
-						)
+						) { newTrackId, newArtistName in
+							replaceLastRoute(with: .trackDetail(trackId: newTrackId, title: title, artistName: newArtistName))
+						}
 					}
 				}
+		}
+	}
+
+	/// 曲詳細で歌手名を直したとき、行き先の値も今の曲に合わせる。＋で開く記録シートがこの値を読むため（ADR 0047）。
+	/// 行き先が変わると画面が作り直されるので、積み直しのアニメーションは出さない。
+	private func replaceLastRoute(with route: HistoryRoute) {
+		guard let lastIndex = navigationPath.indices.last else { return }
+		var transaction = Transaction()
+		transaction.disablesAnimations = true
+		withTransaction(transaction) {
+			navigationPath[lastIndex] = route
 		}
 	}
 }

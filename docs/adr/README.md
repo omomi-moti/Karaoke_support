@@ -70,6 +70,7 @@
 | [0062](0062-show-backup-state-row-and-restore-alert.md) | バックアップの欄に「バックアップ　オン／オフ」の行を置き、サインイン直後の取り込みは alert で「取り込む」「キャンセル」と聞く | 承認 |
 | [0063](0063-rate-limit-by-client-ip-and-health-without-db.md) | レート制限は Cloud Run が足した相手の IP ごとにトークンバケットで数え、`/health` は DB を見ない | 承認 |
 | [0064](0064-beta-build-configuration-and-privacy-manifest.md) | Beta の構成は Release を写して xcconfig と専用のスキームで作り、Privacy Manifest は構成ごとに外して差し替える | 承認 |
+| [0065](0065-edit-track-artist-and-merge-duplicates.md) | 曲の歌手名は曲詳細から直し、別の曲と重なったら確かめてまとめる | 承認 |
 
 ## 書き方
 

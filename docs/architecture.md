@@ -196,6 +196,8 @@ erDiagram
 | 削除 | 記録を消し、曲の `singCount` を 1 減らす（0 より下にはしない） |
 | 曲の用意 | 曲名と歌手名の両方が完全に同じ曲があればそれを使い、なければ新しく作る（歌手名が空どうしも同じとみなす） |
 | 歌手名の書き足し | 歌手名のない曲にだけ書き、`updatedAt` は変えない。記録シートで本人がその曲を選んだときだけ呼ぶ（[ADR 0011](adr/0011-identify-tracks-by-name-and-artist.md)） |
+| 歌手名を直す | 曲詳細から、手入力の曲の歌手名を書き換え、`updatedAt` は変えない。曲名と歌手名の両方が同じ別の曲があれば書かずにその曲を返す（[ADR 0065](adr/0065-edit-track-artist-and-merge-duplicates.md)） |
+| 曲をまとめる | 本人が確かめたときだけ、記録をすべてもう 1 つの曲へ移し、`singCount` を足し、`createdAt` は古い方・`updatedAt` は新しい方にして、元の曲を消す。1 回で保存する（[ADR 0065](adr/0065-edit-track-artist-and-merge-duplicates.md)） |
 | バックアップからの取り込み（Debug と Beta のビルドだけ） | 曲も記録もない端末にだけ、値を全部確かめてから 1 回で保存する。1 件でもおかしければ何も書かない。id と保存する値（`recorded…`）は空も含めて元のまま、`singCount` は記録の件数から数え、メモは空（[ADR 0061](adr/0061-restore-into-empty-device-and-accept-same-backup.md)） |
 
 ### 読み方

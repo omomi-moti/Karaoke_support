@@ -1,8 +1,11 @@
 import SwiftUI
 
 /// 曲ごとの点数推移画面（I-019）。記録の行は履歴と同じく、右へスワイプで編集、左へスワイプで削除（#135）。
+/// 見出しの 2 行目の歌手名の横のボタンで、曲の歌手名を直せる（#178）。
 struct TrackDetailView: View {
-	let viewModel: TrackDetailViewModel
+	@Bindable var viewModel: TrackDetailViewModel
+	/// 歌手名を直した・別の曲とまとめたあとに、今の曲の id と歌手名で呼ぶ。
+	let onTrackChanged: (UUID, String?) -> Void
 
 	@Environment(\.dismiss) private var dismiss
 	@Environment(\.historyReloadTick) private var historyReloadTick
@@ -10,6 +13,7 @@ struct TrackDetailView: View {
 	@Environment(\.notifyRecordsChanged) private var notifyRecordsChanged
 	/// 削除の確認を出している記録。
 	@State private var pendingDeleteSessionId: UUID?
+	@State private var isEditingArtistName = false
 
 	var body: some View {
 		ZStack {
@@ -17,9 +21,52 @@ struct TrackDetailView: View {
 			content
 		}
 		.navigationBarTitleDisplayMode(.inline)
+		.alert("歌手名を直す", isPresented: $isEditingArtistName) {
+			TextField("歌手名", text: $viewModel.artistNameDraft)
+			Button("保存") {
+				Task {
+					if await viewModel.saveArtistName() {
+						trackDidChange()
+					}
+				}
+			}
+			.disabled(!viewModel.canSaveArtistName)
+			Button("キャンセル", role: .cancel) {}
+		} message: {
+			Text("この曲の記録すべてに反映されます。")
+		}
+		.alert(
+			"同じ曲がもうあります",
+			isPresented: Binding(
+				get: { viewModel.pendingMerge != nil },
+				set: { if !$0 { viewModel.cancelMerge() } }
+			),
+			presenting: viewModel.pendingMerge
+		) { candidate in
+			Button("まとめる") {
+				Task {
+					if await viewModel.merge(into: candidate) {
+						trackDidChange()
+					}
+				}
+			}
+			Button("キャンセル", role: .cancel) {}
+		} message: { candidate in
+			Text("「\(viewModel.trackTitle)　\(candidate.artistName)」（\(candidate.singCount)回）とまとめます。まとめると元に戻せません。")
+		}
 		.task(id: historyReloadTick) {
 			await viewModel.load()
 		}
+	}
+
+	private func beginArtistEdit() {
+		viewModel.beginArtistEdit()
+		isEditingArtistName = true
+	}
+
+	private func trackDidChange() {
+		onTrackChanged(viewModel.trackId, viewModel.trackArtistName)
+		notifyRecordsChanged()
 	}
 
 	@ViewBuilder
@@ -31,6 +78,12 @@ struct TrackDetailView: View {
 			List {
 				Group {
 					heroHeader
+
+					if let message = viewModel.artistEditErrorMessage {
+						Text(message)
+							.font(.subheadline)
+							.foregroundStyle(AppColor.semanticError)
+					}
 
 					if let message = viewModel.loadErrorMessage {
 						InlineErrorRetryView(message: message, retryTitle: "再試行") {
@@ -86,12 +139,29 @@ struct TrackDetailView: View {
 				Text("この曲の記録")
 					.font(.caption.weight(.semibold))
 					.foregroundStyle(AppColor.textSecondary)
-				TrackTitleLineView(
-					title: viewModel.trackTitle,
-					artistName: viewModel.trackArtistName,
-					titleFont: .system(size: 24, weight: .bold),
-					artistFont: .body
-				)
+				Text(viewModel.trackTitle)
+					.font(.system(size: 24, weight: .bold))
+					.foregroundStyle(AppColor.textPrimary)
+					.multilineTextAlignment(.leading)
+				if let artistName = viewModel.trackArtistName {
+					HStack(alignment: .firstTextBaseline, spacing: 4) {
+						Text(artistName)
+							.font(.body)
+							.foregroundStyle(AppColor.textSecondary)
+							.multilineTextAlignment(.leading)
+						Button("歌手名を直す", systemImage: "pencil", action: beginArtistEdit)
+							.labelStyle(.iconOnly)
+							.font(.body)
+							.foregroundStyle(AppColor.textSecondary)
+							.frame(minWidth: 44, minHeight: 44)
+							.contentShape(Rectangle())
+					}
+				} else {
+					Button("歌手名を付ける", systemImage: "plus", action: beginArtistEdit)
+						.font(.subheadline.weight(.semibold))
+						.foregroundStyle(AppColor.textSecondary)
+						.frame(minHeight: 44)
+				}
 			}
 		}
 		.frame(maxWidth: .infinity, alignment: .leading)
@@ -191,6 +261,7 @@ struct TrackDetailView: View {
 	NavigationStack {
 		TrackDetailContainerView(
 			sessionRepository: PreviewSessionRepository(),
+			trackRepository: PreviewTrackRepository(),
 			trackId: PreviewSessionRepository.sampleTrackIdForTrend,
 			trackTitle: "アイドル",
 			trackArtistName: "YOASOBI"

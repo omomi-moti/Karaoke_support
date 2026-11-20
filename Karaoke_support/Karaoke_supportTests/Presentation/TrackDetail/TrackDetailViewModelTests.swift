@@ -74,6 +74,26 @@ private final class GatedSessionRepositoryStub: SessionRepositoryProtocol {
 	}
 }
 
+/// 歌手名を直すテストは ``TrackDetailViewModelArtistEditTests``。ここでは呼ばれない。
+@MainActor
+private final class UnusedTrackRepository: TrackRepositoryProtocol {
+	func searchLocal(query: String) async throws -> [Track] { [] }
+	func searchLocalByArtist(query: String) async throws -> [Track] { [] }
+	func getOrCreate(spotifyTrackId: String?, userEnteredName: String?, userEnteredArtistName: String?) async throws -> Track {
+		Track(userEnteredName: "曲")
+	}
+	func fillArtistName(_ artistName: String, trackId: UUID) async throws -> Track {
+		Track(id: trackId, userEnteredName: "曲", userEnteredArtistName: artistName)
+	}
+	func updateArtistName(_ artistName: String, trackId: UUID) async throws -> ArtistNameUpdateResult {
+		.updated(Track(id: trackId, userEnteredName: "曲", userEnteredArtistName: artistName))
+	}
+	func mergeTrack(_ sourceId: UUID, into targetId: UUID) async throws -> Track {
+		Track(id: targetId, userEnteredName: "曲")
+	}
+	func incrementSingCount(trackId: UUID) async throws {}
+}
+
 @Suite("TrackDetailViewModel")
 @MainActor
 struct TrackDetailViewModelTests {
@@ -97,7 +117,7 @@ struct TrackDetailViewModelTests {
 			SingingSession(track: track, intent: .shout, performedAt: Date(timeIntervalSince1970: 100), score: 80),
 			SingingSession(track: track, intent: .emo, performedAt: Date(timeIntervalSince1970: 200), score: 90),
 		]
-		let vm = TrackDetailViewModel(sessionRepository: stub, trackId: track.id, trackTitle: "推移")
+		let vm = TrackDetailViewModel(sessionRepository: stub, trackRepository: UnusedTrackRepository(), trackId: track.id, trackTitle: "推移")
 
 		await vm.load()
 
@@ -113,7 +133,7 @@ struct TrackDetailViewModelTests {
 	func loadWithNoSessionsClearsSummary() async {
 		let track = Track(userEnteredName: "空")
 		let stub = TrackDetailSessionRepositoryStub()
-		let vm = TrackDetailViewModel(sessionRepository: stub, trackId: track.id, trackTitle: "空")
+		let vm = TrackDetailViewModel(sessionRepository: stub, trackRepository: UnusedTrackRepository(), trackId: track.id, trackTitle: "空")
 
 		await vm.load()
 
@@ -129,7 +149,7 @@ struct TrackDetailViewModelTests {
 		let track = Track(userEnteredName: "失敗")
 		let stub = TrackDetailSessionRepositoryStub()
 		stub.errorToThrow = StubError()
-		let vm = TrackDetailViewModel(sessionRepository: stub, trackId: track.id, trackTitle: "失敗")
+		let vm = TrackDetailViewModel(sessionRepository: stub, trackRepository: UnusedTrackRepository(), trackId: track.id, trackTitle: "失敗")
 
 		await vm.load()
 
@@ -144,7 +164,7 @@ struct TrackDetailViewModelTests {
 		let track = Track(userEnteredName: "大量")
 		let stub = TrackDetailSessionRepositoryStub()
 		stub.sessionsToReturn = makeSessions(count: 60, track: track)
-		let vm = TrackDetailViewModel(sessionRepository: stub, trackId: track.id, trackTitle: "大量")
+		let vm = TrackDetailViewModel(sessionRepository: stub, trackRepository: UnusedTrackRepository(), trackId: track.id, trackTitle: "大量")
 
 		await vm.load()
 
@@ -165,7 +185,7 @@ struct TrackDetailViewModelTests {
 			SingingSession(track: track, intent: .emo, performedAt: Date(timeIntervalSince1970: 200), score: nil),
 			SingingSession(track: track, intent: .shout, performedAt: Date(timeIntervalSince1970: 300), score: 90),
 		]
-		let vm = TrackDetailViewModel(sessionRepository: stub, trackId: track.id, trackTitle: "点数なし混在")
+		let vm = TrackDetailViewModel(sessionRepository: stub, trackRepository: UnusedTrackRepository(), trackId: track.id, trackTitle: "点数なし混在")
 
 		await vm.load()
 
@@ -182,7 +202,7 @@ struct TrackDetailViewModelTests {
 		stub.sessionsToReturn = [
 			SingingSession(track: track, intent: .shout, performedAt: Date(timeIntervalSince1970: 100), score: 80),
 		]
-		let vm = TrackDetailViewModel(sessionRepository: stub, trackId: track.id, trackTitle: "再入")
+		let vm = TrackDetailViewModel(sessionRepository: stub, trackRepository: UnusedTrackRepository(), trackId: track.id, trackTitle: "再入")
 
 		let first = Task { await vm.load() }
 		await stub.waitUntilFetchStarted()
@@ -204,7 +224,7 @@ struct TrackDetailViewModelTests {
 		stub.sessionsToReturn = [
 			SingingSession(track: track, intent: .shout, performedAt: Date(timeIntervalSince1970: 100), score: 80),
 		]
-		let vm = TrackDetailViewModel(sessionRepository: stub, trackId: track.id, trackTitle: "キャンセル")
+		let vm = TrackDetailViewModel(sessionRepository: stub, trackRepository: UnusedTrackRepository(), trackId: track.id, trackTitle: "キャンセル")
 
 		let task = Task { await vm.load() }
 		await stub.waitUntilFetchStarted()
@@ -225,7 +245,7 @@ struct TrackDetailViewModelTests {
 		let newer = SingingSession(track: track, intent: .emo, performedAt: Date(timeIntervalSince1970: 200), score: 90)
 		let stub = TrackDetailSessionRepositoryStub()
 		stub.sessionsToReturn = [older, newer]
-		let vm = TrackDetailViewModel(sessionRepository: stub, trackId: track.id, trackTitle: "削除")
+		let vm = TrackDetailViewModel(sessionRepository: stub, trackRepository: UnusedTrackRepository(), trackId: track.id, trackTitle: "削除")
 		await vm.load()
 
 		await vm.deleteSession(id: newer.id)
@@ -242,7 +262,7 @@ struct TrackDetailViewModelTests {
 		let only = SingingSession(track: track, intent: .shout, performedAt: Date(timeIntervalSince1970: 100), score: 80)
 		let stub = TrackDetailSessionRepositoryStub()
 		stub.sessionsToReturn = [only]
-		let vm = TrackDetailViewModel(sessionRepository: stub, trackId: track.id, trackTitle: "最後")
+		let vm = TrackDetailViewModel(sessionRepository: stub, trackRepository: UnusedTrackRepository(), trackId: track.id, trackTitle: "最後")
 		await vm.load()
 
 		await vm.deleteSession(id: only.id)
@@ -259,7 +279,7 @@ struct TrackDetailViewModelTests {
 		let stub = TrackDetailSessionRepositoryStub()
 		stub.sessionsToReturn = [session]
 		stub.deleteErrorToThrow = StubError()
-		let vm = TrackDetailViewModel(sessionRepository: stub, trackId: track.id, trackTitle: "失敗")
+		let vm = TrackDetailViewModel(sessionRepository: stub, trackRepository: UnusedTrackRepository(), trackId: track.id, trackTitle: "失敗")
 		await vm.load()
 
 		await vm.deleteSession(id: session.id)

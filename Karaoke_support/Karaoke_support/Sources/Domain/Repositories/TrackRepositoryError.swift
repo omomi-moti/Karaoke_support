@@ -17,4 +17,8 @@ enum TrackRepositoryError: Error {
 	case artistNameAlreadySet(UUID)
 	/// 書こうとした歌手名が空。
 	case emptyArtistName
+	/// 手入力の曲ではない（Spotify 由来など）ので、歌手名を直せない。
+	case notUserEnteredTrack(UUID)
+	/// ``TrackRepositoryProtocol/mergeTrack(_:into:)`` で、移す元と移す先が同じ曲。
+	case mergeIntoSelf(UUID)
 }
