@@ -23,7 +23,12 @@ struct SearchContainerView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .appBackgroundGradient()
             .navigationTitle("検索")
-            .searchable(text: $viewModel.searchText, prompt: "曲名で探す")
+            .searchable(text: $viewModel.searchText, prompt: viewModel.target.prompt)
+            .searchScopes($viewModel.target, activation: .onSearchPresentation) {
+                ForEach(SearchTarget.allCases, id: \.self) { target in
+                    Text(target.title).tag(target)
+                }
+            }
             .searchFocused($isSearchFocused)
             .searchSuggestions {
                 if !viewModel.hasActiveQuery && !viewModel.recentTracks.isEmpty {

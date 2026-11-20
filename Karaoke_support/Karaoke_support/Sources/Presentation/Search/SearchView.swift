@@ -33,7 +33,7 @@ struct SearchView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .task(id: viewModel.searchText) {
+        .task(id: [viewModel.searchText, viewModel.target.title]) {
             await viewModel.search(query: viewModel.searchText)
         }
     }
