@@ -5,13 +5,21 @@ import Testing
 
 @MainActor
 private final class StubTrackRepository: TrackRepositoryProtocol {
-	func searchLocal(query: String) async throws -> [Track] { [Track(userEnteredName: query)] }
+	var searchError: Error?
+
+	func searchLocal(query: String) async throws -> [Track] {
+		if let searchError { throw searchError }
+		return [Track(userEnteredName: query)]
+	}
 
 	func getOrCreate(spotifyTrackId: String?, userEnteredName: String?, userEnteredArtistName: String?) async throws -> Track {
 		Track(userEnteredName: userEnteredName ?? "曲")
 	}
 
-	func searchLocalByArtist(query: String) async throws -> [Track] { [] }
+	func searchLocalByArtist(query: String) async throws -> [Track] {
+		if let searchError { throw searchError }
+		return [Track(userEnteredName: "\(query)の曲", userEnteredArtistName: query)]
+	}
 
 	func fillArtistName(_ artistName: String, trackId: UUID) async throws -> Track {
 		Track(id: trackId, userEnteredName: "曲", userEnteredArtistName: artistName)
@@ -60,6 +68,7 @@ private struct StubError: Error {}
 struct SearchViewModelTests {
 
 	private let statsRepository = StubTrackStatsRepository()
+	private let trackRepository = StubTrackRepository()
 
 	private let calendar: Calendar = {
 		var calendar = Calendar(identifier: .gregorian)
@@ -84,7 +93,7 @@ struct SearchViewModelTests {
 	}
 
 	private func makeViewModel() -> SearchViewModel {
-		let vm = SearchViewModel(trackRepository: StubTrackRepository(), trackStatsRepository: statsRepository)
+		let vm = SearchViewModel(trackRepository: trackRepository, trackStatsRepository: statsRepository)
 		vm.now = { now }
 		vm.calendar = calendar
 		return vm
@@ -158,5 +167,52 @@ struct SearchViewModelTests {
 		await second.value
 		#expect(!vm.isSearching)
 		#expect(vm.result.map(\.title) == ["ab"])
+	}
+
+	@Test("初めは曲名で探す")
+	func searchesByNameByDefault() async {
+		let vm = makeViewModel()
+
+		#expect(vm.target == .name)
+		await vm.search(query: "米津")
+
+		#expect(vm.result.map(\.title) == ["米津"])
+	}
+
+	@Test("歌手名に切り替えると、その歌手の曲を出す")
+	func searchesByArtist() async {
+		let vm = makeViewModel()
+		vm.target = .artist
+
+		await vm.search(query: "米津")
+
+		#expect(vm.result.map(\.title) == ["米津の曲"])
+		#expect(vm.result.map(\.artistName) == ["米津"])
+	}
+
+	@Test("切り替えて同じ文字で探し直すと、結果が入れ替わる")
+	func switchingTargetResearches() async {
+		let vm = makeViewModel()
+		await vm.search(query: "米津")
+		#expect(vm.result.map(\.title) == ["米津"])
+
+		vm.target = .artist
+		await vm.search(query: "米津")
+		#expect(vm.result.map(\.title) == ["米津の曲"])
+
+		vm.target = .name
+		await vm.search(query: "米津")
+		#expect(vm.result.map(\.title) == ["米津"])
+	}
+
+	@Test("歌手名の検索に失敗したら、再試行できるように知らせる")
+	func artistSearchFailureShowsMessage() async {
+		let vm = makeViewModel()
+		vm.target = .artist
+		trackRepository.searchError = StubError()
+
+		await vm.search(query: "米津")
+
+		#expect(vm.errorMessage != nil)
 	}
 }

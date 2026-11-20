@@ -21,6 +21,8 @@ final class SearchViewModel{
     private var recentGeneration: UInt = 0
 
     var searchText = ""
+    /// 打った文字を曲名と歌手名のどちらで探すか。開くたびに曲名から始める。
+    var target: SearchTarget = .name
     var result : [SearchResultDisplayItem] = []
     /// 打ち終わりを待っている間と、検索している間は `true`。その間 ``result`` は前の問い合わせの結果のまま。
     var isSearching : Bool = false
@@ -93,7 +95,10 @@ final class SearchViewModel{
         }
 
         do{
-            let found = try await trackRepository.searchLocal(query: trimmedQuery)
+            let found = switch target {
+            case .name: try await trackRepository.searchLocal(query: trimmedQuery)
+            case .artist: try await trackRepository.searchLocalByArtist(query: trimmedQuery)
+            }
             guard attempt == searchGeneration else{
                 return
             }

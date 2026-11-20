@@ -6,6 +6,18 @@ struct SearchView: View {
     let onSelectTrack: (SearchResultDisplayItem) -> Void
 
     var body: some View {
+        VStack(spacing: 0) {
+            SearchTargetBarView(selection: $viewModel.target)
+                .padding(.horizontal, 16)
+            results
+        }
+        .task(id: [viewModel.searchText, viewModel.target.title]) {
+            await viewModel.search(query: viewModel.searchText)
+        }
+    }
+
+    @ViewBuilder
+    private var results: some View {
         Group {
             if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)
@@ -32,9 +44,6 @@ struct SearchView: View {
                 Text("該当する曲が見つかりません")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-        }
-        .task(id: viewModel.searchText) {
-            await viewModel.search(query: viewModel.searchText)
         }
     }
 

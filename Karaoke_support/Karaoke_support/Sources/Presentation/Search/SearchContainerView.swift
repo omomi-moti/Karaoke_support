@@ -23,13 +23,18 @@ struct SearchContainerView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .appBackgroundGradient()
             .navigationTitle("検索")
-            .searchable(text: $viewModel.searchText, prompt: "曲名で探す")
+            .searchable(text: $viewModel.searchText, prompt: viewModel.target.prompt)
             .searchFocused($isSearchFocused)
             .searchSuggestions {
-                if !viewModel.hasActiveQuery && !viewModel.recentTracks.isEmpty {
-                    Section("最近歌った曲") {
-                        ForEach(viewModel.recentTracks) { item in
-                            SearchResultRowView(item: item, onTap: { select(item) })
+                if !viewModel.hasActiveQuery {
+                    SearchTargetBarView(selection: $viewModel.target)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                        .listRowSeparator(.hidden)
+                    if !viewModel.recentTracks.isEmpty {
+                        Section("最近歌った曲") {
+                            ForEach(viewModel.recentTracks) { item in
+                                SearchResultRowView(item: item, onTap: { select(item) })
+                            }
                         }
                     }
                 }
