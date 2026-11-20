@@ -19,7 +19,7 @@
   <img src="docs/screenshots/after-save.png" alt="保存直後の次の1曲の提案" width="160">
   <img src="docs/screenshots/history.png" alt="履歴" width="160">
   <img src="docs/screenshots/track-detail.png" alt="曲詳細" width="160">
-  <img src="docs/screenshots/search.png" alt="検索タブ（打つ前は最近歌った曲が出る）" width="160">
+  <img src="docs/screenshots/search.png" alt="検索タブ（曲名と歌手名を切り替えて探す。打つ前は最近歌った曲が出る）" width="160">
 </p>
 
 ---
