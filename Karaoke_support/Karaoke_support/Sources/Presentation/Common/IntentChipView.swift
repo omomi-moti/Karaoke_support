@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 気分のチップ 1 つ分。履歴の絞り込みと選曲画面の気分の切り替えで使う。
+/// 気分のチップ 1 つ分。履歴の絞り込みと選曲画面の気分の切り替えで使う。検索タブの曲名と歌手名の切り替えにも同じ見た目で使う。
 struct IntentChipView: View {
 	let title: String
 	let systemImage: String?
@@ -38,6 +38,8 @@ struct IntentChipView: View {
 				)
 				.foregroundStyle(isSelected ? AppColor.textPrimary : AppColor.foregroundSubtle)
 				.shadow(color: isSelected && glowsWhenSelected ? accent.opacity(0.6) : .clear, radius: 6)
+				.frame(minHeight: 44)
+				.contentShape(Rectangle())
 		}
 		.buttonStyle(.plain)
 		.accessibilityLabel(accessibilityLabel)

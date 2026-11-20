@@ -12,6 +12,13 @@ enum SearchTarget: CaseIterable {
         }
     }
 
+    var systemImage: String {
+        switch self {
+        case .name: "music.note"
+        case .artist: "music.mic"
+        }
+    }
+
     var prompt: String {
         switch self {
         case .name: "曲名で探す"
