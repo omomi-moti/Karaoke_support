@@ -34,6 +34,14 @@ final class PreviewTrackRepository: TrackRepositoryProtocol {
 		Track(id: trackId, userEnteredName: "Preview Track", userEnteredArtistName: artistName)
 	}
 
+	func updateArtistName(_ artistName: String, trackId: UUID) async throws -> ArtistNameUpdateResult {
+		.updated(Track(id: trackId, userEnteredName: "Preview Track", userEnteredArtistName: artistName))
+	}
+
+	func mergeTrack(_ sourceId: UUID, into targetId: UUID) async throws -> Track {
+		Track(id: targetId, userEnteredName: "Preview Track")
+	}
+
 	func incrementSingCount(trackId: UUID) async throws {
 		// no-op
 	}

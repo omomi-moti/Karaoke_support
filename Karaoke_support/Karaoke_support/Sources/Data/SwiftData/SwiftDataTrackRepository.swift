@@ -117,6 +117,58 @@ final class SwiftDataTrackRepository: TrackRepositoryProtocol {
 		}
 	}
 
+	func updateArtistName(_ artistName: String, trackId: UUID) async throws -> ArtistNameUpdateResult {
+		guard !artistName.isEmpty else {
+			throw TrackRepositoryError.emptyArtistName
+		}
+		guard let track = try fetchById(trackId) else {
+			throw TrackRepositoryError.trackNotFound(trackId)
+		}
+		guard track.spotifyTrackId == nil, let name = track.userEnteredName, !name.isEmpty else {
+			throw TrackRepositoryError.notUserEnteredTrack(trackId)
+		}
+		if let other = try fetchByUserEnteredName(name, artistName: artistName, excluding: trackId) {
+			return .conflicts(with: other)
+		}
+		guard track.userEnteredArtistName != artistName else {
+			return .updated(track)
+		}
+		track.userEnteredArtistName = artistName
+		do {
+			try modelContext.save()
+			return .updated(track)
+		} catch {
+			modelContext.rollback()
+			throw error
+		}
+	}
+
+	func mergeTrack(_ sourceId: UUID, into targetId: UUID) async throws -> Track {
+		guard sourceId != targetId else {
+			throw TrackRepositoryError.mergeIntoSelf(sourceId)
+		}
+		guard let source = try fetchById(sourceId) else {
+			throw TrackRepositoryError.trackNotFound(sourceId)
+		}
+		guard let target = try fetchById(targetId) else {
+			throw TrackRepositoryError.trackNotFound(targetId)
+		}
+		for session in source.sessions {
+			session.track = target
+		}
+		target.singCount += source.singCount
+		target.createdAt = min(target.createdAt, source.createdAt)
+		target.updatedAt = max(target.updatedAt, source.updatedAt)
+		modelContext.delete(source)
+		do {
+			try modelContext.save()
+			return target
+		} catch {
+			modelContext.rollback()
+			throw error
+		}
+	}
+
 	func incrementSingCount(trackId: UUID) async throws {
 		guard let track = try fetchById(trackId) else {
 			throw TrackRepositoryError.trackNotFound(trackId)
@@ -138,7 +190,7 @@ final class SwiftDataTrackRepository: TrackRepositoryProtocol {
 	}
 
 	/// 歌手名は空どうしも一致とみなす。空の値との比べ方を SQL への変換に任せず、曲名で絞ってからメモリで比べる。
-	private func fetchByUserEnteredName(_ userEnteredName: String, artistName: String?) throws -> Track? {
+	private func fetchByUserEnteredName(_ userEnteredName: String, artistName: String?, excluding excludedId: UUID? = nil) throws -> Track? {
 		let nameToMatch = userEnteredName
 		let descriptor = FetchDescriptor<Track>(
 			predicate: #Predicate<Track> { track in
@@ -146,7 +198,7 @@ final class SwiftDataTrackRepository: TrackRepositoryProtocol {
 			}
 		)
 		return try modelContext.fetch(descriptor).first { track in
-			TrackDisplayTitle.artist(userEnteredArtistName: track.userEnteredArtistName) == artistName
+			track.id != excludedId && TrackDisplayTitle.artist(userEnteredArtistName: track.userEnteredArtistName) == artistName
 		}
 	}
 

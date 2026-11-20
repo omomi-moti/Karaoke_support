@@ -21,6 +21,14 @@ private final class FixedTrackRepository: TrackRepositoryProtocol {
 		Track(id: trackId, userEnteredName: "曲", userEnteredArtistName: artistName)
 	}
 
+	func updateArtistName(_ artistName: String, trackId: UUID) async throws -> ArtistNameUpdateResult {
+		.updated(Track(id: trackId, userEnteredName: "曲", userEnteredArtistName: artistName))
+	}
+
+	func mergeTrack(_ sourceId: UUID, into targetId: UUID) async throws -> Track {
+		Track(id: targetId, userEnteredName: "曲")
+	}
+
 	func incrementSingCount(trackId: UUID) async throws {}
 }
 
