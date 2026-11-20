@@ -23,6 +23,7 @@ paths:
 - **冪等な保存**：`saveNewRecordingSession` は先に `exists(uuid:)` を見て、すでにある id なら何もしない。ViewModel でも `isSaving` で連打を止める。両方が要る（ADR 0006）。
 - すでにある記録の id を `saveNewRecordingSession` に渡さない。編集は `updateRecordingSession` を通し、書き換えるのは気分・日時・点数・メモ・ハート（`recordedWantAgain`）・歌い切れたか（`recordedIsCompleted`）だけ（曲と `recordedSource` は変えない）。
 - `singCount` は新規の保存で 1 増やし、削除で 1 減らす。曲は `userEnteredName` と `userEnteredArtistName` の両方が完全に同じなら使い回し（歌手名が空どうしも同じ）、消さない。歌手名のない曲に歌手名を補うのは `fillArtistName` だけで、`getOrCreate` は補わない（ADR 0011）。
+- 曲を消すのと、ほかの曲の `singCount` を足すのは `mergeTrack` だけ。曲詳細で歌手名を直して別の曲と重なり、本人が「まとめる」を選んだときだけ呼ぶ。記録をすべてもう 1 つの曲へ移してから元の曲を消し、1 回で保存する（ADR 0065）。歌手名を直すのは `updateArtistName` で、`updatedAt` は変えない。
 - バックアップから端末に全部の記録を書き込むのは `SwiftDataBackupSnapshotWriter` だけで、曲も記録もない端末にだけ書く（ADR 0061）。取り込み用の `SingingSession.init(restoringID:…)` はここからだけ呼ぶ。新しい記録には使わない。
 
 ## 読み込み
