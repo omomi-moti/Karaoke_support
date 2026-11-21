@@ -26,9 +26,6 @@ struct RootView: View {
 
     @Environment(\.trackRepository) private var trackRepository
     @Environment(\.trackStatsRepository) private var trackStatsRepository
-    #if DEBUG || BETA
-    @Environment(\.accountRepository) private var accountRepository
-    #endif
 
     @State private var selectedTab: RootTab = .songs
     @State private var sheet: RootSheet?
@@ -124,16 +121,6 @@ struct RootView: View {
         .environment(\.navigateToEditRecording, presentEditRecording)
         .environment(\.notifyRecordsChanged) { historyReloadTick += 1 }
         .environment(\.historyReloadTick, historyReloadTick)
-        .environment(\.isRestoreHintVisible, isRestoreHintVisible)
-    }
-
-    /// アカウントの欄があるときだけ、空の画面で取り込みを案内する（ADR 0061・0070）。
-    private var isRestoreHintVisible: Bool {
-        #if DEBUG || BETA
-        accountRepository != nil
-        #else
-        false
-        #endif
     }
 
     /// ＋は選曲・履歴タブだけに出す（R2）。外さずに透明にして、同じボタンを居続けさせる（R5）。

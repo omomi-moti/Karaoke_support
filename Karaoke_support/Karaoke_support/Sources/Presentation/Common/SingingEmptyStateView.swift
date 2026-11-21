@@ -1,10 +1,13 @@
 import SwiftUI
 
 /// 歌唱データ 0 件向け Empty State（I-016）。履歴と選曲のタブで使う。
-/// アカウントの欄があるビルドでは、前の iPhone の記録は設定から取り込めると文で案内する。タブは移さない（ADR 0061・0070）。
+/// アカウントとバックアップのつなぎ先があるビルドでは、前の iPhone の記録をその場で取り込むボタンも出す。タブは移さない（ADR 0070・0071）。
 struct SingingEmptyStateView: View {
 	let onManualEntryTap: () -> Void
-	@Environment(\.isRestoreHintVisible) private var isRestoreHintVisible
+	#if DEBUG || BETA
+	@Environment(\.accountRepository) private var accountRepository
+	@Environment(\.backupRepository) private var backupRepository
+	#endif
 
 	var body: some View {
 		VStack(spacing: 16) {
@@ -21,12 +24,11 @@ struct SingingEmptyStateView: View {
 			}
 			.buttonStyle(.borderedProminent)
 			.tint(.pink.opacity(0.85))
-			if isRestoreHintVisible {
-				Text(SingingEmptyStateCopy.restoreHint)
-					.font(.subheadline)
-					.foregroundStyle(AppColor.textSecondary)
-					.multilineTextAlignment(.center)
+			#if DEBUG || BETA
+			if let accountRepository, let backupRepository {
+				RestoreFromEmptyStateView(accountRepository: accountRepository, backupRepository: backupRepository)
 			}
+			#endif
 		}
 		.padding(32)
 	}
@@ -36,7 +38,10 @@ struct SingingEmptyStateView: View {
 	SingingEmptyStateView(onManualEntryTap: {})
 }
 
-#Preview("取り込みの案内あり") {
+#if DEBUG || BETA
+#Preview("取り込みのボタンあり") {
 	SingingEmptyStateView(onManualEntryTap: {})
-		.environment(\.isRestoreHintVisible, true)
+		.environment(\.accountRepository, PreviewAccountRepository())
+		.environment(\.backupRepository, PreviewBackupRepository())
 }
+#endif
