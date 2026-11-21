@@ -3,11 +3,12 @@ import AuthenticationServices
 import SwiftUI
 
 /// 空の画面の「前の iPhone の記録を取り込む」（#195、ADR 0071）。サインインしていなければ、その場で Apple のサインインを出す。
-/// 取り込めたら、タブを移らずに画面に記録を読み直してもらう。
+/// 取り込めたら、タブを移らずに画面に記録を読み直してもらう。バックアップがオフなら、先にオンにするかを聞き、オンにするならシートで同意の画面を出す（#197、ADR 0072）。
 struct RestoreFromEmptyStateView: View {
 	@State private var viewModel: RestoreFromEmptyStateViewModel
 	@Environment(\.authorizationController) private var authorizationController
 	@Environment(\.notifyRecordsChanged) private var notifyRecordsChanged
+	@Environment(\.navigateToBackupConsent) private var navigateToBackupConsent
 
 	init(accountRepository: any AccountRepositoryProtocol, backupRepository: any BackupRepositoryProtocol) {
 		_viewModel = State(initialValue: RestoreFromEmptyStateViewModel(
@@ -41,9 +42,22 @@ struct RestoreFromEmptyStateView: View {
 		}
 		.task { await viewModel.load() }
 		.onChange(of: viewModel.restoredSessionCount) {
-			if viewModel.restoredSessionCount != nil {
+			if viewModel.restoredSessionCount != nil, !viewModel.isOfferingEnable {
 				notifyRecordsChanged()
 			}
+		}
+		.alert("バックアップをオンにしますか？", isPresented: Binding(
+			get: { viewModel.isOfferingEnable },
+			set: { isPresented in
+				guard !isPresented else { return }
+				viewModel.endEnableOffer()
+				notifyRecordsChanged()
+			}
+		)) {
+			Button("オンにする", action: navigateToBackupConsent)
+			Button("今はしない", role: .cancel) {}
+		} message: {
+			Text("取り込んだ記録のバックアップはオフのままです。オンにすると、この iPhone をなくしたときにも戻せます。")
 		}
 		.alert(
 			"バックアップがあります",
