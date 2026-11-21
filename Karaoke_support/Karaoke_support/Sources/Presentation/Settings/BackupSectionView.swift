@@ -1,11 +1,16 @@
 #if DEBUG || BETA
 import SwiftUI
 
-/// 設定のバックアップの欄。サインインしているときだけ出す。
+/// 設定のバックアップの欄。サインインしていなくても出す（#197、ADR 0072）。
 /// 「バックアップ」の行にオンかオフかを出し、オフのときは押すと同意の画面（``BackupConsentView``）へ進む。オンのときはオフにするボタンを出す（ADR 0060・0062）。
+/// サインインしていないときは、同意の画面でサインインしてからオンにする。
 /// 端末が空でサーバーに控えがあるときは、取り込みの行を出し、サインインの直後には alert で聞く（ADR 0061・0062）。
 struct BackupSectionView: View {
 	let viewModel: BackupSectionViewModel
+	/// サインインしていないときに、同意の画面へ渡すサインイン。サインイン中は nil。
+	var consentSignIn: BackupConsentView.SignIn?
+	/// 取り込んだあと、オンにすると選んだとき。同意の画面へ進めてもらう。
+	var onAcceptEnableOffer: () -> Void = {}
 	@Environment(\.notifyRecordsChanged) private var notifyRecordsChanged
 	@State private var isConfirmingRestore = false
 
@@ -24,7 +29,7 @@ struct BackupSectionView: View {
 				LabeledContent("バックアップ", value: "オン")
 			} else {
 				NavigationLink {
-					BackupConsentView {
+					BackupConsentView(signIn: consentSignIn) {
 						Task { await viewModel.enable() }
 					}
 				} label: {
@@ -110,6 +115,15 @@ struct BackupSectionView: View {
 			}
 		} message: {
 			Text(viewModel.disableConfirmationMessage ?? "")
+		}
+		.alert("バックアップをオンにしますか？", isPresented: Binding(
+			get: { viewModel.isOfferingEnable },
+			set: { if !$0 { viewModel.endEnableOffer() } }
+		)) {
+			Button("オンにする", action: onAcceptEnableOffer)
+			Button("今はしない", role: .cancel) {}
+		} message: {
+			Text("取り込んだ記録のバックアップはオフのままです。オンにすると、この iPhone をなくしたときにも戻せます。")
 		}
 	}
 

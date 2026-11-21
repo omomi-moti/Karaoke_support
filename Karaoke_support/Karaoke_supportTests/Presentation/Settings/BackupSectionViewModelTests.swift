@@ -552,6 +552,41 @@ struct BackupSectionViewModelTests {
 		#expect(viewModel.failureMessage == nil)
 	}
 
+	@Test("取り込めたときにオフなら、オンにするかを聞く。聞き終えたらもう聞かない")
+	func restoreOffersEnableWhenOff() async {
+		repository.restorable = summary
+		let viewModel = BackupSectionViewModel(backupRepository: repository)
+
+		await viewModel.restore()
+		#expect(viewModel.isOfferingEnable)
+
+		viewModel.endEnableOffer()
+		#expect(!viewModel.isOfferingEnable)
+	}
+
+	@Test("取り込めても、もうオンなら聞かない")
+	func restoreDoesNotOfferEnableWhenOn() async {
+		repository.status = BackupStatus(isEnabled: true, consentVersion: BackupStatus.currentConsentVersion, lastSucceededAt: nil, lastFailure: nil)
+		repository.restorable = summary
+		let viewModel = BackupSectionViewModel(backupRepository: repository)
+
+		await viewModel.restore()
+
+		#expect(viewModel.restoredSessionCount == 42)
+		#expect(!viewModel.isOfferingEnable)
+	}
+
+	@Test("取り込めなかったら、オンにするかを聞かない", arguments: [BackupRestoreFailure.unreachable, .signInRequired])
+	func restoreFailureDoesNotOfferEnable(failure: BackupRestoreFailure) async {
+		repository.restorable = summary
+		repository.restoreError = failure
+		let viewModel = BackupSectionViewModel(backupRepository: repository)
+
+		await viewModel.restore()
+
+		#expect(!viewModel.isOfferingEnable)
+	}
+
 	@Test("取り込めた件数は、次の読み直しで消す")
 	func restoredCountIsClearedByReload() async {
 		repository.restorable = summary

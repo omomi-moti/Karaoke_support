@@ -5,21 +5,27 @@ struct SettingsContainerView: View {
 	#if DEBUG || BETA
 	/// サーバーのつなぎ先がないときは nil で、アカウントの欄を出さない（ADR 0055）。
 	@State private var accountViewModel: AccountSectionViewModel?
-	/// アカウントの欄がないときは nil。サインインしているときだけ欄を出す。
+	/// アカウントの欄がないときは nil。サインインしていなくても欄を出す（ADR 0072）。
 	@State private var backupViewModel: BackupSectionViewModel?
 	@Environment(\.backupStatusTick) private var backupStatusTick
+	/// 端末にサインインのトークンがあるか。同意の画面で、サインインから始めるかを決める。
+	private let isSignedIn: () -> Bool
+	/// 取り込んだあとにオンにすると選んだら `true` にし、同意の画面へ進む。
+	@State private var isShowingBackupConsent = false
 
 	init(
 		accountRepository: (any AccountRepositoryProtocol)? = nil,
 		backupRepository: (any BackupRepositoryProtocol)? = nil
 	) {
+		let isSignedIn = { accountRepository?.isSignedIn ?? false }
+		self.isSignedIn = isSignedIn
 		let accountViewModel = accountRepository.map { AccountSectionViewModel(accountRepository: $0) }
 		_accountViewModel = State(initialValue: accountViewModel)
 		_backupViewModel = State(initialValue: accountViewModel.flatMap { accountViewModel in
 			backupRepository.map { backupRepository in
 				BackupSectionViewModel(
 					backupRepository: backupRepository,
-					isSignedIn: { accountRepository?.isSignedIn ?? false },
+					isSignedIn: isSignedIn,
 					onSignInRequired: { Task { await accountViewModel.load() } }
 				)
 			}
@@ -33,8 +39,12 @@ struct SettingsContainerView: View {
 			if let accountViewModel {
 				AccountSectionView(viewModel: accountViewModel)
 			}
-			if let backupViewModel, case .signedIn = accountViewModel?.status {
-				BackupSectionView(viewModel: backupViewModel)
+			if let accountViewModel, let backupViewModel {
+				BackupSectionView(
+					viewModel: backupViewModel,
+					consentSignIn: consentSignIn(accountViewModel),
+					onAcceptEnableOffer: { isShowingBackupConsent = true }
+				)
 			}
 			#endif
 			Section {
@@ -78,8 +88,28 @@ struct SettingsContainerView: View {
 			accountViewModel?.refreshSignInState()
 			Task { await backupViewModel?.load() }
 		}
+		.navigationDestination(isPresented: $isShowingBackupConsent) {
+			if let accountViewModel, let backupViewModel {
+				BackupConsentView(signIn: consentSignIn(accountViewModel)) {
+					Task { await backupViewModel.enable() }
+				}
+			}
+		}
 		#endif
 	}
+
+	#if DEBUG || BETA
+	/// 端末にトークンがなければ、同意の画面でアカウントの欄と同じサインインを使う。
+	/// アカウントの欄の表示ではなくトークンで決める。トークンがあってアカウントを読めなかったときに、サインインし直させないため。
+	private func consentSignIn(_ accountViewModel: AccountSectionViewModel) -> BackupConsentView.SignIn? {
+		guard !isSignedIn() else { return nil }
+		return BackupConsentView.SignIn(
+			makeHashedNonce: accountViewModel.makeHashedNonce,
+			complete: { await accountViewModel.signIn(identityToken: $0) },
+			fail: accountViewModel.signInFailed
+		)
+	}
+	#endif
 }
 
 #Preview {
@@ -87,6 +117,15 @@ struct SettingsContainerView: View {
 }
 
 #if DEBUG || BETA
+#Preview("サインインしていない") {
+	NavigationStack {
+		SettingsContainerView(
+			accountRepository: PreviewAccountRepository(),
+			backupRepository: PreviewBackupRepository()
+		)
+	}
+}
+
 #Preview("アカウントの欄あり") {
 	NavigationStack {
 		SettingsContainerView(

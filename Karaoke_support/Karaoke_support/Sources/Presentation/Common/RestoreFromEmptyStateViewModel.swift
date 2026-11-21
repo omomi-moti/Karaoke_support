@@ -30,6 +30,9 @@ final class RestoreFromEmptyStateViewModel {
 	private(set) var errorMessage: String?
 	/// 取り込めた記録の件数。入ったら、画面に記録を読み直してもらう。
 	private(set) var restoredSessionCount: Int?
+	/// 取り込めたときにバックアップがオフなら `true` にし、オンにするかを聞く（#197、ADR 0072）。
+	/// 聞いている間は記録を読み直さない。読み直すと空の画面が消え、聞いている alert も消えるため。
+	private(set) var isOfferingEnable = false
 
 	init(accountRepository: any AccountRepositoryProtocol, backupRepository: any BackupRepositoryProtocol) {
 		self.accountRepository = accountRepository
@@ -124,6 +127,11 @@ final class RestoreFromEmptyStateViewModel {
 		restorePrompt = nil
 	}
 
+	/// オンにするかを聞き終えたとき。どちらを選んでも、もう聞かない。
+	func endEnableOffer() {
+		isOfferingEnable = false
+	}
+
 	/// サーバーの控えを、空の端末に取り込む。取り込めたら件数を ``restoredSessionCount`` に入れる。
 	func restore() async {
 		restorePrompt = nil
@@ -132,7 +140,9 @@ final class RestoreFromEmptyStateViewModel {
 		errorMessage = nil
 		defer { activity = nil }
 		do {
-			restoredSessionCount = try await backupRepository.restoreAll()
+			let restoredCount = try await backupRepository.restoreAll()
+			isOfferingEnable = !backupRepository.status.isActive
+			restoredSessionCount = restoredCount
 		} catch {
 			show(error as? BackupRestoreFailure ?? .server)
 		}

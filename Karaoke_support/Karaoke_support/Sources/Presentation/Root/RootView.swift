@@ -13,6 +13,9 @@ struct RootView: View {
         enum Kind {
             case recording(RecordingSessionSeed)
             case afterSave(AfterSaveSheetContent)
+            #if DEBUG || BETA
+            case backupConsent
+            #endif
         }
 
         let id = UUID()
@@ -26,6 +29,9 @@ struct RootView: View {
 
     @Environment(\.trackRepository) private var trackRepository
     @Environment(\.trackStatsRepository) private var trackStatsRepository
+    #if DEBUG || BETA
+    @Environment(\.backupRepository) private var backupRepository
+    #endif
 
     @State private var selectedTab: RootTab = .songs
     @State private var sheet: RootSheet?
@@ -115,10 +121,19 @@ struct RootView: View {
                     onSelect: { recordRecommendation($0, intent: content.saved.intent) },
                     onLater: { closeSheet() }
                 )
+            #if DEBUG || BETA
+            case .backupConsent:
+                if let backupRepository {
+                    BackupConsentSheetView(backupRepository: backupRepository)
+                }
+            #endif
             }
         }
         .environment(\.navigateToManualRecording, presentManualRecording)
         .environment(\.navigateToEditRecording, presentEditRecording)
+        #if DEBUG || BETA
+        .environment(\.navigateToBackupConsent) { present(.backupConsent) }
+        #endif
         .environment(\.notifyRecordsChanged) { historyReloadTick += 1 }
         .environment(\.historyReloadTick, historyReloadTick)
     }

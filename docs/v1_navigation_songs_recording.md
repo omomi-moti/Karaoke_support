@@ -9,7 +9,7 @@
 
 ## シートの開き方
 
-`RootView` 内の `RootSheet`（`id: UUID` + `kind`）で表示する。`kind` は記録シート（`.recording(RecordingSessionSeed)`）か保存直後のシート（`.afterSave(AfterSaveSheetContent)`）。開くたびに新しい `id` を採番するため、同じ曲を続けて選んでもシートは作り直される。
+`RootView` 内の `RootSheet`（`id: UUID` + `kind`）で表示する。`kind` は記録シート（`.recording(RecordingSessionSeed)`）か保存直後のシート（`.afterSave(AfterSaveSheetContent)`）か、バックアップの同意の画面（`.backupConsent`。Debug と Beta のビルドだけ）。開くたびに新しい `id` を採番するため、同じ曲を続けて選んでもシートは作り直される。
 
 開き方はすべて `present()` を通す。シートが出ていなければその場で出し、閉じている途中なら閉じ終わって（`onDismiss`）から出し、別のシートが開いていれば閉じてから出す。閉じている途中に次のシートを出すと、SwiftUI が出し損ねることがあるため。閉じている途中にもう一度押されたとき（カードの二度押しなど）も、予約し直すだけにして、閉じ終わってから 1 枚だけ出す（`closeSheet(then:)`）。
 
@@ -27,7 +27,7 @@
 
 `navigateToManualRecording` は以前は「選曲タブへ切替 + tick で `SongsRootView` にシートを開かせる」方式だったが、シートを `RootView` に集約したため **その場で開く**だけになった。
 
-空状態の「前の iPhone の記録を取り込む」は、シートを開かずに `EnvironmentValues.navigateToSettings` で設定タブへ切り替える（Debug と Beta のビルドで、アカウントの欄があるときだけ。ADR 0061）。
+空状態の「前の iPhone の記録を取り込む」は、タブを移らずにその場でサインインと取り込みを行う（Debug と Beta のビルドで、アカウントの欄があるときだけ。ADR 0071）。取り込めたときにバックアップがオフなら、オンにするかを聞き、「オンにする」なら `EnvironmentValues.navigateToBackupConsent` で同意の画面をシートで出す（`BackupConsentSheetView`。ADR 0072）。
 
 ## 保存成功時
 
@@ -68,7 +68,7 @@
 
 ## 関連コード
 
-- `Sources/Presentation/Root/RootView.swift` — `TabView`（iOS 26 `Tab` API）+ 記録シートと保存直後のシートの切り替え + ＋ボタン + `historyReloadTick`
+- `Sources/Presentation/Root/RootView.swift` — `TabView`（iOS 26 `Tab` API）+ 記録シート・保存直後のシート・バックアップの同意の画面の切り替え + ＋ボタン + `historyReloadTick`
 - `Sources/Presentation/AfterSave/` — 保存直後のシート（`AfterSaveRecommendationSheetView`）と、候補を用意する `AfterSaveRecommendationViewModel`（#115）
 - `Sources/Presentation/Songs/SongsRootView.swift` — 選曲タブの `NavigationStack`（ルートのみ）。中身は `Sources/Presentation/Selection/` の選曲画面。記録は `onSelect` で `RootView` に委譲
 - `Sources/Presentation/Search/SearchContainerView.swift` — 検索タブ本体（`.searchable`）。選択は `onSelectTrack` で `RootView` に委譲
