@@ -19,8 +19,10 @@ struct RootView: View {
         let kind: Kind
     }
 
-    /// 履歴タブへ移ってから保存直後のシートを出すまでの時間。履歴に記録が増えたのが見えてから出すため（ADR 0032）。
+    /// 記録シートが閉じ終わってから保存直後のシートを出すまでの時間。保存した記録が画面に増えたのが見えてから出すため（ADR 0070）。
     private static let afterSaveSheetDelay: Duration = .milliseconds(1000)
+    /// 「保存しました」を出しておく時間。
+    private static let savedToastDuration: Duration = .seconds(2)
 
     @Environment(\.trackRepository) private var trackRepository
     @Environment(\.trackStatsRepository) private var trackStatsRepository
@@ -35,14 +37,21 @@ struct RootView: View {
     /// シートを閉じ始めてから、閉じ終わる（`onDismiss`）までの間 `true`。
     @State private var isDismissingSheet = false
     @State private var afterSaveViewModel: AfterSaveRecommendationViewModel?
-    /// 保存した後、記録シートが閉じ終わったら履歴タブへ移る。閉じている途中に切り替えると、後ろの画面が急に変わって見えるため（ADR 0032）。
-    @State private var movesToHistoryAfterDismiss = false
-    /// 保存直後のシートの「もっと見る」の後、シートが閉じ終わったら選曲タブへ移る（#126）。
-    @State private var movesToSongsAfterDismiss = false
-    /// 読み込み終わった保存直後のシートの中身。履歴タブへ移ってから出す。
+    /// 保存してから、記録シートが閉じ終わるまでの間 `true`。閉じ終わったら、保存直後のシートを出す時刻を決める。タブは移さない（ADR 0070）。
+    @State private var isClosingSavedRecording = false
+    /// 保存したあと、記録シートが閉じ終わったら `true`。「保存しました」は、これと ``isSavedToastNeeded`` がそろってから出す。
+    @State private var hasClosedSavedRecording = false
+    /// 保存直後のシートを出さないと決まったら `true`（履歴タブ以外・候補が 0 件・編集・読み込みの失敗）。シートの見出しが「保存しました」なので、出すときは重ねない（ADR 0070）。
+    @State private var isSavedToastNeeded = false
+    /// 保存のたびに増やす。前の保存の候補の読み込みが遅れて終わっても、今の保存の「保存しました」を決めないため。
+    @State private var saveGeneration = 0
+    /// 読み込み終わった保存直後のシートの中身。記録シートが閉じ終わってから出す。
     @State private var preparedAfterSaveContent: AfterSaveSheetContent?
-    /// 保存直後のシートを出してよい時刻（履歴タブへ移ってから ``afterSaveSheetDelay`` 後）。
+    /// 保存直後のシートを出してよい時刻（記録シートが閉じ終わってから ``afterSaveSheetDelay`` 後）。
     @State private var afterSaveShowAt: ContinuousClock.Instant?
+    @State private var isSavedToastVisible = false
+    /// 「保存しました」を出すたびに増やす。続けて保存したとき、前の分の時間切れで今の表示を消さないため。
+    @State private var savedToastGeneration = 0
     /// 保存のたびに増やし、履歴一覧に再読み込みさせる（履歴タブ上で保存するとタブ切替による再表示が起きないため）。
     @State private var historyReloadTick = 0
     /// タブの中身の下の安全領域（タブバー＋ホームインジケーター）。＋ボタンをタブバーの上に置くのに使う。
@@ -92,6 +101,13 @@ struct RootView: View {
                 .allowsHitTesting(isAddButtonVisible)
                 .accessibilityHidden(!isAddButtonVisible)
         }
+        .overlay(alignment: .top) {
+            if isSavedToastVisible {
+                SavedToastView()
+                    .padding(.top, 8)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
         .sheet(item: $sheet, onDismiss: presentPendingSheet) { sheet in
             switch sheet.kind {
             case .recording(let seed):
@@ -100,7 +116,6 @@ struct RootView: View {
                 AfterSaveRecommendationSheetView(
                     content: content,
                     onSelect: { recordRecommendation($0, intent: content.saved.intent) },
-                    onShowMore: showSelectionScreen,
                     onLater: { closeSheet() }
                 )
             }
@@ -109,15 +124,15 @@ struct RootView: View {
         .environment(\.navigateToEditRecording, presentEditRecording)
         .environment(\.notifyRecordsChanged) { historyReloadTick += 1 }
         .environment(\.historyReloadTick, historyReloadTick)
-        .environment(\.navigateToSettings, settingsNavigation)
+        .environment(\.isRestoreHintVisible, isRestoreHintVisible)
     }
 
-    /// アカウントの欄があるときだけ、空の画面から設定タブへ移れるようにする（ADR 0061）。
-    private var settingsNavigation: (() -> Void)? {
+    /// アカウントの欄があるときだけ、空の画面で取り込みを案内する（ADR 0061・0070）。
+    private var isRestoreHintVisible: Bool {
         #if DEBUG || BETA
-        accountRepository == nil ? nil : { move(to: .settings) }
+        accountRepository != nil
         #else
-        nil
+        false
         #endif
     }
 
@@ -154,23 +169,37 @@ struct RootView: View {
         present(.recording(.editSession(sessionId: sessionId)))
     }
 
-    /// 保存したら記録シートを閉じて履歴へ移り、候補があれば保存直後のシートを出す（#115）。
+    /// 保存したら記録シートを閉じ、今のタブのまま、候補があれば保存直後のシートを出す（#115、ADR 0070）。
+    /// 出すのは履歴タブで保存したときだけ。選曲タブでは後ろの選曲画面がそのまま次の曲の候補になり、検索タブでは歌う曲がもう決まっているため。
     private func handleSaved(_ saved: SavedRecording) {
         // 前の保存のときの中身や時刻が残っていても使わない
         preparedAfterSaveContent = nil
         afterSaveShowAt = nil
-        movesToHistoryAfterDismiss = true
+        hasClosedSavedRecording = false
+        isSavedToastNeeded = false
+        saveGeneration += 1
+        let generation = saveGeneration
+        isClosingSavedRecording = true
         closeSheet()
         historyReloadTick += 1
+        guard selectedTab == .history else {
+            isSavedToastNeeded = true
+            return
+        }
         let viewModel = afterSaveRecommendationViewModel()
         Task {
-            guard let content = await viewModel.prepare(for: saved) else { return }
+            guard let content = await viewModel.prepare(for: saved) else {
+                guard generation == saveGeneration else { return }
+                isSavedToastNeeded = true
+                showSavedToastWhenReady()
+                return
+            }
             preparedAfterSaveContent = content
             presentAfterSaveSheetWhenReady()
         }
     }
 
-    /// 中身の読み込みと履歴タブへの移動が両方終わったら、決めた時刻まで待って保存直後のシートを出す。どちらが先に終わってもよい。
+    /// 中身の読み込みと記録シートを閉じ終わるのが両方そろったら、決めた時刻まで待って保存直後のシートを出す。どちらが先に終わってもよい。
     private func presentAfterSaveSheetWhenReady() {
         guard let content = preparedAfterSaveContent, let showAt = afterSaveShowAt else { return }
         preparedAfterSaveContent = nil
@@ -203,12 +232,6 @@ struct RootView: View {
         present(.recording(.selectedTrack(selected, intent: intent, source: .selectionScreen)))
     }
 
-    /// 保存直後のシートを閉じ、閉じ終わってから選曲タブへ移る。気分は、選曲画面が保存のあとに読み直すときに、保存した記録の気分になる（#126）。
-    private func showSelectionScreen() {
-        movesToSongsAfterDismiss = true
-        closeSheet()
-    }
-
     private func present(_ kind: RootSheet.Kind) {
         if isDismissingSheet {
             pendingSheet = RootSheet(kind: kind)
@@ -236,15 +259,12 @@ struct RootView: View {
     /// シートが閉じ終わったとき（`onDismiss`）に呼ぶ。下に引いて閉じたときも呼ばれる。
     private func presentPendingSheet() {
         isDismissingSheet = false
-        if movesToHistoryAfterDismiss {
-            movesToHistoryAfterDismiss = false
-            move(to: .history)
+        if isClosingSavedRecording {
+            isClosingSavedRecording = false
+            hasClosedSavedRecording = true
+            showSavedToastWhenReady()
             afterSaveShowAt = ContinuousClock.now + Self.afterSaveSheetDelay
             presentAfterSaveSheetWhenReady()
-        }
-        if movesToSongsAfterDismiss {
-            movesToSongsAfterDismiss = false
-            move(to: .songs)
         }
         guard let next = pendingSheet else { return }
         pendingSheet = nil
@@ -258,11 +278,22 @@ struct RootView: View {
         return viewModel
     }
 
-    private func move(to tab: RootTab) {
-        var transaction = Transaction()
-        transaction.disablesAnimations = true
-        withTransaction(transaction) {
-            selectedTab = tab
+    /// 保存直後のシートを出さないと決まり、記録シートも閉じ終わったら「保存しました」を出す。どちらが先でもよい。
+    private func showSavedToastWhenReady() {
+        guard isSavedToastNeeded, hasClosedSavedRecording else { return }
+        isSavedToastNeeded = false
+        showSavedToast()
+    }
+
+    private func showSavedToast() {
+        savedToastGeneration += 1
+        let generation = savedToastGeneration
+        withAnimation { isSavedToastVisible = true }
+        AccessibilityNotification.Announcement("保存しました").post()
+        Task {
+            try? await Task.sleep(for: Self.savedToastDuration)
+            guard generation == savedToastGeneration else { return }
+            withAnimation { isSavedToastVisible = false }
         }
     }
 }
