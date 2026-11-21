@@ -132,7 +132,7 @@ private final class FakeSnapshotReader: BackupSnapshotReading {
 		let trackID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
 		let date = Date(timeIntervalSince1970: 1_700_000_000.25)
 		return BackupSnapshot(
-			tracks: [BackupSnapshotTrack(id: trackID, userEnteredName: "曲", createdAt: date, updatedAt: date)],
+			tracks: [BackupSnapshotTrack(id: trackID, userEnteredName: "曲", userEnteredArtistName: nil, createdAt: date, updatedAt: date)],
 			sessions: (0..<sessionCount).map { index in
 				BackupSnapshotSession(
 					id: UUID(uuidString: String(format: "00000000-0000-0000-0001-%012d", index))!,
@@ -330,7 +330,7 @@ struct RemoteBackupRepositoryTests {
 		#expect(request.value(forHTTPHeaderField: "If-Match") == nil)
 		let json = try JSONSerialization.jsonObject(with: try #require(body))
 		let sent = try #require(json as? [String: Any])
-		#expect(sent["schemaVersion"] as? Int == 1)
+		#expect(sent["schemaVersion"] as? Int == BackupSnapshot.schemaVersion)
 		#expect(sent["trackCount"] as? Int == 1)
 		#expect(sent["sessionCount"] as? Int == 2)
 		#expect(sent["payload"] is [String: Any])
@@ -941,7 +941,7 @@ struct RemoteBackupRepositoryTests {
 	func restoreUnsupportedVersion() async throws {
 		let writer = FakeSnapshotWriter()
 		let repository = makeRepository(state: InMemoryBackupState(), writer: writer) { _ in
-			(200, #"{"revision":5,"schemaVersion":2,"trackCount":0,"sessionCount":0,"updatedAt":"2026-11-13T01:02:03Z","payload":{"songs":[]}}"#)
+			(200, #"{"revision":5,"schemaVersion":3,"trackCount":0,"sessionCount":0,"updatedAt":"2026-11-13T01:02:03Z","payload":{"songs":[]}}"#)
 		}
 
 		await #expect(throws: BackupRestoreFailure.unsupportedVersion) { try await repository.restoreAll() }

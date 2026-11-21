@@ -11,7 +11,7 @@ enum BackupRestoreFailure: Error, Equatable, Sendable {
 	case signInRequired
 	/// サーバーに控えがなかった（ほかの端末でオフにした・アカウントを消した）。
 	case notFound
-	/// このアプリが知らない形の控え（`schemaVersion` が違う）。新しいアプリで作った控えのときに起きる。
+	/// このアプリが知らない形の控え（`schemaVersion` が今の版より新しい）。新しいアプリで作った控えのときに起きる。
 	case unsupportedVersion
 	/// 控えの中身がおかしい（読めない・値が範囲の外・id や曲名が重なる・記録の曲がない）。何も取り込まない。
 	case invalidContents

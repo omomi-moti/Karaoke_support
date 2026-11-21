@@ -36,7 +36,7 @@ struct SwiftDataBackupSnapshotReaderTests {
 		let snapshot = try SwiftDataBackupSnapshotReader(modelContext: context).readSnapshot()
 
 		#expect(snapshot.tracks == [
-			BackupSnapshotTrack(id: track.id, userEnteredName: "曲A", createdAt: created, updatedAt: created.addingTimeInterval(60)),
+			BackupSnapshotTrack(id: track.id, userEnteredName: "曲A", userEnteredArtistName: nil, createdAt: created, updatedAt: created.addingTimeInterval(60)),
 		])
 		let mapped = try #require(snapshot.sessions.first { $0.id == session.id })
 		#expect(mapped == BackupSnapshotSession(

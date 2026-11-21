@@ -9,8 +9,8 @@ private let trackA = UUID(uuidString: "00000000-0000-0000-0000-00000000000A")!
 private let trackB = UUID(uuidString: "00000000-0000-0000-0000-00000000000B")!
 private let baseDate = Date(timeIntervalSince1970: 1_700_000_000.25)
 
-private func track(_ id: UUID = trackA, name: String? = "曲A") -> BackupSnapshotTrack {
-	BackupSnapshotTrack(id: id, userEnteredName: name, createdAt: baseDate, updatedAt: baseDate.addingTimeInterval(60))
+private func track(_ id: UUID = trackA, name: String? = "曲A", artist: String? = nil) -> BackupSnapshotTrack {
+	BackupSnapshotTrack(id: id, userEnteredName: name, userEnteredArtistName: artist, createdAt: baseDate, updatedAt: baseDate.addingTimeInterval(60))
 }
 
 private func session(_ index: Int, trackId: UUID = trackA, score: Double? = 80) -> BackupSnapshotSession {

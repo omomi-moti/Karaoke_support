@@ -150,7 +150,7 @@ final class RemoteBackupRepository: BackupRepositoryProtocol {
 		let snapshot: BackupSnapshot
 		do {
 			envelope = try BackupJSONCoding.decoder.decode(GetBackupEnvelope.self, from: data)
-			guard envelope.schemaVersion == BackupSnapshot.schemaVersion else { throw BackupRestoreFailure.unsupportedVersion }
+			guard (1...BackupSnapshot.schemaVersion).contains(envelope.schemaVersion) else { throw BackupRestoreFailure.unsupportedVersion }
 			snapshot = try BackupJSONCoding.decoder.decode(GetBackupPayload.self, from: data).payload
 		} catch let failure as BackupRestoreFailure {
 			throw failure
