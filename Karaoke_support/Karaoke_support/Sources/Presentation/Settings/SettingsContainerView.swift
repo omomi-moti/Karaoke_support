@@ -5,9 +5,11 @@ struct SettingsContainerView: View {
 	#if DEBUG || BETA
 	/// サーバーのつなぎ先がないときは nil で、アカウントの欄を出さない（ADR 0055）。
 	@State private var accountViewModel: AccountSectionViewModel?
-	/// アカウントの欄がないときは nil。サインインしているときだけ欄を出す。
+	/// アカウントの欄がないときは nil。サインインしていなくても欄を出す（ADR 0072）。
 	@State private var backupViewModel: BackupSectionViewModel?
 	@Environment(\.backupStatusTick) private var backupStatusTick
+	/// 取り込んだあとにオンにすると選んだら `true` にし、同意の画面へ進む。
+	@State private var isShowingBackupConsent = false
 
 	init(
 		accountRepository: (any AccountRepositoryProtocol)? = nil,
@@ -33,8 +35,12 @@ struct SettingsContainerView: View {
 			if let accountViewModel {
 				AccountSectionView(viewModel: accountViewModel)
 			}
-			if let backupViewModel, case .signedIn = accountViewModel?.status {
-				BackupSectionView(viewModel: backupViewModel)
+			if let accountViewModel, let backupViewModel {
+				BackupSectionView(
+					viewModel: backupViewModel,
+					consentSignIn: consentSignIn(accountViewModel),
+					onAcceptEnableOffer: { isShowingBackupConsent = true }
+				)
 			}
 			#endif
 			Section {
@@ -78,8 +84,27 @@ struct SettingsContainerView: View {
 			accountViewModel?.refreshSignInState()
 			Task { await backupViewModel?.load() }
 		}
+		.navigationDestination(isPresented: $isShowingBackupConsent) {
+			if let backupViewModel {
+				BackupConsentView(signIn: nil) {
+					Task { await backupViewModel.enable() }
+				}
+			}
+		}
 		#endif
 	}
+
+	#if DEBUG || BETA
+	/// サインイン中でなければ、同意の画面でアカウントの欄と同じサインインを使う。
+	private func consentSignIn(_ accountViewModel: AccountSectionViewModel) -> BackupConsentView.SignIn? {
+		if case .signedIn = accountViewModel.status { return nil }
+		return BackupConsentView.SignIn(
+			makeHashedNonce: accountViewModel.makeHashedNonce,
+			complete: { await accountViewModel.signIn(identityToken: $0) },
+			fail: accountViewModel.signInFailed
+		)
+	}
+	#endif
 }
 
 #Preview {
@@ -87,6 +112,15 @@ struct SettingsContainerView: View {
 }
 
 #if DEBUG || BETA
+#Preview("サインインしていない") {
+	NavigationStack {
+		SettingsContainerView(
+			accountRepository: PreviewAccountRepository(),
+			backupRepository: PreviewBackupRepository()
+		)
+	}
+}
+
 #Preview("アカウントの欄あり") {
 	NavigationStack {
 		SettingsContainerView(

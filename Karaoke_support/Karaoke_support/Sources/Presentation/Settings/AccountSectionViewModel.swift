@@ -56,12 +56,14 @@ final class AccountSectionViewModel {
 	}
 
 	/// Apple から受け取った identity token でサーバーにサインインし、自分のアカウントを読む。
-	func signIn(identityToken: Data?) async {
+	/// サインインし終えてアカウントを出せたら `true` を返す。
+	@discardableResult
+	func signIn(identityToken: Data?) async -> Bool {
 		let nonce = pendingNonce
 		pendingNonce = nil
 		guard let nonce, let identityToken, let token = String(data: identityToken, encoding: .utf8) else {
 			status = .failed(message: Self.signInFailedMessage)
-			return
+			return false
 		}
 		hasDeletedAccount = false
 		status = .loading
@@ -69,15 +71,15 @@ final class AccountSectionViewModel {
 			try await accountRepository.signInWithApple(identityToken: token, rawNonce: nonce.raw)
 		} catch AccountRepositoryError.unauthorized {
 			status = .failed(message: Self.signInFailedMessage)
-			return
+			return false
 		} catch {
 			show(error)
-			return
+			return false
 		}
 		await fetchAccount()
-		if case .signedIn = status {
-			completedSignInCount += 1
-		}
+		guard case .signedIn = status else { return false }
+		completedSignInCount += 1
+		return true
 	}
 
 	/// Apple のサインインの画面が失敗で閉じたとき。利用者がキャンセルしたときは何も出さない。

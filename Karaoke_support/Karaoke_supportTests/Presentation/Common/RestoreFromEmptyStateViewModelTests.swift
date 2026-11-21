@@ -248,6 +248,44 @@ struct RestoreFromEmptyStateViewModelTests {
 		#expect(!vm.isWorking)
 	}
 
+	@Test("取り込めたときにオフなら、オンにするかを聞く。聞き終えたらもう聞かない")
+	func restoreOffersEnableWhenOff() async {
+		accountRepository.isSignedIn = true
+		backupRepository.restorable = summary
+		let vm = makeViewModel()
+
+		await vm.restore()
+		#expect(vm.isOfferingEnable)
+
+		vm.endEnableOffer()
+		#expect(!vm.isOfferingEnable)
+	}
+
+	@Test("取り込めても、もうオンなら聞かない")
+	func restoreDoesNotOfferEnableWhenOn() async {
+		accountRepository.isSignedIn = true
+		backupRepository.status = BackupStatus(isEnabled: true, consentVersion: BackupStatus.currentConsentVersion, lastSucceededAt: nil, lastFailure: nil)
+		backupRepository.restorable = summary
+		let vm = makeViewModel()
+
+		await vm.restore()
+
+		#expect(vm.restoredSessionCount == 42)
+		#expect(!vm.isOfferingEnable)
+	}
+
+	@Test("取り込めなかったら、オンにするかを聞かない")
+	func restoreFailureDoesNotOfferEnable() async {
+		accountRepository.isSignedIn = true
+		backupRepository.restorable = summary
+		backupRepository.restoreError = BackupRestoreFailure.unreachable
+		let vm = makeViewModel()
+
+		await vm.restore()
+
+		#expect(!vm.isOfferingEnable)
+	}
+
 	@Test("聞いた alert でキャンセルしたら、取り込まない")
 	func cancelPrompt() async {
 		accountRepository.isSignedIn = true

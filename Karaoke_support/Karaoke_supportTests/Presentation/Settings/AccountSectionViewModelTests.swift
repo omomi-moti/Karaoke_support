@@ -158,7 +158,7 @@ struct AccountSectionViewModelTests {
 		#expect(vm.status == .signedIn(repository.account))
 	}
 
-	@Test("サインインし終えたときだけ、サインインの回数を増やす")
+	@Test("サインインし終えたときだけ、サインインの回数を増やして true を返す")
 	func completedSignInCountOnlyOnSuccess() async {
 		let vm = makeViewModel()
 		await vm.load()
@@ -166,12 +166,18 @@ struct AccountSectionViewModelTests {
 
 		_ = vm.makeHashedNonce()
 		repository.signInError = AccountRepositoryError.unreachable
-		await vm.signIn(identityToken: Data("apple.identity.token".utf8))
+		#expect(await vm.signIn(identityToken: Data("apple.identity.token".utf8)) == false)
 		#expect(vm.completedSignInCount == 0)
 
 		_ = vm.makeHashedNonce()
 		repository.signInError = nil
-		await vm.signIn(identityToken: Data("apple.identity.token".utf8))
+		repository.fetchError = AccountRepositoryError.server
+		#expect(await vm.signIn(identityToken: Data("apple.identity.token".utf8)) == false)
+		#expect(vm.completedSignInCount == 0)
+
+		_ = vm.makeHashedNonce()
+		repository.fetchError = nil
+		#expect(await vm.signIn(identityToken: Data("apple.identity.token".utf8)) == true)
 		#expect(vm.completedSignInCount == 1)
 
 		await vm.load()

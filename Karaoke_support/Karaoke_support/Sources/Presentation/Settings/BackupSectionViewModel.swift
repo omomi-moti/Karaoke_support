@@ -51,6 +51,8 @@ final class BackupSectionViewModel {
 	private(set) var restorePrompt: BackupRestorableSummary?
 	/// 取り込み終えた記録の件数。次の操作か読み直しまで出す。
 	private(set) var restoredSessionCount: Int?
+	/// 取り込めたときにオフなら `true` にし、オンにするかを聞く（#197、ADR 0072）。オンにするなら同意の画面を通る。
+	private(set) var isOfferingEnable = false
 
 	init(
 		backupRepository: any BackupRepositoryProtocol,
@@ -117,6 +119,11 @@ final class BackupSectionViewModel {
 		restorePrompt = nil
 	}
 
+	/// オンにするかを聞き終えたとき。どちらを選んでも、もう聞かない。
+	func endEnableOffer() {
+		isOfferingEnable = false
+	}
+
 	/// サーバーの控えを、空の端末に取り込む。取り込めたら件数を ``restoredSessionCount`` に入れ、取り込みの行を消す。
 	func restore() async {
 		restorePrompt = nil
@@ -137,6 +144,7 @@ final class BackupSectionViewModel {
 		}
 		await refresh()
 		restoredSessionCount = restoredCount
+		isOfferingEnable = restoredCount != nil && !isOn
 		if let thrown, thrown != .signInRequired {
 			errorMessage = Self.restoreMessage(for: thrown)
 		}
