@@ -6,13 +6,22 @@ import SwiftUI
 struct AccountActionsSectionView: View {
 	let viewModel: AccountSectionViewModel
 	@Environment(\.authorizationController) private var authorizationController
+	@State private var isConfirmingSignOut = false
 	@State private var isConfirmingDeletion = false
 
 	var body: some View {
 		if case .signedIn = viewModel.status {
 			Section {
 				Button("ログアウト") {
-					Task { await viewModel.signOut() }
+					isConfirmingSignOut = true
+				}
+				.alert("ログアウトしますか？", isPresented: $isConfirmingSignOut) {
+					Button("ログアウト") {
+						Task { await viewModel.signOut() }
+					}
+					Button("キャンセル", role: .cancel) {}
+				} message: {
+					Text("この iPhone のバックアップはオフになります。サーバーのバックアップとこの iPhone の記録は消えません。")
 				}
 				Button("アカウントを削除", role: .destructive) {
 					isConfirmingDeletion = true
@@ -23,7 +32,7 @@ struct AccountActionsSectionView: View {
 					}
 					Button("キャンセル", role: .cancel) {}
 				} message: {
-					Text("続けると、Apple で本人の確認をしてから削除します。サーバーのバックアップも消えます。")
+					Text("続けると、Apple で本人の確認をしてから削除します。サーバーのバックアップも消えます。この iPhone の記録は消えません。")
 				}
 			} footer: {
 				Text("削除すると、サーバーのアカウントとバックアップを消します。この iPhone の記録は消えません。")
