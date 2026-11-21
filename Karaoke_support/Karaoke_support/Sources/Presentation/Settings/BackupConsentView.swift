@@ -10,7 +10,7 @@ struct BackupConsentView: View {
 	var body: some View {
 		List {
 			Section("送るもの") {
-				Text("曲名・気分・点数・歌った日時・もう一度歌いたいか・歌い切ったか・記録した画面")
+				Text("曲名・歌手名・気分・点数・歌った日時・もう一度歌いたいか・歌い切ったか・記録した画面")
 				Text("あわせて、記録と曲の ID、曲を登録・更新した日時")
 			}
 			Section("送らないもの") {
