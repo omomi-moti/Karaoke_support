@@ -94,7 +94,7 @@ struct BackupSectionView: View {
 				.disabled(viewModel.isWorking)
 			}
 		} header: {
-			Text("バックアップ（開発中）")
+			Text("バックアップ")
 		} footer: {
 			Text("オンにすると、アプリを閉じたときに、メモを除いた記録をサーバーに送ります。")
 		}
