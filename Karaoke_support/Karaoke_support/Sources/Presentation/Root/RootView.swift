@@ -37,8 +37,14 @@ struct RootView: View {
     /// シートを閉じ始めてから、閉じ終わる（`onDismiss`）までの間 `true`。
     @State private var isDismissingSheet = false
     @State private var afterSaveViewModel: AfterSaveRecommendationViewModel?
-    /// 保存してから、記録シートが閉じ終わるまでの間 `true`。閉じ終わったら「保存しました」を出し、保存直後のシートを出す時刻を決める。タブは移さない（ADR 0070）。
+    /// 保存してから、記録シートが閉じ終わるまでの間 `true`。閉じ終わったら、保存直後のシートを出す時刻を決める。タブは移さない（ADR 0070）。
     @State private var isClosingSavedRecording = false
+    /// 保存したあと、記録シートが閉じ終わったら `true`。「保存しました」は、これと ``isSavedToastNeeded`` がそろってから出す。
+    @State private var hasClosedSavedRecording = false
+    /// 保存直後のシートを出さないと決まったら `true`（選曲タブ・候補が 0 件・編集・読み込みの失敗）。シートの見出しが「保存しました」なので、出すときは重ねない（ADR 0070）。
+    @State private var isSavedToastNeeded = false
+    /// 保存のたびに増やす。前の保存の候補の読み込みが遅れて終わっても、今の保存の「保存しました」を決めないため。
+    @State private var saveGeneration = 0
     /// 読み込み終わった保存直後のシートの中身。記録シートが閉じ終わってから出す。
     @State private var preparedAfterSaveContent: AfterSaveSheetContent?
     /// 保存直後のシートを出してよい時刻（記録シートが閉じ終わってから ``afterSaveSheetDelay`` 後）。
@@ -169,13 +175,25 @@ struct RootView: View {
         // 前の保存のときの中身や時刻が残っていても使わない
         preparedAfterSaveContent = nil
         afterSaveShowAt = nil
+        hasClosedSavedRecording = false
+        isSavedToastNeeded = false
+        saveGeneration += 1
+        let generation = saveGeneration
         isClosingSavedRecording = true
         closeSheet()
         historyReloadTick += 1
-        guard selectedTab != .songs else { return }
+        guard selectedTab != .songs else {
+            isSavedToastNeeded = true
+            return
+        }
         let viewModel = afterSaveRecommendationViewModel()
         Task {
-            guard let content = await viewModel.prepare(for: saved) else { return }
+            guard let content = await viewModel.prepare(for: saved) else {
+                guard generation == saveGeneration else { return }
+                isSavedToastNeeded = true
+                showSavedToastWhenReady()
+                return
+            }
             preparedAfterSaveContent = content
             presentAfterSaveSheetWhenReady()
         }
@@ -243,7 +261,8 @@ struct RootView: View {
         isDismissingSheet = false
         if isClosingSavedRecording {
             isClosingSavedRecording = false
-            showSavedToast()
+            hasClosedSavedRecording = true
+            showSavedToastWhenReady()
             afterSaveShowAt = ContinuousClock.now + Self.afterSaveSheetDelay
             presentAfterSaveSheetWhenReady()
         }
@@ -257,6 +276,13 @@ struct RootView: View {
         let viewModel = AfterSaveRecommendationViewModel(trackStatsRepository: trackStatsRepository)
         afterSaveViewModel = viewModel
         return viewModel
+    }
+
+    /// 保存直後のシートを出さないと決まり、記録シートも閉じ終わったら「保存しました」を出す。どちらが先でもよい。
+    private func showSavedToastWhenReady() {
+        guard isSavedToastNeeded, hasClosedSavedRecording else { return }
+        isSavedToastNeeded = false
+        showSavedToast()
     }
 
     private func showSavedToast() {
