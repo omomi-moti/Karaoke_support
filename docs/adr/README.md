@@ -37,7 +37,7 @@
 | [0029](0029-recompute-track-stats-without-cache.md) | 提案に使う曲ごとの集計はキャッシュせず、保存のたびに全部の記録から作り直す | 承認 |
 | [0030](0030-delay-after-save-sheet.md) | 保存直後のシートは、保存してから 1 秒たってから出す | 置き換え済み（→ 0032） |
 | [0031](0031-environment-values-by-default-identity.md) | 環境に置くものは、初期値に同一性があるかで書き方を分ける | 承認 |
-| [0032](0032-move-to-history-after-dismiss.md) | 保存したら、記録シートが閉じ終わってから履歴タブへ移り、その 1 秒後に保存直後のシートを出す | 承認 |
+| [0032](0032-move-to-history-after-dismiss.md) | 保存したら、記録シートが閉じ終わってから履歴タブへ移り、その 1 秒後に保存直後のシートを出す | 置き換え済み（→ 0070） |
 | [0033](0033-show-error-when-store-cannot-open.md) | 保存先の DB を開けなかったときは、メモリ上の DB で起動せず、エラー画面で止める | 承認 |
 | [0034](0034-record-source-as-optional-enum.md) | 記録の入口は空を許す enum で持ち、空は手で付けた記録として読む | 承認 |
 | [0035](0035-write-docs-in-japanese.md) | 文書は AI 向けのものも含めて日本語で書き、識別子・コマンド・ファイル名は英語のままにする | 承認 |
@@ -66,7 +66,7 @@
 | [0058](0058-backup-consent-and-auto-upload.md) | バックアップは本人がオンにしたときだけ、裏に回ったときに版の番号つきで送り、オフにしたら消す | 承認（前に戻ったときに送り直す失敗と 401 の扱いは置き換え済み → 0059） |
 | [0059](0059-foreground-retry-and-unauthorized-backup.md) | 前に戻ったときは、やり直して結果が変わりうる失敗だけを送り直し、401 では失敗の理由を置かずに状態を全部消す | 承認 |
 | [0060](0060-backup-on-off-without-toggle.md) | バックアップのオン・オフはスイッチにせず、オンにする行とオフにするボタンで行う | 承認（オフのときの行は置き換え済み → 0062） |
-| [0061](0061-restore-into-empty-device-and-accept-same-backup.md) | 取り込みは空の端末でサインインの直後に聞き、同じ中身の送り直しは成功として扱う | 承認（取り込まないボタンの言葉は置き換え済み → 0062） |
+| [0061](0061-restore-into-empty-device-and-accept-same-backup.md) | 取り込みは空の端末でサインインの直後に聞き、同じ中身の送り直しは成功として扱う | 承認（取り込まないボタンの言葉は置き換え済み → 0062、空の画面から設定タブへ移るのは置き換え済み → 0070） |
 | [0062](0062-show-backup-state-row-and-restore-alert.md) | バックアップの欄に「バックアップ　オン／オフ」の行を置き、サインイン直後の取り込みは alert で「取り込む」「キャンセル」と聞く | 承認 |
 | [0063](0063-rate-limit-by-client-ip-and-health-without-db.md) | レート制限は Cloud Run が足した相手の IP ごとにトークンバケットで数え、`/health` は DB を見ない | 承認 |
 | [0064](0064-beta-build-configuration-and-privacy-manifest.md) | Beta の構成は Release を写して xcconfig と専用のスキームで作り、Privacy Manifest は構成ごとに外して差し替える | 承認（プライバシーポリシーの欄は置き換え済み → 0068） |
@@ -74,6 +74,8 @@
 | [0066](0066-search-tab-name-artist-scope.md) | 検索タブは履歴と同じチップで、曲名と歌手名のどちらで探すかを選ぶ | 承認 |
 | [0067](0067-backup-schema-version-and-artist-name.md) | バックアップに項目を足すときは schemaVersion を上げ、アプリは前の版も読み、サーバーは知っている版の範囲だけを受け付ける | 承認 |
 | [0068](0068-settings-sections-by-role.md) | 設定の欄は役割ごとに並べ、サポートとプライバシーポリシーは「このアプリについて」にまとめる | 承認 |
+| [0069](0069-show-row-tap-affordance.md) | 押せる行には、押すと何が起きるかの印を出す（画面へ進む行は ›、記録シートが開く行は ＋） | 承認 |
+| [0070](0070-stay-on-tab-after-save.md) | 保存のあとも、ボタンを押したあとも、アプリが勝手にタブを移さない | 承認 |
 
 ## 書き方
 
