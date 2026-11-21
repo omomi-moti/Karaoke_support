@@ -135,7 +135,7 @@ Go は標準の `net/http`（1.22 以降のルーティング）と `pgx` を使
 | GET | `/v1/backup` | バックアップを読む（版の番号も返す） | 要る |
 | DELETE | `/v1/backup` | バックアップを消す（オフにしたとき）。なくても 204 | 要る |
 
-`PUT /v1/backup` の本文は `{"schemaVersion": 1, "trackCount": 曲の数, "sessionCount": 記録の数, "payload": {"tracks": […], "sessions": […]}}`。知らない項目があれば 400 で、サーバーは `payload` が JSON のオブジェクトかだけを見て、中身は読まずに保存する。成功・`GET` の返事には、版の番号を `ETag: "<版>"` でも付ける。版が合わない・条件の形が違うときの返事は、それぞれ `{"error": "precondition_failed"}`（412）・`{"error": "precondition_required"}`（428）・`{"error": "invalid_request"}`（400）。
+`PUT /v1/backup` の本文は `{"schemaVersion": 2, "trackCount": 曲の数, "sessionCount": 記録の数, "payload": {"tracks": […], "sessions": […]}}`。`schemaVersion` は 1 からサーバーが知っている最新（今は 2）までを受け付け、それ以外は 400（ADR 0067）。知らない項目があれば 400 で、サーバーは `payload` が JSON のオブジェクトかだけを見て、中身は読まずに保存する。成功・`GET` の返事には、版の番号を `ETag: "<版>"` でも付ける。版が合わない・条件の形が違うときの返事は、それぞれ `{"error": "precondition_failed"}`（412）・`{"error": "precondition_required"}`（428）・`{"error": "invalid_request"}`（400）。
 
 失敗したときは、トークンが偽物・期限切れなど利用者の側の失敗は 401、Apple や DB に届かないなどサーバーの側の失敗は 5xx を返す。返事の本文は `{"error": "..."}` の形にし、詳しい理由はログにだけ出す（ADR 0054）。
 
@@ -146,7 +146,7 @@ Apple の公開鍵は keyfunc がキャッシュし、Apple に届かなくて�
 | | 持つもの | 持たないもの |
 |---|---|---|
 | 全体 | `schemaVersion` | |
-| 曲 | `id`, `userEnteredName`, `appleMusicSongId`（M1 から）, `createdAt`, `updatedAt` | `userEnteredArtistName`（まだ入れていない。次のブランチで足す。ADR 0011）、Apple Music の曲名・アーティスト名・アートワーク、`singCount`（取り込むときに記録の件数から数え直す）、`spotifyTrackId`（今は常に空） |
+| 曲 | `id`, `userEnteredName`, `userEnteredArtistName`（版 2 から。空を許す。ADR 0067）, `appleMusicSongId`（M1 から）, `createdAt`, `updatedAt` | Apple Music の曲名・アーティスト名・アートワーク、`singCount`（取り込むときに記録の件数から数え直す）、`spotifyTrackId`（今は常に空） |
 | 記録 | `id`, `trackId`, `intent`, `performedAt`, `score`, `recordedSource`, `recordedWantAgain`, `recordedIsCompleted` | **メモ** |
 
 保存する値（`recorded…`）は空のまま送り、読むときの解釈（ADR 0034）はアプリに任せる。
@@ -228,7 +228,7 @@ sequenceDiagram
 
 1. 設定でサインインし終えたら、`fetchRestorableBackup()` を呼ぶ。端末に曲か記録があれば、サーバーには問い合わせずに nil を返す。空なら `GET /v1/backup/summary` で件数と日時を読む
 2. バックアップがあれば、alert で「取り込む」か「キャンセル」かを 1 回聞く（ADR 0062）。キャンセルしても、端末が空の間は設定のバックアップの欄に「バックアップから取り込む」の行を残す。履歴と選曲の空の画面の「前の iPhone の記録を取り込む」は、設定タブへ移る
-3. `restoreAll()`：送信・削除と同じ順番待ちで動く。`GET /v1/backup` → `schemaVersion` を確かめる（知らない値なら中身を読まずに断る）→ 値を確かめる（曲名は空でなく重ならない、id は重ならない、記録の曲がある、点数は 0〜100）→ 書く直前に端末が空かをもう一度確かめる → SwiftData に全部入れて 1 回だけ保存する（`SwiftDataBackupSnapshotWriter`。失敗したら `rollback()` で何も残さない）。UUID は元のまま使い、`singCount` は記録の件数から数え、メモは空。読んでいる途中にサインアウトされたら何も書かない
+3. `restoreAll()`：送信・削除と同じ順番待ちで動く。`GET /v1/backup` → `schemaVersion` を確かめる（1 から今の版までなら読み、前の版にない項目は空にする。新しい値なら中身を読まずに断る。ADR 0067）→ 値を確かめる（曲名は空でない、曲名と歌手名の組は重ならない（歌手名が空どうしも同じとみなす）、id は重ならない、記録の曲がある、点数は 0〜100）→ 書く直前に端末が空かをもう一度確かめる → SwiftData に全部入れて 1 回だけ保存する（`SwiftDataBackupSnapshotWriter`。失敗したら `rollback()` で何も残さない）。UUID は元のまま使い、`singCount` は記録の件数から数え、メモは空。読んでいる途中にサインアウトされたら何も書かない
 4. 取り込めたら、そのバックアップの版の番号を `UserDefaults` に置き、その後に送るときに 412 にならないようにする。バックアップはオフのまま
 5. `notifyRecordsChanged`（`historyReloadTick`）で履歴と選曲を読み直す
 
@@ -269,6 +269,7 @@ sequenceDiagram
 | 3 | 記録をサーバーにバックアップする（オンにした後は自動で）（#161）。設計は ADR 0058・0059・0060 | FR-3・FR-4・NFR-5・NFR-7・NFR-8 | 済み |
 | 4 | 別の端末で記録を取り込む（#165）。返事が届かなかったときの 412 も直す。設計は ADR 0061・0062 | FR-5・NFR-7・NFR-8 | 済み |
 | 5 | Beta のビルドを作り、外部テスターに配る（#167）。レート制限と `/health`（#168、ADR 0063）・Beta のビルドの設定（#169）・プライバシーポリシー（#170）・TestFlight（#171、手順は [app_store/release_steps.md](app_store/release_steps.md)） | NFR-2・NFR-6 | 済み |
+| 5-2 | バックアップの曲に歌手名を入れ、`schemaVersion` を 2 にする（#185）。設計は ADR 0067 | NFR-7 | 済み |
 | 6 | MusicKit が使えるか確かめ、扱い方を決める | FR-6 の前提 | 未着手 |
 | 7 | 曲名を打つと「もしかして？」で Apple Music の曲を出す | FR-6 | 未着手 |
 | 8 | 曲の ID で同じ曲を判定し、カタログの曲名で表示する（M2） | — | 未着手 |

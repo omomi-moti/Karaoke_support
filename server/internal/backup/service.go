@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-// SupportedSchemaVersion は、受け付けるバックアップの形の版（NFR-7）。
-const SupportedSchemaVersion = 1
+// LatestSchemaVersion は、受け付けるバックアップの形の最新の版（NFR-7）。1 からこの版までを受け付ける（ADR 0067）。
+const LatestSchemaVersion = 2
 
 // ErrNotFound は、バックアップがないことを表す（404 にする）。
 var ErrNotFound = errors.New("backup not found")
@@ -51,7 +51,7 @@ func NewService(store *Store) *Service {
 // 合わなくても、c が今のバックアップと同じ中身なら、置き換えずに今の版と日時を返す。送った端末が返事を受け取れずに、
 // 古い版のまま同じ中身を送り直したときに、412 にしないため（ADR 0061）。違う中身なら何もせず ErrPreconditionFailed を返す。
 func (s *Service) Put(ctx context.Context, userID string, cond Condition, c Contents) (int64, time.Time, error) {
-	if c.SchemaVersion != SupportedSchemaVersion || c.TrackCount < 0 || c.SessionCount < 0 {
+	if c.SchemaVersion < 1 || c.SchemaVersion > LatestSchemaVersion || c.TrackCount < 0 || c.SessionCount < 0 {
 		return 0, time.Time{}, ErrInvalidBackup
 	}
 	if !cond.IfNoneMatch && cond.IfMatch < 1 {

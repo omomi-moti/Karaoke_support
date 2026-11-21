@@ -72,6 +72,7 @@
 | [0064](0064-beta-build-configuration-and-privacy-manifest.md) | Beta の構成は Release を写して xcconfig と専用のスキームで作り、Privacy Manifest は構成ごとに外して差し替える | 承認 |
 | [0065](0065-edit-track-artist-and-merge-duplicates.md) | 曲の歌手名は曲詳細から直し、別の曲と重なったら確かめてまとめる | 承認 |
 | [0066](0066-search-tab-name-artist-scope.md) | 検索タブは履歴と同じチップで、曲名と歌手名のどちらで探すかを選ぶ | 承認 |
+| [0067](0067-backup-schema-version-and-artist-name.md) | バックアップに項目を足すときは schemaVersion を上げ、アプリは前の版も読み、サーバーは知っている版の範囲だけを受け付ける | 承認 |
 
 ## 書き方
 

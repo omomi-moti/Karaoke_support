@@ -20,7 +20,7 @@ struct SwiftDataBackupSnapshotReaderTests {
 		let container = try ModelContainer(for: Track.self, SingingSession.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
 		let context = container.mainContext
 		let created = Date(timeIntervalSince1970: 1_700_000_000)
-		let track = Track(userEnteredName: "曲A", createdAt: created, updatedAtOverride: created.addingTimeInterval(60))
+		let track = Track(userEnteredName: "曲A", userEnteredArtistName: "歌手A", createdAt: created, updatedAtOverride: created.addingTimeInterval(60))
 		let session = SingingSession(
 			track: track, intent: .emo, performedAt: created.addingTimeInterval(120), score: 91.234,
 			memo: "メモ", source: .suggestion, wantAgain: true, isCompleted: false
@@ -36,7 +36,7 @@ struct SwiftDataBackupSnapshotReaderTests {
 		let snapshot = try SwiftDataBackupSnapshotReader(modelContext: context).readSnapshot()
 
 		#expect(snapshot.tracks == [
-			BackupSnapshotTrack(id: track.id, userEnteredName: "曲A", createdAt: created, updatedAt: created.addingTimeInterval(60)),
+			BackupSnapshotTrack(id: track.id, userEnteredName: "曲A", userEnteredArtistName: "歌手A", createdAt: created, updatedAt: created.addingTimeInterval(60)),
 		])
 		let mapped = try #require(snapshot.sessions.first { $0.id == session.id })
 		#expect(mapped == BackupSnapshotSession(

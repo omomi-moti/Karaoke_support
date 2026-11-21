@@ -18,7 +18,13 @@ final class SwiftDataBackupSnapshotReader: BackupSnapshotReading {
 		return BackupSnapshot(
 			tracks: tracks
 				.map {
-					BackupSnapshotTrack(id: $0.id, userEnteredName: $0.userEnteredName, createdAt: $0.createdAt, updatedAt: $0.updatedAt)
+					BackupSnapshotTrack(
+						id: $0.id,
+						userEnteredName: $0.userEnteredName,
+						userEnteredArtistName: $0.userEnteredArtistName,
+						createdAt: $0.createdAt,
+						updatedAt: $0.updatedAt
+					)
 				}
 				.sorted { $0.id.uuidString < $1.id.uuidString },
 			sessions: sessions

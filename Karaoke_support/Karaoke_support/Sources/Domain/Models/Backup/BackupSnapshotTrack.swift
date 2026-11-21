@@ -5,6 +5,8 @@ import Foundation
 struct BackupSnapshotTrack: Codable, Equatable, Sendable {
 	let id: UUID
 	let userEnteredName: String?
+	/// 版 2 から。前の版の控えと、歌手名のない前からの曲では空（ADR 0067）。
+	let userEnteredArtistName: String?
 	let createdAt: Date
 	let updatedAt: Date
 }

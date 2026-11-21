@@ -132,7 +132,7 @@ private final class FakeSnapshotReader: BackupSnapshotReading {
 		let trackID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
 		let date = Date(timeIntervalSince1970: 1_700_000_000.25)
 		return BackupSnapshot(
-			tracks: [BackupSnapshotTrack(id: trackID, userEnteredName: "曲", createdAt: date, updatedAt: date)],
+			tracks: [BackupSnapshotTrack(id: trackID, userEnteredName: "曲", userEnteredArtistName: nil, createdAt: date, updatedAt: date)],
 			sessions: (0..<sessionCount).map { index in
 				BackupSnapshotSession(
 					id: UUID(uuidString: String(format: "00000000-0000-0000-0001-%012d", index))!,
@@ -160,7 +160,7 @@ private final class FakeSnapshotWriter: BackupSnapshotWriting {
 
 /// `GET /v1/backup` の返事。中身は送るときと同じ書き方で JSON にする。
 @MainActor
-private func backupOK(revision: Int, schemaVersion: Int = 1, snapshot: BackupSnapshot) throws -> (Int, String) {
+private func backupOK(revision: Int, schemaVersion: Int = BackupSnapshot.schemaVersion, snapshot: BackupSnapshot) throws -> (Int, String) {
 	let payload = String(decoding: try BackupJSONCoding.encoder.encode(snapshot), as: UTF8.self)
 	let text = #"{"revision":\#(revision),"schemaVersion":\#(schemaVersion),"trackCount":\#(snapshot.tracks.count),"sessionCount":\#(snapshot.sessions.count),"updatedAt":"2026-11-13T01:02:03.123456Z","payload":\#(payload)}"#
 	return (200, text)
@@ -330,7 +330,7 @@ struct RemoteBackupRepositoryTests {
 		#expect(request.value(forHTTPHeaderField: "If-Match") == nil)
 		let json = try JSONSerialization.jsonObject(with: try #require(body))
 		let sent = try #require(json as? [String: Any])
-		#expect(sent["schemaVersion"] as? Int == 1)
+		#expect(sent["schemaVersion"] as? Int == BackupSnapshot.schemaVersion)
 		#expect(sent["trackCount"] as? Int == 1)
 		#expect(sent["sessionCount"] as? Int == 2)
 		#expect(sent["payload"] is [String: Any])
@@ -937,11 +937,24 @@ struct RemoteBackupRepositoryTests {
 		#expect(state.isCleared)
 	}
 
+	@Test("版 1 の控えも取り込み、歌手名は空にする")
+	func restoreVersion1() async throws {
+		let snapshot = FakeSnapshotReader.snapshot(sessionCount: 1)
+		let response = try backupOK(revision: 5, schemaVersion: 1, snapshot: snapshot)
+		#expect(!response.1.contains("userEnteredArtistName"))
+		let writer = FakeSnapshotWriter()
+		let repository = makeRepository(state: InMemoryBackupState(), writer: writer) { _ in response }
+
+		#expect(try await repository.restoreAll() == 1)
+		#expect(writer.written == [snapshot])
+		#expect(writer.written.first?.tracks.first?.userEnteredArtistName == nil)
+	}
+
 	@Test("知らない schemaVersion なら、中身を読まずに断る")
 	func restoreUnsupportedVersion() async throws {
 		let writer = FakeSnapshotWriter()
 		let repository = makeRepository(state: InMemoryBackupState(), writer: writer) { _ in
-			(200, #"{"revision":5,"schemaVersion":2,"trackCount":0,"sessionCount":0,"updatedAt":"2026-11-13T01:02:03Z","payload":{"songs":[]}}"#)
+			(200, #"{"revision":5,"schemaVersion":3,"trackCount":0,"sessionCount":0,"updatedAt":"2026-11-13T01:02:03Z","payload":{"songs":[]}}"#)
 		}
 
 		await #expect(throws: BackupRestoreFailure.unsupportedVersion) { try await repository.restoreAll() }
