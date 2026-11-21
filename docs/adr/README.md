@@ -29,7 +29,7 @@
 | [0021](0021-single-add-button-measured-from-tab-safe-area.md) | ＋ボタンは `RootView` に 1 つだけ置き、タブバーの高さはタブの中身の安全領域から測る | 承認 |
 | [0022](0022-open-edit-in-root-sheet.md) | 記録の編集も `RootView` のシートで開き、＋ボタンを隠す仕組みをなくす | 承認 |
 | [0023](0023-add-button-glass-fixed-color-and-size.md) | ＋ボタンはガラスのまま、ライト・ダーク共通の濃いめのピンクにし、大きさは固定にする | 承認 |
-| [0024](0024-recommend-right-after-save.md) | 次の 1 曲の提案は、記録を保存した直後にシートで出す | 承認 |
+| [0024](0024-recommend-right-after-save.md) | 次の 1 曲の提案は、記録を保存した直後にシートで出す | 承認（出すのは履歴タブで保存したときだけ → 0070） |
 | [0025](0025-switch-root-sheet-after-save.md) | 記録シートと保存直後のシートは、`RootView` の 1 つのシートで切り替え、閉じ終わってから次を出す | 承認 |
 | [0026](0026-next-track-recommendation-weights.md) | 次の 1 曲の提案は端末の中の純粋関数で決め、点数を久しぶり度の 4 倍に重み付けする | 承認 |
 | [0027](0027-sendable-repository-protocols-for-environment-keys.md) | Repository の EnvironmentKey は、プロトコルを Sendable にし、初期値をメインアクターの外で作れるようにする | 承認 |
