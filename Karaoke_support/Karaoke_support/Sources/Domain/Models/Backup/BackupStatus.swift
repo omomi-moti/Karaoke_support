@@ -4,7 +4,7 @@ import Foundation
 /// 設定に出すバックアップの状態。端末の `UserDefaults` に置く 5 つのうち、画面に要るものだけを持つ（ADR 0058）。
 struct BackupStatus: Equatable, Sendable {
 	/// 同意の画面の版。送る項目を増やしたら上げ、同意を取り直すまで送らない。
-	static let currentConsentVersion = 1
+	static let currentConsentVersion = 2
 
 	let isEnabled: Bool
 	let consentVersion: Int?
