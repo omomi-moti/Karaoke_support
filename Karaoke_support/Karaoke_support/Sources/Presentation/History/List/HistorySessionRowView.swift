@@ -5,6 +5,25 @@ struct HistorySessionRowView: View {
 	let item: HistorySessionRowDisplayItem
 
 	var body: some View {
+		HStack(spacing: 12) {
+			cardContent
+			Image(systemName: "chevron.right")
+				.font(.footnote.weight(.semibold))
+				.foregroundStyle(AppColor.textTertiary)
+				.accessibilityHidden(true)
+		}
+		.padding(16)
+		.background(
+			RoundedRectangle(cornerRadius: 16, style: .continuous)
+				.fill(AppColor.surfaceCard)
+		)
+		.overlay(
+			RoundedRectangle(cornerRadius: 16, style: .continuous)
+				.stroke(AppColor.borderSubtle, lineWidth: 1)
+		)
+	}
+
+	private var cardContent: some View {
 		HStack(alignment: .top, spacing: 12) {
 			VStack(alignment: .leading, spacing: 6) {
 				TrackTitleLineView(
@@ -38,15 +57,6 @@ struct HistorySessionRowView: View {
 			.accessibilityElement(children: .combine)
 			.accessibilityLabel(ScoreFormat.accessibilityLabel(item.score))
 		}
-		.padding(16)
-		.background(
-			RoundedRectangle(cornerRadius: 16, style: .continuous)
-				.fill(AppColor.surfaceCard)
-		)
-		.overlay(
-			RoundedRectangle(cornerRadius: 16, style: .continuous)
-				.stroke(AppColor.borderSubtle, lineWidth: 1)
-		)
 	}
 }
 

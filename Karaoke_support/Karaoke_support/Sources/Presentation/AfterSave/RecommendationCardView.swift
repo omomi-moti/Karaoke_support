@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// 保存直後のシートの提案カード（順位・曲名・理由の行）。タップでその曲を記録する（#115）。
-/// 最新の記録にハートが付いた曲は、右端にハートを出す（#124）。
+/// 最新の記録にハートが付いた曲は、右端の＋の左にハートを出す（#124）。右端の＋は、検索の行と同じく「この曲で記録する」を表す（#191）。
 /// `rank` が `nil` のときは順位を出さず、`note` があれば理由の行の下に出す（挑戦中の曲・#131）。
 struct RecommendationCardView: View {
 	let rank: Int?
@@ -46,6 +46,10 @@ struct RecommendationCardView: View {
 						.foregroundStyle(AppColor.accentScore)
 						.accessibilityHidden(true)
 				}
+				Image(systemName: "plus.circle.fill")
+					.font(.title2)
+					.foregroundStyle(AppColor.addButton)
+					.accessibilityHidden(true)
 			}
 			.padding(.horizontal, 14)
 			.padding(.vertical, 12)
