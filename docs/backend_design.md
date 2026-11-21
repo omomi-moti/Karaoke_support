@@ -135,7 +135,7 @@ Go は標準の `net/http`（1.22 以降のルーティング）と `pgx` を使
 | GET | `/v1/backup` | バックアップを読む（版の番号も返す） | 要る |
 | DELETE | `/v1/backup` | バックアップを消す（オフにしたとき）。なくても 204 | 要る |
 
-`PUT /v1/backup` の本文は `{"schemaVersion": 1, "trackCount": 曲の数, "sessionCount": 記録の数, "payload": {"tracks": […], "sessions": […]}}`。知らない項目があれば 400 で、サーバーは `payload` が JSON のオブジェクトかだけを見て、中身は読まずに保存する。成功・`GET` の返事には、版の番号を `ETag: "<版>"` でも付ける。版が合わない・条件の形が違うときの返事は、それぞれ `{"error": "precondition_failed"}`（412）・`{"error": "precondition_required"}`（428）・`{"error": "invalid_request"}`（400）。
+`PUT /v1/backup` の本文は `{"schemaVersion": 2, "trackCount": 曲の数, "sessionCount": 記録の数, "payload": {"tracks": […], "sessions": […]}}`。`schemaVersion` は 1 からサーバーが知っている最新（今は 2）までを受け付け、それ以外は 400（ADR 0067）。知らない項目があれば 400 で、サーバーは `payload` が JSON のオブジェクトかだけを見て、中身は読まずに保存する。成功・`GET` の返事には、版の番号を `ETag: "<版>"` でも付ける。版が合わない・条件の形が違うときの返事は、それぞれ `{"error": "precondition_failed"}`（412）・`{"error": "precondition_required"}`（428）・`{"error": "invalid_request"}`（400）。
 
 失敗したときは、トークンが偽物・期限切れなど利用者の側の失敗は 401、Apple や DB に届かないなどサーバーの側の失敗は 5xx を返す。返事の本文は `{"error": "..."}` の形にし、詳しい理由はログにだけ出す（ADR 0054）。
 

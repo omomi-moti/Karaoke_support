@@ -63,7 +63,7 @@ func (f *fakeStorage) Delete(ctx context.Context, userID string) error {
 }
 
 func TestServicePut(t *testing.T) {
-	valid := Contents{SchemaVersion: SupportedSchemaVersion, TrackCount: 1, SessionCount: 2, Payload: []byte(`{}`)}
+	valid := Contents{SchemaVersion: LatestSchemaVersion, TrackCount: 1, SessionCount: 2, Payload: []byte(`{}`)}
 	tests := []struct {
 		name      string
 		cond      Condition
@@ -73,7 +73,8 @@ func TestServicePut(t *testing.T) {
 	}{
 		{"If-None-Match は作る", Condition{IfNoneMatch: true}, valid, nil, []string{"create"}},
 		{"If-Match は置き換える", Condition{IfMatch: 4}, valid, nil, []string{"replace"}},
-		{"知らない schemaVersion は受け付けない", Condition{IfNoneMatch: true}, Contents{SchemaVersion: 2, Payload: []byte(`{}`)}, ErrInvalidBackup, nil},
+		{"前の schemaVersion も受け付ける", Condition{IfNoneMatch: true}, Contents{SchemaVersion: 1, Payload: []byte(`{}`)}, nil, []string{"create"}},
+		{"知らない schemaVersion は受け付けない", Condition{IfNoneMatch: true}, Contents{SchemaVersion: LatestSchemaVersion + 1, Payload: []byte(`{}`)}, ErrInvalidBackup, nil},
 		{"schemaVersion がなければ受け付けない", Condition{IfNoneMatch: true}, Contents{Payload: []byte(`{}`)}, ErrInvalidBackup, nil},
 		{"負の件数は受け付けない", Condition{IfNoneMatch: true}, Contents{SchemaVersion: 1, TrackCount: -1, Payload: []byte(`{}`)}, ErrInvalidBackup, nil},
 		{"条件がなければ受け付けない", Condition{}, valid, ErrInvalidBackup, nil},
@@ -100,7 +101,7 @@ func TestServicePut(t *testing.T) {
 
 // TestServicePutSameContents は、条件が合わなくても、今のバックアップと同じ中身なら今の版を返すことを確かめる（ADR 0061）。
 func TestServicePutSameContents(t *testing.T) {
-	sent := Contents{SchemaVersion: SupportedSchemaVersion, TrackCount: 1, SessionCount: 2, Payload: []byte(`{"tracks":[],"sessions":[]}`)}
+	sent := Contents{SchemaVersion: LatestSchemaVersion, TrackCount: 1, SessionCount: 2, Payload: []byte(`{"tracks":[],"sessions":[]}`)}
 	other := sent
 	other.SessionCount = 3
 	dbErr := errors.New("db is down")
@@ -135,7 +136,7 @@ func TestServicePutSameContents(t *testing.T) {
 // TestServicePutDoesNotCompareOnSuccess は、置き換えられたときは同じ中身かを見に行かないことを確かめる。
 func TestServicePutDoesNotCompareOnSuccess(t *testing.T) {
 	store := &fakeStorage{}
-	valid := Contents{SchemaVersion: SupportedSchemaVersion, Payload: []byte(`{}`)}
+	valid := Contents{SchemaVersion: LatestSchemaVersion, Payload: []byte(`{}`)}
 	if _, _, err := (&Service{store: store}).Put(context.Background(), "u", Condition{IfMatch: 1}, valid); err != nil {
 		t.Fatal(err)
 	}
