@@ -8,6 +8,8 @@ struct SettingsContainerView: View {
 	/// アカウントの欄がないときは nil。サインインしていなくても欄を出す（ADR 0072）。
 	@State private var backupViewModel: BackupSectionViewModel?
 	@Environment(\.backupStatusTick) private var backupStatusTick
+	/// 端末にサインインのトークンがあるか。同意の画面で、サインインから始めるかを決める。
+	private let isSignedIn: () -> Bool
 	/// 取り込んだあとにオンにすると選んだら `true` にし、同意の画面へ進む。
 	@State private var isShowingBackupConsent = false
 
@@ -15,13 +17,15 @@ struct SettingsContainerView: View {
 		accountRepository: (any AccountRepositoryProtocol)? = nil,
 		backupRepository: (any BackupRepositoryProtocol)? = nil
 	) {
+		let isSignedIn = { accountRepository?.isSignedIn ?? false }
+		self.isSignedIn = isSignedIn
 		let accountViewModel = accountRepository.map { AccountSectionViewModel(accountRepository: $0) }
 		_accountViewModel = State(initialValue: accountViewModel)
 		_backupViewModel = State(initialValue: accountViewModel.flatMap { accountViewModel in
 			backupRepository.map { backupRepository in
 				BackupSectionViewModel(
 					backupRepository: backupRepository,
-					isSignedIn: { accountRepository?.isSignedIn ?? false },
+					isSignedIn: isSignedIn,
 					onSignInRequired: { Task { await accountViewModel.load() } }
 				)
 			}
@@ -85,8 +89,8 @@ struct SettingsContainerView: View {
 			Task { await backupViewModel?.load() }
 		}
 		.navigationDestination(isPresented: $isShowingBackupConsent) {
-			if let backupViewModel {
-				BackupConsentView(signIn: nil) {
+			if let accountViewModel, let backupViewModel {
+				BackupConsentView(signIn: consentSignIn(accountViewModel)) {
 					Task { await backupViewModel.enable() }
 				}
 			}
@@ -95,9 +99,10 @@ struct SettingsContainerView: View {
 	}
 
 	#if DEBUG || BETA
-	/// サインイン中でなければ、同意の画面でアカウントの欄と同じサインインを使う。
+	/// 端末にトークンがなければ、同意の画面でアカウントの欄と同じサインインを使う。
+	/// アカウントの欄の表示ではなくトークンで決める。トークンがあってアカウントを読めなかったときに、サインインし直させないため。
 	private func consentSignIn(_ accountViewModel: AccountSectionViewModel) -> BackupConsentView.SignIn? {
-		if case .signedIn = accountViewModel.status { return nil }
+		guard !isSignedIn() else { return nil }
 		return BackupConsentView.SignIn(
 			makeHashedNonce: accountViewModel.makeHashedNonce,
 			complete: { await accountViewModel.signIn(identityToken: $0) },
