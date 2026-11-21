@@ -20,6 +20,7 @@
   <img src="docs/screenshots/history.png" alt="履歴" width="160">
   <img src="docs/screenshots/track-detail.png" alt="曲詳細" width="160">
   <img src="docs/screenshots/search.png" alt="検索タブ（曲名と歌手名を切り替えて探す。打つ前は最近歌った曲が出る）" width="160">
+  <img src="docs/screenshots/settings.png" alt="設定（TestFlight 版。サインインしてバックアップをオンにした状態）" width="160">
 </p>
 
 ---
@@ -107,7 +108,7 @@ Sources/
 │   ├── Songs/            # 選曲タブ
 │   ├── Selection/        # 選曲画面（また歌いたい・今の気分に合う曲）
 │   ├── Search/           # 検索タブ
-│   ├── Settings/         # 設定タブ（アカウントの欄）
+│   ├── Settings/         # 設定タブ（アカウント・バックアップ・データ・このアプリについて）
 │   ├── Root/             # TabView・シートの切り替え・DB を開けなかったときの画面
 │   ├── Common/           # 共通コンポーネント
 │   └── Theme/            # 色トークン

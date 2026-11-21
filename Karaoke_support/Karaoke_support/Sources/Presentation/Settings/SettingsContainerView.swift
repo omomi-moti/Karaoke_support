@@ -43,15 +43,18 @@ struct SettingsContainerView: View {
 				#else
 				Label("記録はこの iPhone の中にだけ保存されます", systemImage: "iphone")
 				#endif
-				PrivacyPolicyLinkView()
 			} header: {
-				Text("データについて")
+				Text("データ")
 			} footer: {
 				#if DEBUG || BETA
 				Text("バックアップをオンにしたときだけ、メモを除いた記録をサーバーにも送ります。メモは外部に送信されません。アプリを削除すると、この iPhone の記録は消えます。")
 				#else
 				Text("記録・気分・メモは外部に送信されません。アプリを削除すると、記録も消えます。")
 				#endif
+			}
+			Section("このアプリについて") {
+				SupportLinkView()
+				PrivacyPolicyLinkView()
 			}
 			#if DEBUG || BETA
 			if let accountViewModel {

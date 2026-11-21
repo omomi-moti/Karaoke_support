@@ -32,9 +32,8 @@ struct AccountSectionView: View {
 				}
 				.signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
 				.frame(height: 44)
-			case .signedIn(let account):
+			case .signedIn:
 				Label("Apple でサインイン中", systemImage: "checkmark.circle")
-				LabeledContent("アカウント ID", value: "\(account.id.prefix(8))…")
 			case .failed(let message):
 				VStack(alignment: .leading, spacing: 8) {
 					Text(message)
@@ -45,7 +44,7 @@ struct AccountSectionView: View {
 				}
 			}
 		} header: {
-			Text("アカウント（開発中）")
+			Text("アカウント")
 		} footer: {
 			Text("Apple のアカウントでサインインします。サインインすると、記録をバックアップでき、前の iPhone の記録を取り込めます。名前とメールアドレスは受け取りません。")
 		}
