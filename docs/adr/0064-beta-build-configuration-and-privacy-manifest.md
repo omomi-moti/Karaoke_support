@@ -1,6 +1,6 @@
 # 0064. Beta の構成は Release を写して xcconfig と専用のスキームで作り、Privacy Manifest は構成ごとに外して差し替える
 
-- 2026-11-17 ／ 承認
+- 2026-11-17 ／ 承認（プライバシーポリシーの行を置く欄は置き換え済み → [0068](0068-settings-sections-by-role.md)）
 - 背景：ADR 0053 の 2-A で、TestFlight には Release を写した Beta のビルドで配り、`BETA` の印でアカウントとバックアップを出し分けると決めた。コードは `#if DEBUG || BETA` で書いてあるが、Xcode の構成は Debug と Release しかなく、今アーカイブするとどちらも入らない（#169）。あわせて、Issue 3 で作ったバックアップ用の Privacy Manifest（`Config/PrivacyInfo-Beta.xcprivacy`）はアプリのフォルダの外にあり、どのビルドにも入っていない。アプリのフォルダは同期フォルダなので、中のファイルは構成を問わず全部入る。ADR 0055 の見直す条件の「Beta のビルド設定を作るとき（つなぎ先の渡し方）」もここで決める
 
 ## 比較した案
