@@ -41,7 +41,7 @@ struct RootView: View {
     @State private var isClosingSavedRecording = false
     /// 保存したあと、記録シートが閉じ終わったら `true`。「保存しました」は、これと ``isSavedToastNeeded`` がそろってから出す。
     @State private var hasClosedSavedRecording = false
-    /// 保存直後のシートを出さないと決まったら `true`（選曲タブ・候補が 0 件・編集・読み込みの失敗）。シートの見出しが「保存しました」なので、出すときは重ねない（ADR 0070）。
+    /// 保存直後のシートを出さないと決まったら `true`（履歴タブ以外・候補が 0 件・編集・読み込みの失敗）。シートの見出しが「保存しました」なので、出すときは重ねない（ADR 0070）。
     @State private var isSavedToastNeeded = false
     /// 保存のたびに増やす。前の保存の候補の読み込みが遅れて終わっても、今の保存の「保存しました」を決めないため。
     @State private var saveGeneration = 0
@@ -170,7 +170,7 @@ struct RootView: View {
     }
 
     /// 保存したら記録シートを閉じ、今のタブのまま、候補があれば保存直後のシートを出す（#115、ADR 0070）。
-    /// 選曲タブでは出さない。後ろの選曲画面が、保存した記録の気分で読み直されて、そのまま次の曲の候補になるため。
+    /// 出すのは履歴タブで保存したときだけ。選曲タブでは後ろの選曲画面がそのまま次の曲の候補になり、検索タブでは歌う曲がもう決まっているため。
     private func handleSaved(_ saved: SavedRecording) {
         // 前の保存のときの中身や時刻が残っていても使わない
         preparedAfterSaveContent = nil
@@ -182,7 +182,7 @@ struct RootView: View {
         isClosingSavedRecording = true
         closeSheet()
         historyReloadTick += 1
-        guard selectedTab != .songs else {
+        guard selectedTab == .history else {
             isSavedToastNeeded = true
             return
         }

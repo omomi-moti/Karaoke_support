@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 保存直後のシート。保存した記録を確かめ、次の 1 曲の候補を出す（#115）。選曲タブ以外で保存したときだけ出る（ADR 0070）。
+/// 保存直後のシート。保存した記録を確かめ、次の 1 曲の候補を出す（#115）。履歴タブで保存したときだけ出る（ADR 0070）。
 struct AfterSaveRecommendationSheetView: View {
 	let content: AfterSaveSheetContent
 	let onSelect: (TrackRecommendation) -> Void
