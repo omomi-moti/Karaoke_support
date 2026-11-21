@@ -39,13 +39,28 @@ struct SwiftDataBackupSnapshotWriterTests {
 	@Test("空の端末に書き込むと、読む処理で読み直したときに同じ中身になる")
 	func roundTrip() throws {
 		let snapshot = BackupSnapshot(
-			tracks: [track(), track(trackB, name: "曲B")],
+			tracks: [track(artist: "歌手A"), track(trackB, name: "曲B")],
 			sessions: [session(1), session(2), session(3, trackId: trackB, score: nil)]
 		)
 
 		try SwiftDataBackupSnapshotWriter(modelContext: context).write(snapshot)
 
 		#expect(try SwiftDataBackupSnapshotReader(modelContext: context).readSnapshot() == snapshot)
+	}
+
+	@Test("同じ曲名でも歌手名が違えば、別の曲として取り込む")
+	func sameNameDifferentArtist() throws {
+		let snapshot = BackupSnapshot(
+			tracks: [track(artist: "歌手A"), track(trackB, artist: "歌手B")],
+			sessions: [session(1), session(2, trackId: trackB)]
+		)
+
+		try SwiftDataBackupSnapshotWriter(modelContext: context).write(snapshot)
+
+		let tracks = try context.fetch(FetchDescriptor<Track>())
+		let artists = Dictionary(uniqueKeysWithValues: tracks.map { ($0.id, $0.userEnteredArtistName) })
+		#expect(artists == [trackA: "歌手A", trackB: "歌手B"])
+		#expect(try counts() == [2, 2])
 	}
 
 	@Test("歌った回数は記録の件数から数え、記録のない曲は 0 にする。メモは空")
@@ -85,6 +100,8 @@ struct SwiftDataBackupSnapshotWriterTests {
 		("曲名がない", BackupSnapshot(tracks: [track(name: nil)], sessions: [])),
 		("曲の id が重なる", BackupSnapshot(tracks: [track(), track(name: "曲B")], sessions: [])),
 		("曲名が重なる", BackupSnapshot(tracks: [track(), track(trackB)], sessions: [])),
+		("曲名と歌手名が重なる", BackupSnapshot(tracks: [track(artist: "歌手A"), track(trackB, artist: "歌手A")], sessions: [])),
+		("空文字の歌手名は空と重なる", BackupSnapshot(tracks: [track(artist: ""), track(trackB)], sessions: [])),
 		("記録の id が重なる", BackupSnapshot(tracks: [track()], sessions: [session(1), session(1)])),
 		("記録の曲がない", BackupSnapshot(tracks: [track()], sessions: [session(1), session(2, trackId: trackB)])),
 		("点数が 100 を超える", BackupSnapshot(tracks: [track()], sessions: [session(1), session(2, score: 100.001)])),
