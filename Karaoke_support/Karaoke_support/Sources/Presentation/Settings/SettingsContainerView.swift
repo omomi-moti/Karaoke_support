@@ -53,6 +53,9 @@ struct SettingsContainerView: View {
 				Text("記録・気分・メモは外部に送信されません。アプリを削除すると、記録も消えます。")
 				#endif
 			}
+			Section {
+				SupportLinkView()
+			}
 			#if DEBUG || BETA
 			if let accountViewModel {
 				AccountActionsSectionView(viewModel: accountViewModel)
